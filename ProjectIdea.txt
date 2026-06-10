@@ -1,0 +1,32 @@
+Venda: Plataforma operacional para pequenos saas
+
+---
+
+Entities
+
+Organizations: name
+
+    Users: organization_id, email, password, created_at, deleted_at, type (adm, dev)
+
+    Projects: organization_id, name, show_public_page, public_page_slug
+
+        Services: project_id, status, url, interval_seconds (1m default now), timeout_secondss, expected_response_status, incident_detection_fails, consecutives_incident_detection_fails, email_to_alert, enabled
+
+            HelthCheck: service_id, url, request_time, is_error?, timed_out?, response_status, response_json_data,
+
+            Incident: service_id, started_at, resolved_at, emails_sent
+
+---
+
+Incident Detection
+
+Incident Start Time:
+Incident Recovery Time:
+Status:
+
+---
+
+Ideias futuras
+
+- Quantos fails para identificar incidente e em quanto tempo?
+- Quantos sucessos para identificar a volta de um incidente e em quanto tempo?
