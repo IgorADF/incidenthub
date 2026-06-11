@@ -36,3 +36,6 @@ coverage/
 # Misc
 *.tmp
 *.temp
+
+# Prisma/db
+generated
