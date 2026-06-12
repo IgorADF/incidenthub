@@ -1,51 +1,76 @@
 # AGENTS.md
 
 ## Project Context
-IncidentHub — a platform for small SaaS companies to monitor service health and detect incidents. The API is a TypeScript + Fastify app.
+IncidentHub — a platform for small SaaS companies to monitor service health and detect incidents.
+Two independent TypeScript packages (no monorepo tooling, no root `package.json`).
 
 ## Repository Structure
-- `api/` — all application code. No root-level package.json.
-- `api/src/` — TypeScript source.
-- `api/dist/` — build output (ignored in git).
+- `api/` — Fastify v5 HTTP API. Entry: `src/server.ts`.
+- `core/` — Domain layer: Prisma schema, repositories, use-cases. Not an HTTP app.
 - `ProjectIdea.txt` — business requirements (Portuguese).
 
-## Technology Stack
-- **Runtime**: Node.js (ES Modules)
-- **Framework**: Fastify v5
-- **Language**: TypeScript with strict settings
-- **Dev server**: `tsx` (hot reload)
-- **Build**: `tsc`
-- **No root-level tooling**: all scripts are inside `api/`.
+## Commands
+All commands run **inside the relevant package directory** — there is no root-level script.
 
-## Working in the API
-All commands must run from `api/`:
+### api
 ```bash
 cd api
-npm run dev      # tsx watch src/server.ts
+npm run dev      # tsx watch src/server.ts (port 3000)
 npm run build    # tsc
 npm run start    # node dist/server.js
 ```
 
-## TypeScript Quirks
-- `"type": "module"` in `api/package.json` — ES modules only.
-- `moduleResolution: nodenext` — **always use `.js` extensions in relative imports** (e.g., `import { app } from './app.js'`).
-- `verbatimModuleSyntax: true` — **always use `import type` for type-only imports** (e.g., `import type { FastifyInstance } from 'fastify'`). Using `import` for types causes a build error.
-- `strict: true`, `noUncheckedIndexedAccess: true`, `exactOptionalPropertyTypes: true` — no sloppy types.
+### core
+```bash
+cd core
+npx prisma generate        # regenerate client → src/db/generated/
+npx prisma migrate dev     # create & apply migration
+npx prisma migrate reset   # reset DB
+npx prisma studio          # open DB GUI
+```
 
-## Entry Points
-- **Dev**: `api/src/server.ts` — boots Fastify on `PORT` (default 3000).
-- **Build**: `api/dist/server.js` — compiled output.
-- **App wiring**: `api/src/app.ts` creates Fastify instance, registers routes.
-- **Routes**: `api/src/routes/index.ts` (Fastify plugin pattern).
+## TypeScript (both packages)
+- `"type": "module"` — ES Modules only.
+- `moduleResolution: "bundler"` — `.js` extensions in relative imports are **not** required.
+- `strict: true`, `noUncheckedIndexedAccess` not set (api has it off; core uses default strict).
+- `verbatimModuleSyntax` is **not** enabled — regular `import` works for types.
 
-## Domain Model (from `ProjectIdea.txt`)
-- Organizations → Users → Projects → Services
-- Services have HealthChecks and Incidents
-- Incident detection logic based on consecutive failed health checks
-- Future: configurable thresholds for incident start/recovery
+## core — Architecture
+Clean Architecture with Unit-of-Work pattern.
 
-## Important Notes
-- There is no database configured yet. No ORM, no migration tool, no env file.
-- There are no tests yet (`npm test` is a placeholder).
-- No linting or formatting tools configured yet.
-- All Fastify routes should be registered as plugins in `api/src/routes/` and imported in `api/src/app.ts`.
+```
+core/src/
+  db/
+    schema.prisma          ← single Prisma schema (PostgreSQL)
+    prisma-client.ts       ← singleton PrismaClient (uses @prisma/adapter-pg)
+    generated/             ← gitignored, run `prisma generate`
+    migrations/
+  repositories/
+    interfaces/            ← contracts (OrganizationsRepInterface, UOW)
+    prisma/                ← Prisma implementations (PrismaUOW, PrismaOrganizationsRep)
+    in-memory/             ← in-memory fakes for testing (IMOrganizationsRep)
+  use-cases/               ← business logic classes (receive UOW via constructor)
+  types/                   ← shared types (TPrismaClient)
+```
+
+**Key patterns:**
+- Every repository has an **interface** in `interfaces/` and implementations in `prisma/` and `in-memory/`.
+- `UOW` (Unit of Work) wraps repositories + `$transaction`. Use-cases receive `UOW` in constructor.
+- New entity? Add: Prisma model → interface → Prisma impl → in-memory impl → register in `UOW.repositories`.
+
+## api — Architecture
+Minimal Fastify app. Routes are plugins registered in `src/routes/index.ts`.
+Controllers go in `src/controllers/`, middlewares in `src/middlewares/` (both empty for now).
+
+## Domain Model
+Organizations → Users → Projects → Services → HealthChecks / Incidents.
+
+## Environment
+Both `api/.env` and `core/.env` exist. `DATABASE_URL` points to PostgreSQL.
+`core/prisma.config.ts` reads `DATABASE_URL` via `dotenv` for Prisma CLI commands.
+
+## Current State
+- No tests configured in either package.
+- No linting or formatting tools.
+- No CI workflows.
+- `core` use-cases and repositories are scaffolded but mostly stubs (TODO).
