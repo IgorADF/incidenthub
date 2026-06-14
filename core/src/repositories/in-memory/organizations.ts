@@ -1,24 +1,19 @@
-import { Organization } from "../../types/entities";
+import { Organization } from "../../entities/organization";
 import { OrganizationsRepInterface } from "../interfaces/organizations";
 import { IMUOWdb } from "./_uow";
-import { createIMDefaultValues } from "../../utils/im-default-values";
 
 export class IMOrganizationsRep implements OrganizationsRepInterface {
   constructor(private readonly db: IMUOWdb) {}
 
   async getByName(name: string) {
-    const sup = this.db.organizations.find((org) => org.name === name);
-    return sup ?? null;
+    const record = this.db.organizations.find(
+      (org) => org.getProps().name === name,
+    );
+    return record ?? null;
   }
 
-  async create({ name }: { name: string }) {
-    const newOrg: Organization = {
-      name,
-      ...createIMDefaultValues(),
-    };
-
-    this.db.organizations.push(newOrg);
-
-    return newOrg;
+  async create(data: Organization) {
+    this.db.organizations.push(data);
+    return data;
   }
 }

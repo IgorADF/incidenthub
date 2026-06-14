@@ -1,35 +1,19 @@
-import { User } from "../../types/entities";
+import { User } from "../../entities/user";
 import { TPrismaClient } from "../../types/prisma-client";
-import { createPrismaDefaultValues } from "../../utils/prisma-default-values";
 import { UsersRepInterface } from "../interfaces/users";
 
 export class PrismaUsersRep implements UsersRepInterface {
   constructor(private readonly prisma: TPrismaClient) {}
 
   async getByEmail(email: string) {
-    return await this.prisma.user.findUnique({ where: { email } });
+    const record = await this.prisma.user.findUnique({ where: { email } });
+    return record ? User.fromPrismaToEntity(record) : null;
   }
 
-  async create({
-    organizationId,
-    email,
-    password,
-    type,
-  }: {
-    organizationId: string;
-    email: string;
-    password: string;
-    type: "ADMIN" | "DEV";
-  }) {
-    const newUser: User = {
-      organizationId,
-      email,
-      password,
-      type,
-      deletedAt: null,
-      ...createPrismaDefaultValues(),
-    };
-
-    return await this.prisma.user.create({ data: newUser });
+  async create(data: User) {
+    const record = await this.prisma.user.create({
+      data: User.fromEntityToPrisma(data),
+    });
+    return User.fromPrismaToEntity(record);
   }
 }

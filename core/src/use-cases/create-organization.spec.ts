@@ -20,18 +20,18 @@ describe("Create Organization", () => {
   it("should create a new organization and the first user", async () => {
     const result = await sut.execute("Acme Corp", userInput);
 
-    expect(result.organization).toEqual(
+    expect(result.organization.getProps()).toEqual(
       expect.objectContaining({ name: "Acme Corp" }),
     );
-    expect(result.organization.id).toBeDefined();
-    expect(result.user).toEqual(
+    expect(result.organization.getProps().id).toBeDefined();
+    expect(result.user.getProps()).toEqual(
       expect.objectContaining({
         email: "admin@acme.com",
-        organizationId: result.organization.id,
+        organizationId: result.organization.getProps().id,
         type: "ADMIN",
       }),
     );
-    expect(result.user.id).toBeDefined();
+    expect(result.user.getProps().id).toBeDefined();
   });
 
   it("should create the first user with the provided type", async () => {
@@ -40,7 +40,7 @@ describe("Create Organization", () => {
       type: "DEV",
     });
 
-    expect(result.user.type).toBe("DEV");
+    expect(result.user.getProps().type).toBe("DEV");
   });
 
   it("should throw EntityAlreadyExists when org name is taken", async () => {
@@ -71,7 +71,7 @@ describe("Create Organization", () => {
       password: "secret",
     });
 
-    expect(result.organization.name).toBe("Other Corp");
-    expect(result.user.email).toBe("admin@other.com");
+    expect(result.organization.getProps().name).toBe("Other Corp");
+    expect(result.user.getProps().email).toBe("admin@other.com");
   });
 });

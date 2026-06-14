@@ -1,4 +1,5 @@
-import { Organization, User } from "../../types/entities";
+import { Organization } from "../../entities/organization";
+import { User } from "../../entities/user";
 import { UOW } from "../interfaces/_uow";
 import { IMOrganizationsRep } from "./organizations";
 import { IMUsersRep } from "./users";
