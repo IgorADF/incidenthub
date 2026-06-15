@@ -1,4 +1,5 @@
 import { UOW } from "../repositories/interfaces/_uow";
+import { comparePassword } from "../utils/password";
 import { InvalidCredentialError } from "./errors/InvalidCredentialError";
 
 type AuthenticateUserInput = {
@@ -16,7 +17,12 @@ export class Authenticateuser {
       throw new InvalidCredentialError();
     }
 
-    if (user.getProps().password !== input.password) {
+    const isPasswordValid = await comparePassword(
+      input.password,
+      user.getProps().password,
+    );
+
+    if (!isPasswordValid) {
       throw new InvalidCredentialError();
     }
 

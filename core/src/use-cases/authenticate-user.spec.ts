@@ -3,6 +3,7 @@ import { Authenticateuser } from "./authenticate-user";
 import { IMUOW } from "../repositories/in-memory/_uow";
 import { Organization } from "../entities/organization";
 import { User } from "../entities/user";
+import { hashPassword } from "../utils/password";
 import { InvalidCredentialError } from "./errors/InvalidCredentialError";
 
 let uow: IMUOW;
@@ -23,7 +24,8 @@ describe("Authenticate User", () => {
     const organization = Organization.create({ name: "Acme Corp" });
     const user = User.create({
       organizationId: organization.getProps().id,
-      ...credentials,
+      email: credentials.email,
+      password: await hashPassword(credentials.password),
       type: "ADMIN",
     });
 
@@ -38,7 +40,6 @@ describe("Authenticate User", () => {
         type: "ADMIN",
       }),
     );
-    expect(result.user.getProps().password).toBe(credentials.password);
   });
 
   it("should throw InvalidCredentialError when user is not found", async () => {
@@ -51,7 +52,7 @@ describe("Authenticate User", () => {
     const user = User.create({
       organizationId: organization.getProps().id,
       email: credentials.email,
-      password: credentials.password,
+      password: await hashPassword(credentials.password),
       type: "ADMIN",
     });
 

@@ -1,6 +1,7 @@
 import { Organization } from "../entities/organization";
 import { User } from "../entities/user";
 import { UOW } from "../repositories/interfaces/_uow";
+import { hashPassword } from "../utils/password";
 import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
 
 type CreateOrganizationUser = {
@@ -38,7 +39,7 @@ export class Createorganization {
     const user = User.create({
       organizationId: organization.getProps().id,
       email: userToCreate.email,
-      password: userToCreate.password,
+      password: await hashPassword(userToCreate.password),
       type: userToCreate.type ?? "ADMIN",
     });
 

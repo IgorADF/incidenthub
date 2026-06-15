@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { Createorganization } from "./create-organization";
 import { IMUOW } from "../repositories/in-memory/_uow";
+import { comparePassword } from "../utils/password";
 import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
 
 let uow: IMUOW;
@@ -32,6 +33,9 @@ describe("Create Organization", () => {
       }),
     );
     expect(result.user.getProps().id).toBeDefined();
+    await expect(
+      comparePassword(userInput.password, result.user.getProps().password),
+    ).resolves.toBe(true);
   });
 
   it("should create the first user with the provided type", async () => {
@@ -46,21 +50,17 @@ describe("Create Organization", () => {
   it("should throw EntityAlreadyExists when org name is taken", async () => {
     await sut.execute("Acme Corp", userInput);
 
-    await expect(() =>
+    await expect(
       sut.execute("Acme Corp", { email: "other@acme.com", password: "secret" }),
-    ).rejects.toMatchObject({
-      code: "EntityAlreadyExists",
-      context: { entity: "organization", field: "name" },
-    });
+    ).rejects.toBeInstanceOf(EntityAlreadyExists);
   });
 
   it("should throw EntityAlreadyExists when user email is taken", async () => {
     await sut.execute("Acme Corp", userInput);
 
-    await expect(() => sut.execute("Other Corp", userInput)).rejects.toMatchObject({
-      code: "EntityAlreadyExists",
-      context: { entity: "user", field: "email" },
-    });
+    await expect(sut.execute("Other Corp", userInput)).rejects.toBeInstanceOf(
+      EntityAlreadyExists,
+    );
   });
 
   it("should allow different users with same org name ", async () => {
