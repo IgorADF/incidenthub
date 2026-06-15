@@ -7,6 +7,7 @@ import {
   createOrganization,
 } from "../utils/test-factories";
 import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
+import { LimitExceededError } from "./errors/LimitExceededError";
 import { NotAllowedError } from "./errors/NotAllowedError";
 
 let uow: IMUOW;
@@ -112,5 +113,20 @@ describe("Create Project", () => {
         publicPageSlug: "incident-hub",
       }),
     ).rejects.toBeInstanceOf(EntityAlreadyExists);
+  });
+
+  it("should throw LimitExceededError when organization already has 5 projects", async () => {
+    const organization = await createOrganization(uow, "Acme Corp");
+    const admin = await createAdminUser(uow, organization, "admin@acme.com");
+
+    for (let i = 1; i <= 5; i++) {
+      await sut.execute(admin.getProps().id, {
+        name: `Project ${i}`,
+      });
+    }
+
+    await expect(
+      sut.execute(admin.getProps().id, { name: "Project 6" }),
+    ).rejects.toBeInstanceOf(LimitExceededError);
   });
 });

@@ -1,7 +1,10 @@
 import { Project } from "../entities/project";
 import { UOW } from "../repositories/interfaces/_uow";
 import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
+import { LimitExceededError } from "./errors/LimitExceededError";
 import { NotAllowedError } from "./errors/NotAllowedError";
+
+const MAX_PROJECTS_PER_ORGANIZATION = 5;
 
 type CreateProjectInput = {
   name: string;
@@ -19,11 +22,20 @@ export class CreateProject {
       throw new NotAllowedError();
     }
 
-    const projectWithSameName =
-      await this.uow.repositories.projects.getByNameAndOrganizationId(
-        input.name,
+    const organizationProjects =
+      await this.uow.repositories.projects.getByOrganizationId(
         creator.getProps().organizationId,
       );
+
+    if (organizationProjects.length >= MAX_PROJECTS_PER_ORGANIZATION) {
+      throw new LimitExceededError(
+        `Organization cannot have more than ${MAX_PROJECTS_PER_ORGANIZATION} projects`,
+      );
+    }
+
+    const projectWithSameName = organizationProjects.find(
+      (project) => project.getProps().name === input.name,
+    );
 
     if (projectWithSameName) {
       throw new EntityAlreadyExists({
@@ -33,10 +45,9 @@ export class CreateProject {
     }
 
     if (input.publicPageSlug) {
-      const projectWithSameSlug =
-        await this.uow.repositories.projects.getByPublicPageSlug(
-          input.publicPageSlug,
-        );
+      const projectWithSameSlug = organizationProjects.find(
+        (project) => project.getProps().publicPageSlug === input.publicPageSlug,
+      );
 
       if (projectWithSameSlug) {
         throw new EntityAlreadyExists({
