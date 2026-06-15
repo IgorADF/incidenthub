@@ -1,9 +1,11 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { Createproject } from "./create-project";
 import { IMUOW } from "../repositories/in-memory/_uow";
-import { Organization } from "../entities/organization";
-import { User } from "../entities/user";
-import { hashPassword } from "../utils/password";
+import {
+  createAdminUser,
+  createDevUser,
+  createOrganization,
+} from "../utils/test-factories";
 import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
 import { NotAllowedError } from "./errors/NotAllowedError";
 
@@ -14,28 +16,6 @@ const projectInput = {
   name: "Incident Hub",
 };
 
-async function createAdminUser(organization: Organization, email: string) {
-  const user = User.create({
-    organizationId: organization.getProps().id,
-    email,
-    password: await hashPassword("admin-secret"),
-    type: "ADMIN",
-  });
-  await uow.repositories.users.create(user);
-  return user;
-}
-
-async function createDevUser(organization: Organization, email: string) {
-  const user = User.create({
-    organizationId: organization.getProps().id,
-    email,
-    password: await hashPassword("dev-secret"),
-    type: "DEV",
-  });
-  await uow.repositories.users.create(user);
-  return user;
-}
-
 describe("Create Project", () => {
   beforeEach(() => {
     uow = new IMUOW();
@@ -43,9 +23,8 @@ describe("Create Project", () => {
   });
 
   it("should create a project when creator is admin", async () => {
-    const organization = Organization.create({ name: "Acme Corp" });
-    await uow.repositories.organizations.create(organization);
-    const admin = await createAdminUser(organization, "admin@acme.com");
+    const organization = await createOrganization(uow, "Acme Corp");
+    const admin = await createAdminUser(uow, organization, "admin@acme.com");
 
     const result = await sut.execute(admin.getProps().id, projectInput);
 
@@ -61,9 +40,8 @@ describe("Create Project", () => {
   });
 
   it("should create a project with public page slug", async () => {
-    const organization = Organization.create({ name: "Acme Corp" });
-    await uow.repositories.organizations.create(organization);
-    const admin = await createAdminUser(organization, "admin@acme.com");
+    const organization = await createOrganization(uow, "Acme Corp");
+    const admin = await createAdminUser(uow, organization, "admin@acme.com");
 
     const result = await sut.execute(admin.getProps().id, {
       ...projectInput,
@@ -86,9 +64,8 @@ describe("Create Project", () => {
   });
 
   it("should throw NotAllowedError when creator is not an admin", async () => {
-    const organization = Organization.create({ name: "Acme Corp" });
-    await uow.repositories.organizations.create(organization);
-    const dev = await createDevUser(organization, "dev@acme.com");
+    const organization = await createOrganization(uow, "Acme Corp");
+    const dev = await createDevUser(uow, organization, "dev@acme.com");
 
     await expect(
       sut.execute(dev.getProps().id, projectInput),
@@ -96,9 +73,8 @@ describe("Create Project", () => {
   });
 
   it("should throw EntityAlreadyExists when project name is already used in the organization", async () => {
-    const organization = Organization.create({ name: "Acme Corp" });
-    await uow.repositories.organizations.create(organization);
-    const admin = await createAdminUser(organization, "admin@acme.com");
+    const organization = await createOrganization(uow, "Acme Corp");
+    const admin = await createAdminUser(uow, organization, "admin@acme.com");
     await sut.execute(admin.getProps().id, projectInput);
 
     await expect(
@@ -107,12 +83,14 @@ describe("Create Project", () => {
   });
 
   it("should allow same project name in different organizations", async () => {
-    const organizationA = Organization.create({ name: "Acme Corp" });
-    const organizationB = Organization.create({ name: "Other Corp" });
-    await uow.repositories.organizations.create(organizationA);
-    await uow.repositories.organizations.create(organizationB);
-    const adminA = await createAdminUser(organizationA, "admin@acme.com");
-    const adminB = await createAdminUser(organizationB, "admin@other.com");
+    const organizationA = await createOrganization(uow, "Acme Corp");
+    const organizationB = await createOrganization(uow, "Other Corp");
+    const adminA = await createAdminUser(uow, organizationA, "admin@acme.com");
+    const adminB = await createAdminUser(
+      uow,
+      organizationB,
+      "admin@other.com",
+    );
 
     await sut.execute(adminA.getProps().id, projectInput);
     const result = await sut.execute(adminB.getProps().id, projectInput);
@@ -121,9 +99,8 @@ describe("Create Project", () => {
   });
 
   it("should throw EntityAlreadyExists when public page slug is already used", async () => {
-    const organization = Organization.create({ name: "Acme Corp" });
-    await uow.repositories.organizations.create(organization);
-    const admin = await createAdminUser(organization, "admin@acme.com");
+    const organization = await createOrganization(uow, "Acme Corp");
+    const admin = await createAdminUser(uow, organization, "admin@acme.com");
     await sut.execute(admin.getProps().id, {
       ...projectInput,
       publicPageSlug: "incident-hub",

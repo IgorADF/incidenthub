@@ -1,9 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { Authenticateuser } from "./authenticate-user";
 import { IMUOW } from "../repositories/in-memory/_uow";
-import { Organization } from "../entities/organization";
-import { User } from "../entities/user";
-import { hashPassword } from "../utils/password";
+import { createAdminUser, createOrganization } from "../utils/test-factories";
 import { InvalidCredentialError } from "./errors/InvalidCredentialError";
 
 let uow: IMUOW;
@@ -21,16 +19,13 @@ describe("Authenticate User", () => {
   });
 
   it("should authenticate user with valid credentials", async () => {
-    const organization = Organization.create({ name: "Acme Corp" });
-    const user = User.create({
-      organizationId: organization.getProps().id,
-      email: credentials.email,
-      password: await hashPassword(credentials.password),
-      type: "ADMIN",
-    });
-
-    await uow.repositories.organizations.create(organization);
-    await uow.repositories.users.create(user);
+    const organization = await createOrganization(uow, "Acme Corp");
+    await createAdminUser(
+      uow,
+      organization,
+      credentials.email,
+      credentials.password,
+    );
 
     const result = await sut.execute(credentials);
 
@@ -48,16 +43,13 @@ describe("Authenticate User", () => {
   });
 
   it("should throw InvalidCredentialError when password is incorrect", async () => {
-    const organization = Organization.create({ name: "Acme Corp" });
-    const user = User.create({
-      organizationId: organization.getProps().id,
-      email: credentials.email,
-      password: await hashPassword(credentials.password),
-      type: "ADMIN",
-    });
-
-    await uow.repositories.organizations.create(organization);
-    await uow.repositories.users.create(user);
+    const organization = await createOrganization(uow, "Acme Corp");
+    await createAdminUser(
+      uow,
+      organization,
+      credentials.email,
+      credentials.password,
+    );
 
     const error = await sut
       .execute({ email: credentials.email, password: "wrong-password" })
