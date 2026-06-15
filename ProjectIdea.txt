@@ -26,6 +26,26 @@ Status:
 
 ---
 
+Necessary cases
+
+- List users - somente adm
+- Create users - somente adm - Cria na empresa da pessoa que esta criando
+- Forgot user password - public
+- AuthUser
+- Cria Projeto
+- Cria Servico - Dentro do Servico Selecionado
+- Lista Projetos
+- Lista Servicos do Projeto
+- Deleta Servico
+- Deleta Projeto
+
+Tech to add
+- Redis
+- RateLimit - Public (IP) and authenticated
+- BullMQ
+
+---
+
 Ideias futuras
 
 - Quantos fails para identificar incidente e em quanto tempo?
