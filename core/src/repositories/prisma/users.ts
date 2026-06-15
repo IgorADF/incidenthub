@@ -5,6 +5,11 @@ import { UsersRepInterface } from "../interfaces/users";
 export class PrismaUsersRep implements UsersRepInterface {
   constructor(private readonly prisma: TPrismaClient) {}
 
+  async getById(id: string) {
+    const record = await this.prisma.user.findUnique({ where: { id } });
+    return record ? User.fromPrismaToEntity(record) : null;
+  }
+
   async getByEmail(email: string) {
     const record = await this.prisma.user.findUnique({ where: { email } });
     return record ? User.fromPrismaToEntity(record) : null;

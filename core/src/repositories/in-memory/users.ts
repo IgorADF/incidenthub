@@ -5,6 +5,11 @@ import { IMUOWdb } from "./_uow";
 export class IMUsersRep implements UsersRepInterface {
   constructor(private readonly db: IMUOWdb) {}
 
+  async getById(id: string) {
+    const record = this.db.users.find((u) => u.getProps().id === id);
+    return record ?? null;
+  }
+
   async getByEmail(email: string) {
     const record = this.db.users.find((u) => u.getProps().email === email);
     return record ?? null;
