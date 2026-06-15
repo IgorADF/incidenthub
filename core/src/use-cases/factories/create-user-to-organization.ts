@@ -1,10 +1,10 @@
 import { prismaClient } from "../../db/prisma-client";
 import { PrismaUOW } from "../../repositories/prisma/_uow";
-import { Createusertoorganization } from "../create-user-to-organization";
+import { CreateUserToOrganization } from "../create-user-to-organization";
 
 export function createUserToOrganizationFactory() {
   const uow = new PrismaUOW(prismaClient);
-  const useCase = new Createusertoorganization(uow);
+  const useCase = new CreateUserToOrganization(uow);
 
   return { useCase };
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { Createusertoorganization } from "./create-user-to-organization";
+import { CreateUserToOrganization } from "./create-user-to-organization";
 import { IMUOW } from "../repositories/in-memory/_uow";
 import { comparePassword } from "../utils/password";
 import {
@@ -11,7 +11,7 @@ import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
 import { NotAllowedError } from "./errors/NotAllowedError";
 
 let uow: IMUOW;
-let sut: Createusertoorganization;
+let sut: CreateUserToOrganization;
 
 const newUserInput = {
   email: "newuser@acme.com",
@@ -21,7 +21,7 @@ const newUserInput = {
 describe("Create User To Organization", () => {
   beforeEach(() => {
     uow = new IMUOW();
-    sut = new Createusertoorganization(uow);
+    sut = new CreateUserToOrganization(uow);
   });
 
   it("should create a new user in the same organization when creator is admin", async () => {

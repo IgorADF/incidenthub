@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { Createproject } from "./create-project";
+import { CreateProject } from "./create-project";
 import { IMUOW } from "../repositories/in-memory/_uow";
 import {
   createAdminUser,
@@ -10,7 +10,7 @@ import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
 import { NotAllowedError } from "./errors/NotAllowedError";
 
 let uow: IMUOW;
-let sut: Createproject;
+let sut: CreateProject;
 
 const projectInput = {
   name: "Incident Hub",
@@ -19,7 +19,7 @@ const projectInput = {
 describe("Create Project", () => {
   beforeEach(() => {
     uow = new IMUOW();
-    sut = new Createproject(uow);
+    sut = new CreateProject(uow);
   });
 
   it("should create a project when creator is admin", async () => {

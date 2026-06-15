@@ -10,7 +10,7 @@ type CreateUserToOrganizationInput = {
   type?: "ADMIN" | "DEV";
 };
 
-export class Createusertoorganization {
+export class CreateUserToOrganization {
   constructor(private readonly uow: UOW) {}
 
   async execute(

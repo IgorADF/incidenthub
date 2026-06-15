@@ -44,7 +44,7 @@ type CreateExampleInput = {
   name: string;
 };
 
-export class Createexample {
+export class CreateExample {
   constructor(private readonly uow: UOW) {}
 
   async execute(creatorUserId: string, input: CreateExampleInput) {
@@ -78,11 +78,11 @@ export class Createexample {
 ```ts
 import { prismaClient } from "../../db/prisma-client";
 import { PrismaUOW } from "../../repositories/prisma/_uow";
-import { Createexample } from "../create-example";
+import { CreateExample } from "../create-example";
 
 export function createExampleFactory() {
   const uow = new PrismaUOW(prismaClient);
-  const useCase = new Createexample(uow);
+  const useCase = new CreateExample(uow);
 
   return { useCase };
 }
@@ -92,7 +92,7 @@ export function createExampleFactory() {
 
 ```ts
 import { describe, it, expect, beforeEach } from "vitest";
-import { Createexample } from "./create-example";
+import { CreateExample } from "./create-example";
 import { IMUOW } from "../repositories/in-memory/_uow";
 import {
   createAdminUser,
@@ -103,12 +103,12 @@ import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
 import { NotAllowedError } from "./errors/NotAllowedError";
 
 let uow: IMUOW;
-let sut: Createexample;
+let sut: CreateExample;
 
 describe("Create Example", () => {
   beforeEach(() => {
     uow = new IMUOW();
-    sut = new Createexample(uow);
+    sut = new CreateExample(uow);
   });
 
   it("should create an example when creator is admin", async () => {
@@ -138,7 +138,7 @@ describe("Create Example", () => {
 
 ## Conventions
 
-- **Class naming:** remove hyphens and capitalize the first letter, e.g. `create-organization` → `Createorganization`.
+- **Class naming:** convert the kebab-case file name to PascalCase, preserving every word boundary, e.g. `create-organization` → `CreateOrganization`, `authenticate-user` → `AuthenticateUser`, and `create-user-to-organization` → `CreateUserToOrganization`.
 - **Authorization:** always verify the actor exists and has permission before processing the input.
 - **Uniqueness checks:** query repositories before building entities; throw `EntityAlreadyExists` with `{ entity, field }` context.
 - **Transactions:** build entities outside the transaction, then pass them into `uow.transaction` for persistence.

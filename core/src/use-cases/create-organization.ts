@@ -10,7 +10,7 @@ type CreateOrganizationUser = {
   type?: "ADMIN" | "DEV";
 };
 
-export class Createorganization {
+export class CreateOrganization {
   constructor(private readonly uow: UOW) {}
 
   async execute(orgName: string, userToCreate: CreateOrganizationUser) {

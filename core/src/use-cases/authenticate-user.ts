@@ -7,7 +7,7 @@ type AuthenticateUserInput = {
   password: string;
 };
 
-export class Authenticateuser {
+export class AuthenticateUser {
   constructor(private readonly uow: UOW) {}
 
   async execute(input: AuthenticateUserInput) {

@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { Authenticateuser } from "./authenticate-user";
+import { AuthenticateUser } from "./authenticate-user";
 import { IMUOW } from "../repositories/in-memory/_uow";
 import { createAdminUser, createOrganization } from "../utils/test-factories";
 import { InvalidCredentialError } from "./errors/InvalidCredentialError";
 
 let uow: IMUOW;
-let sut: Authenticateuser;
+let sut: AuthenticateUser;
 
 const credentials = {
   email: "admin@acme.com",
@@ -15,7 +15,7 @@ const credentials = {
 describe("Authenticate User", () => {
   beforeEach(() => {
     uow = new IMUOW();
-    sut = new Authenticateuser(uow);
+    sut = new AuthenticateUser(uow);
   });
 
   it("should authenticate user with valid credentials", async () => {

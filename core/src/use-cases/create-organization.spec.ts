@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { Createorganization } from "./create-organization";
+import { CreateOrganization } from "./create-organization";
 import { IMUOW } from "../repositories/in-memory/_uow";
 import { comparePassword } from "../utils/password";
 import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
 
 let uow: IMUOW;
-let sut: Createorganization;
+let sut: CreateOrganization;
 
 const userInput = {
   email: "admin@acme.com",
@@ -15,7 +15,7 @@ const userInput = {
 describe("Create Organization", () => {
   beforeEach(() => {
     uow = new IMUOW();
-    sut = new Createorganization(uow);
+    sut = new CreateOrganization(uow);
   });
 
   it("should create a new organization and the first user", async () => {

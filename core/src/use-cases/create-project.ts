@@ -9,7 +9,7 @@ type CreateProjectInput = {
   publicPageSlug?: string;
 };
 
-export class Createproject {
+export class CreateProject {
   constructor(private readonly uow: UOW) {}
 
   async execute(creatorUserId: string, input: CreateProjectInput) {
