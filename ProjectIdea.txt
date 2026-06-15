@@ -33,7 +33,7 @@ Necessary cases
 - [] Forgot user password - public
 - [X] AuthUser
 - [X] Cria Projeto
-- [] Cria Servico - Dentro do Servico Selecionado
+- [X] Cria Servico - Dentro do Projeto Selecionado
 - [] Lista Projetos
 - [] Lista Servicos do Projeto
 - [] Deleta Servico

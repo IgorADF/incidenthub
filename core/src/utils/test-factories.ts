@@ -1,4 +1,5 @@
 import { Organization } from "../entities/organization";
+import { Project } from "../entities/project";
 import { User } from "../entities/user";
 import { IMUOW } from "../repositories/in-memory/_uow";
 import { hashPassword } from "./password";
@@ -7,6 +8,21 @@ export async function createOrganization(uow: IMUOW, name: string) {
   const organization = Organization.create({ name });
   await uow.repositories.organizations.create(organization);
   return organization;
+}
+
+export async function createProject(
+  uow: IMUOW,
+  organization: Organization,
+  name: string,
+) {
+  const project = Project.create({
+    organizationId: organization.getProps().id,
+    name,
+    showPublicPage: false,
+    publicPageSlug: null,
+  });
+  await uow.repositories.projects.create(project);
+  return project;
 }
 
 export async function createUser(

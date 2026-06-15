@@ -3,6 +3,7 @@ import { TPrismaClient } from "../../types/prisma-client";
 import { UOW } from "../interfaces/_uow";
 import { PrismaOrganizationsRep } from "./organizations";
 import { PrismaProjectsRep } from "./projects";
+import { PrismaServicesRep } from "./services";
 import { PrismaUsersRep } from "./users";
 
 export class PrismaUOW implements UOW {
@@ -15,6 +16,7 @@ export class PrismaUOW implements UOW {
     return {
       organizations: new PrismaOrganizationsRep(client),
       projects: new PrismaProjectsRep(client),
+      services: new PrismaServicesRep(client),
       users: new PrismaUsersRep(client),
     };
   }
