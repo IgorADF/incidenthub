@@ -1,17 +1,21 @@
 import { Organization } from "../../entities/organization";
+import { Project } from "../../entities/project";
 import { User } from "../../entities/user";
 import { UOW } from "../interfaces/_uow";
 import { IMOrganizationsRep } from "./organizations";
+import { IMProjectsRep } from "./projects";
 import { IMUsersRep } from "./users";
 
 export type IMUOWdb = {
   organizations: Organization[];
+  projects: Project[];
   users: User[];
 };
 
 export class IMUOW implements UOW {
   private db: IMUOWdb = {
     organizations: [],
+    projects: [],
     users: [],
   };
 
@@ -20,6 +24,7 @@ export class IMUOW implements UOW {
   private createRepositories() {
     return {
       organizations: new IMOrganizationsRep(this.db),
+      projects: new IMProjectsRep(this.db),
       users: new IMUsersRep(this.db),
     };
   }
