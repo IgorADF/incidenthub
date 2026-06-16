@@ -1,0 +1,12 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  //   "mcp": {
+  //     "name-of-mcp-server": {
+  //       // ...
+  //       "enabled": true,
+  //     },
+  //     "name-of-other-mcp-server": {
+  //       // ...
+  //     },
+  //   },
+}

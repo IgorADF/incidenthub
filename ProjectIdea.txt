@@ -34,15 +34,25 @@ Necessary cases
 - [X] AuthUser
 - [X] Cria Projeto
 - [X] Cria Servico - Dentro do Projeto Selecionado
-- [] Lista Projetos
-- [] Lista Servicos do Projeto
+- [X] Lista Projetos
+- [X] Lista Servicos do Projeto
 - [] Deleta Servico
 - [] Deleta Projeto
+- [] Create HealthCheck
+- [] Create Incident
 
 Tech to add
 - Redis
 - RateLimit - Public (IP) and authenticated
 - BullMQ
+
+---
+
+Queue
+
+Como escalar isso infinitamente?
+Como rodar no horario certo cada um?
+Posso ter algo como next check? (em teoria isso deixaria sincrono e nao seria exato o tempo)
 
 ---
 
