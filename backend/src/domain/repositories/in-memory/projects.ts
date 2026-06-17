@@ -16,6 +16,13 @@ export class IMProjectsRep implements ProjectsRepInterface {
     );
   }
 
+  async getByPublicPageSlug(slug: string) {
+    const record = this.db.projects.find(
+      (p) => p.getProps().publicPageSlug === slug,
+    );
+    return record ?? null;
+  }
+
   async create(data: Project) {
     this.db.projects.push(data);
     return data;

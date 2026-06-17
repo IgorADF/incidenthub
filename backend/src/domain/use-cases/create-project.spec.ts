@@ -111,6 +111,40 @@ describe("Create Project", () => {
     ).rejects.toBeInstanceOf(EntityAlreadyExists);
   });
 
+  it("should throw EntityAlreadyExists when public page slug is already used in another organization", async () => {
+    const organizationA = await createOrganization(uow, "Acme Corp");
+    const organizationB = await createOrganization(uow, "Other Corp");
+    const adminA = await createAdminUser(uow, organizationA, "admin@acme.com");
+    const adminB = await createAdminUser(uow, organizationB, "admin@other.com");
+
+    await sut.execute(adminA.getProps().id.value, {
+      ...projectInput,
+      publicPageSlug: "incident-hub",
+    });
+
+    await expect(
+      sut.execute(adminB.getProps().id.value, {
+        name: "Other Project",
+        publicPageSlug: "incident-hub",
+      }),
+    ).rejects.toBeInstanceOf(EntityAlreadyExists);
+  });
+
+  it("should throw EntityAlreadyExists before LimitExceededError when duplicate name exists at the limit", async () => {
+    const organization = await createOrganization(uow, "Acme Corp");
+    const admin = await createAdminUser(uow, organization, "admin@acme.com");
+
+    for (let i = 1; i <= 5; i++) {
+      await sut.execute(admin.getProps().id.value, {
+        name: `Project ${i}`,
+      });
+    }
+
+    await expect(
+      sut.execute(admin.getProps().id.value, { name: "Project 1" }),
+    ).rejects.toBeInstanceOf(EntityAlreadyExists);
+  });
+
   it("should throw LimitExceededError when organization already has 5 projects", async () => {
     const organization = await createOrganization(uow, "Acme Corp");
     const admin = await createAdminUser(uow, organization, "admin@acme.com");

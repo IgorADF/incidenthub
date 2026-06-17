@@ -18,6 +18,13 @@ export class PrismaProjectsRep implements ProjectsRepInterface {
     return records.map(ProjectMapper.fromPrismaToEntity);
   }
 
+  async getByPublicPageSlug(slug: string) {
+    const record = await this.prisma.project.findUnique({
+      where: { publicPageSlug: slug },
+    });
+    return record ? ProjectMapper.fromPrismaToEntity(record) : null;
+  }
+
   async create(data: Project) {
     const record = await this.prisma.project.create({
       data: ProjectMapper.fromEntityToPrisma(data),

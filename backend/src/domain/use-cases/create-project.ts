@@ -28,12 +28,6 @@ export class CreateProject {
         creator.getProps().organizationId.value,
       );
 
-    if (organizationProjects.length >= MAX_PROJECTS_PER_ORGANIZATION) {
-      throw new LimitExceededError(
-        `Organization cannot have more than ${MAX_PROJECTS_PER_ORGANIZATION} projects`,
-      );
-    }
-
     const projectWithSameName = organizationProjects.find(
       (project) => project.getProps().name === input.name,
     );
@@ -46,9 +40,10 @@ export class CreateProject {
     }
 
     if (input.publicPageSlug) {
-      const projectWithSameSlug = organizationProjects.find(
-        (project) => project.getProps().publicPageSlug === input.publicPageSlug,
-      );
+      const projectWithSameSlug =
+        await this.uow.repositories.projects.getByPublicPageSlug(
+          input.publicPageSlug,
+        );
 
       if (projectWithSameSlug) {
         throw new EntityAlreadyExists({
@@ -56,6 +51,12 @@ export class CreateProject {
           field: "publicPageSlug",
         });
       }
+    }
+
+    if (organizationProjects.length >= MAX_PROJECTS_PER_ORGANIZATION) {
+      throw new LimitExceededError(
+        `Organization cannot have more than ${MAX_PROJECTS_PER_ORGANIZATION} projects`,
+      );
     }
 
     const project = Project.create({
