@@ -9,6 +9,8 @@ import {
 } from "@utils/test-factories";
 import { LimitExceededError } from "./errors/LimitExceededError";
 import { NotAllowedError } from "./errors/NotAllowedError";
+import { NotFoundError } from "./errors/NotFoundError";
+import { ValidationError } from "./errors/ValidationError";
 
 let uow: IMUOW;
 let sut: CreateService;
@@ -95,7 +97,7 @@ describe("Create Service", () => {
     ).rejects.toBeInstanceOf(NotAllowedError);
   });
 
-  it("should throw NotAllowedError when project is not found", async () => {
+  it("should throw NotFoundError when project is not found", async () => {
     const organization = await createOrganization(uow, "Acme Corp");
     const admin = await createAdminUser(uow, organization, "admin@acme.com");
 
@@ -105,7 +107,7 @@ describe("Create Service", () => {
         "non-existent-project-id",
         serviceInput,
       ),
-    ).rejects.toBeInstanceOf(NotAllowedError);
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it("should throw NotAllowedError when project belongs to another organization", async () => {
@@ -143,5 +145,31 @@ describe("Create Service", () => {
         url: "https://api11.example.com/health",
       }),
     ).rejects.toBeInstanceOf(LimitExceededError);
+  });
+
+  it("should throw ValidationError when url is invalid", async () => {
+    const organization = await createOrganization(uow, "Acme Corp");
+    const admin = await createAdminUser(uow, organization, "admin@acme.com");
+    const project = await createProject(uow, organization, "Incident Hub");
+
+    await expect(
+      sut.execute(admin.getProps().id.value, project.getProps().id.value, {
+        url: "not-a-url",
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it("should throw ValidationError when timeoutSeconds is not smaller than intervalSeconds", async () => {
+    const organization = await createOrganization(uow, "Acme Corp");
+    const admin = await createAdminUser(uow, organization, "admin@acme.com");
+    const project = await createProject(uow, organization, "Incident Hub");
+
+    await expect(
+      sut.execute(admin.getProps().id.value, project.getProps().id.value, {
+        url: "https://api.example.com/health",
+        intervalSeconds: 30,
+        timeoutSeconds: 30,
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
   });
 });

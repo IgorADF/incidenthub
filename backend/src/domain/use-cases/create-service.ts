@@ -3,6 +3,8 @@ import { Service } from "@domain/entities/service";
 import { UOW } from "@domain/repositories/interfaces/_uow";
 import { LimitExceededError } from "./errors/LimitExceededError";
 import { NotAllowedError } from "./errors/NotAllowedError";
+import { NotFoundError } from "./errors/NotFoundError";
+import { ValidationError } from "./errors/ValidationError";
 
 const MAX_SERVICES_PER_PROJECT = 10;
 
@@ -24,6 +26,8 @@ export class CreateService {
     projectId: string,
     input: CreateServiceInput,
   ) {
+    this.validateInput(input);
+
     const creator = await this.uow.repositories.users.getById(creatorUserId);
 
     if (!creator || creator.getProps().type !== "ADMIN") {
@@ -33,7 +37,7 @@ export class CreateService {
     const project = await this.uow.repositories.projects.getById(projectId);
 
     if (!project) {
-      throw new NotAllowedError();
+      throw new NotFoundError("Project");
     }
 
     if (
@@ -67,5 +71,22 @@ export class CreateService {
       await reps.services.create(service);
       return { service };
     });
+  }
+
+  private validateInput(input: CreateServiceInput) {
+    try {
+      new URL(input.url);
+    } catch {
+      throw new ValidationError("url must be a valid URL");
+    }
+
+    const intervalSeconds = input.intervalSeconds ?? 60;
+    const timeoutSeconds = input.timeoutSeconds ?? 30;
+
+    if (timeoutSeconds >= intervalSeconds) {
+      throw new ValidationError(
+        "timeoutSeconds must be smaller than intervalSeconds",
+      );
+    }
   }
 }
