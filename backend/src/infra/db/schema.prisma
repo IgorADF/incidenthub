@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated"
+}
+
+datasource db {
+  provider = "postgresql"
+  // url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id        String   @id
+  name      String   @unique
+  createdAt DateTime @map("created_at")
+
+  users    User[]
+  projects Project[]
+
+  @@map("organizations")
+}
+
+enum UserType {
+  ADMIN
+  DEV
+
+  @@map("user_type")
+}
+
+model User {
+  id             String   @id
+  organizationId String   @map("organization_id")
+  email          String   @unique
+  password       String
+  type           UserType
+  createdAt      DateTime @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@map("users")
+}
+
+model Project {
+  id             String   @id
+  organizationId String   @map("organization_id")
+  name           String
+  showPublicPage Boolean  @map("show_public_page")
+  publicPageSlug String?  @unique @map("public_page_slug")
+  createdAt      DateTime @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  services     Service[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@map("projects")
+}
+
+model Service {
+  id                                 String   @id
+  projectId                          String   @map("project_id")
+  name                               String
+  status                             String   @default("unknown")
+  url                                String
+  intervalSeconds                    Int      @default(60) @map("interval_seconds")
+  timeoutSeconds                     Int      @default(30) @map("timeout_seconds")
+  expectedResponseStatus             Int      @default(200) @map("expected_response_status")
+  incidentDetectionFails             Int      @default(1) @map("incident_detection_fails")
+  consecutivesIncidentDetectionFails Int      @default(0) @map("consecutives_incident_detection_fails")
+  emailToAlert                       String?  @map("email_to_alert")
+  enabled                            Boolean  @default(true)
+  createdAt                          DateTime @map("created_at")
+
+  project      Project       @relation(fields: [projectId], references: [id])
+  healthChecks HealthCheck[]
+  incidents    Incident[]
+
+  @@unique([projectId, name])
+  @@index([projectId])
+  @@map("services")
+}
+
+model HealthCheck {
+  id               String   @id
+  serviceId        String   @map("service_id")
+  url              String
+  requestTime      Int      @map("request_time")
+  isError          Boolean  @map("is_error")
+  timedOut         Boolean  @map("timed_out")
+  responseStatus   Int      @map("response_status")
+  responseJsonData String?  @map("response_json_data")
+  createdAt        DateTime @map("created_at")
+
+  service Service @relation(fields: [serviceId], references: [id])
+
+  @@index([serviceId])
+  @@index([createdAt])
+  @@map("health_checks")
+}
+
+model Incident {
+  id         String    @id
+  serviceId  String    @map("service_id")
+  startedAt  DateTime  @map("started_at")
+  resolvedAt DateTime? @map("resolved_at")
+  emailsSent Int       @map("emails_sent")
+  createdAt  DateTime  @map("created_at")
+
+  service Service @relation(fields: [serviceId], references: [id])
+
+  @@index([serviceId])
+  @@index([startedAt])
+  @@index([resolvedAt])
+  @@map("incidents")
+}

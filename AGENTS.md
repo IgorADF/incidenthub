@@ -4,102 +4,129 @@
 
 IncidentHub — operational platform for small SaaS companies to monitor service health and detect incidents.
 
-Two independent TypeScript packages, no root `package.json` or monorepo tooling.
+Independent TypeScript packages, no root `package.json` or monorepo tooling.
 
-- `api/` — Fastify v5 HTTP API. Entry: `src/server.ts`.
-- `core/` — Domain layer: Prisma schema, entities, repositories, use-cases. Not an HTTP app.
+- `backend/` — Single package that contains the domain layer, infrastructure, and two separate entrypoints:
+  - `apps/api/` — Fastify v5 HTTP API.
+  - `apps/worker/` — Background job processors (queue consumers).
+- `ui/` — React/Vite frontend.
 - `ProjectIdea.txt` — business requirements (Portuguese).
+
+The API and worker are separate processes. They share `domain/` and `infra/` but never import each other.
 
 ## Commands
 
-Run every command inside the relevant package directory.
-
-### api
+Run every command inside the `backend/` directory.
 
 ```bash
-cd api
+cd backend
 npm install
-npm run dev      # tsx watch src/server.ts, port 3000
-npm run build    # tsc
-npm run start    # node dist/server.js
-```
 
-No tests are configured.
-
-### core
-
-```bash
-cd core
-npm install
-npx prisma generate        # generate client → src/db/generated/ (not in repo)
+npx prisma generate        # generate client → src/infra/db/generated/ (not in repo)
 npx prisma migrate dev     # create & apply migration
 npx prisma migrate reset   # reset DB
 npx prisma studio          # open DB GUI
 
-npm run test                        # vitest (watch mode in terminal)
-npx vitest run                      # one-shot run
-npx vitest run src/use-cases/create-organization.spec.ts   # single file
+npm run dev:api            # tsx watch src/apps/api/server.ts, port 3000
+npm run dev:worker         # tsx watch src/apps/worker/main.ts
+npm run build              # tsc
+npm run start:api          # node dist/apps/api/server.js
+npm run start:worker       # node dist/apps/worker/main.js
+
+npm run test               # vitest run (one-shot)
+npx vitest run
+npx vitest run src/domain/use-cases/create-organization.spec.ts
 ```
 
-## TypeScript (both packages)
+## TypeScript
 
 - `"type": "module"` — ES Modules only.
 - `moduleResolution: "bundler"` — `.js` extensions in relative imports are not required.
 - `strict: true`; `noUncheckedIndexedAccess` not set.
 - `verbatimModuleSyntax` not enabled — regular `import` works for types.
 
-## core — Architecture
+## backend — Architecture
 
 Clean Architecture with Unit-of-Work.
 
 ```
-core/src/
-  db/
-    schema.prisma          ← single Prisma schema (PostgreSQL)
-    prisma-client.ts       ← singleton PrismaClient with @prisma/adapter-pg
-    generated/             ← gitignored; run `npx prisma generate`
-  entities/
-    _default.ts            ← DefaultEntity<T>: frozen props, exposed via getProps()
-    organization.ts        ← domain entity: create + fromEntityToPrisma + fromPrismaToEntity
-    user.ts
-  repositories/
-    interfaces/            ← contracts: OrganizationsRepInterface, UsersRepInterface, UOW
-    prisma/                ← Prisma implementations: PrismaUOW, PrismaOrganizationsRep, PrismaUsersRep
-    in-memory/             ← fakes for testing: IMUOW, IMOrganizationsRep, IMUsersRep
-  use-cases/
-    <name>.ts              ← business-logic class, receives UOW via constructor
-    <name>.spec.ts         ← unit tests using IMUOW
-    factories/<name>.ts    ← production wiring with PrismaUOW
-    errors/                ← domain errors extending DefaultError
-  types/
-    prisma-client.ts       ← TPrismaClient = PrismaClient | Prisma.TransactionClient
+backend/src/
+  domain/
+    entities/              ← domain entities extending DefaultEntity<T>
+    value-objects/         ← UUIDv7, CreatedAt, AssociationUUIDv7
+    repositories/
+      interfaces/          ← repository contracts + UOW interface
+      in-memory/           ← fakes for testing
+    use-cases/             ← business-logic classes
+      errors/              ← domain errors extending DefaultError
+    utils/                 ← domain-safe test helpers
+  infra/
+    db/                    ← Prisma schema + generated client
+    envs.ts                ← Zod env validation
+    factories/             ← production wiring of use-cases
+    mappers/               ← entity ↔ Prisma conversion
+    queue/                 ← BullMQ queues
+    redis/                 ← Redis connection
+    repositories/prisma/   ← Prisma implementations
+    utils/                 ← infra helpers (hashing, etc.)
+  apps/
+    api/                   ← Fastify server, routes, controllers
+    worker/                ← background job processors
+  types/                   ← shared types (TPrismaClient, HashedPassword)
 ```
+
+### Path aliases
+
+`tsconfig.json` defines:
+
+- `@domain/*` → `src/domain/*`
+- `@infra/*`  → `src/infra/*`
+- `@apps/*`   → `src/apps/*`
+- `~types/*`  → `src/types/*`
+
+Use aliases for cross-layer imports. Use relative imports only within the same folder.
+
+### Value-objects
+
+- Simple immutable classes wrapping a primitive: `UUIDv7`, `CreatedAt`, `AssociationUUIDv7`.
+- Prefer `readonly value` fields.
+- Validate on construction when possible (e.g. UUIDv7 must match UUID format).
+- Provide `equals(other)` for comparisons. Never compare value-object instances with `===` or `!==`.
 
 ### Entities
 
 - Every domain entity extends `DefaultEntity<T>`, stores frozen props, and exposes them via `getProps()`.
-- Entities generate their own `id` (uuidv7) and `createdAt`.
-- Each entity provides:
-  - `create(props)` — omitting generated fields.
+- Entities generate their own `id` (via `UUIDv7`) and `createdAt` (via `CreatedAt`).
+- IDs are typed as `UUIDv7`, foreign keys as `AssociationUUIDv7`, dates as `CreatedAt`.
+- Entities provide only `create(props)` — omitting generated fields.
+- Entities do **not** contain Prisma conversion methods. Mappers handle that.
+- Prisma models for entity-managed tables do **not** use `@default(uuid())` or `@default(now())` for `id` / `createdAt`.
+
+### Mappers
+
+- Mappers live in `src/infra/mappers/` and convert between Prisma payloads and domain entities.
+- Each mapper provides:
   - `fromEntityToPrisma(entity)` — maps the entity to the generated Prisma payload type.
   - `fromPrismaToEntity(prismaEntity)` — maps a Prisma record back to the entity.
-- Prisma models for entity-managed tables do **not** use `@default(uuid())` or `@default(now())` for `id` / `createdAt`.
+- Mappers may call `new Entity(...)` to reconstruct persisted data. All other code uses `Entity.create(...)`.
 
 ### Repositories
 
-- Every repository has an interface in `repositories/interfaces/`.
-- Implementations live in `repositories/prisma/` (production) and `repositories/in-memory/` (tests).
+- Every repository has an interface in `domain/repositories/interfaces/`.
+- Production implementations live in `infra/repositories/prisma/`.
+- In-memory fakes live in `domain/repositories/in-memory/`.
 - Repositories accept and return entity instances.
-  - Prisma implementations convert via `Entity.fromEntityToPrisma` / `Entity.fromPrismaToEntity`.
+  - Prisma implementations convert via `EntityMapper.fromEntityToPrisma` / `fromPrismaToEntity`.
   - In-memory implementations store the entity directly in the UOW db map.
 - Repository methods operate on `TPrismaClient` so they can run inside or outside a transaction.
 
 ### Unit of Work
 
-- `UOW` interface: `repositories` map + `transaction(callback)`.
+- `UOW` interface: `repositories` map + `transaction<T>(callback)`.
 - `PrismaUOW.transaction` uses `client.$transaction` and passes transaction-scoped repositories to the callback.
 - `IMUOW.transaction` calls the callback with the same in-memory repositories.
 - In-memory db map holds entity instances (`Organization[]`, `User[]`, etc.).
+- The transaction callback can return any value; the return type is preserved via the generic `<T>`.
 
 ### Use-cases
 
@@ -110,7 +137,7 @@ core/src/
 
 ### Factories
 
-- Production factories are in `use-cases/factories/<use-case>.ts`.
+- Production factories are in `infra/factories/<name>.usecase.ts`.
 - They create a `PrismaUOW` from the singleton `prismaClient`, instantiate the use-case, and return `{ useCase }`.
 
 ### Errors
@@ -123,32 +150,37 @@ core/src/
 - Unit tests use `IMUOW` — no database needed.
 - Pattern: `new IMUOW()` in `beforeEach`, pass it to the use-case constructor, assert behavior.
 - Assert entity values through `.getProps()`, e.g. `result.organization.getProps().name`.
-- See `src/use-cases/create-organization.spec.ts` for the canonical example.
+- See `src/domain/use-cases/create-organization.spec.ts` for the canonical example.
 
 ### Adding a new entity
 
-1. Add the Prisma model to `src/db/schema.prisma` (no `@default(uuid())` / `@default(now())` for entity-managed fields).
-2. Create the entity class in `src/entities/<name>.ts` with `create`, `fromEntityToPrisma`, and `fromPrismaToEntity`.
-3. Add the repository interface to `repositories/interfaces/`.
-4. Implement it in `repositories/prisma/` and `repositories/in-memory/`.
-5. Register it in `UOW.repositories`, `PrismaUOW.createRepositories`, and `IMUOW.createRepositories`.
-6. Add use-case, factory, and spec following the existing naming conventions.
+1. Add the Prisma model to `src/infra/db/schema.prisma` (no `@default(uuid())` / `@default(now())` for entity-managed fields).
+2. Create any new value-objects in `src/domain/value-objects/`.
+3. Create the entity class in `src/domain/entities/<name>.ts` with `create`.
+4. Create the mapper in `src/infra/mappers/<name>.ts`.
+5. Add the repository interface to `domain/repositories/interfaces/`.
+6. Implement it in `infra/repositories/prisma/` and `domain/repositories/in-memory/`.
+7. Register it in `UOW.repositories`, `PrismaUOW.createRepositories`, and `IMUOW.createRepositories`.
+8. Add use-case, factory, and spec following the existing naming conventions.
 
 ## Prisma notes
 
-- Schema: `core/src/db/schema.prisma`.
-- Generator output is `./generated` relative to the schema, so the client lands in `core/src/db/generated/`.
-- `core/prisma.config.ts` sets the datasource URL from `DATABASE_URL` via `dotenv` for CLI commands.
-- `core/prisma.config.ts` is excluded from `tsconfig.json`.
+- Schema: `backend/src/infra/db/schema.prisma`.
+- Generator output is `./generated` relative to the schema, so the client lands in `backend/src/infra/db/generated/`.
+- `backend/prisma.config.ts` sets the datasource URL from `DATABASE_URL` via `dotenv` for CLI commands.
+- `backend/prisma.config.ts` is excluded from `tsconfig.json`.
 
 ## Environment
 
-- `core/.env` needs `DATABASE_URL` (PostgreSQL) for runtime and Prisma CLI.
-- `api/.env` can set `PORT`; defaults to `3000`.
-- `core/src/envs.ts` validates `DATABASE_URL` with Zod at import time.
+- `backend/.env` needs `DATABASE_URL` (PostgreSQL) for runtime and Prisma CLI.
+- `backend/.env` may set `PORT` for the API; defaults to `3000`.
+- `backend/.env` may set `REDIS_URL` for BullMQ; defaults to `redis://localhost:6379`.
+- `backend/src/infra/envs.ts` validates environment variables with Zod at import time.
 
 ## Current State
 
-- `core` has a working Vitest setup and one passing use-case spec.
-- `api` has no tests and no installed dependencies in this checkout.
+- `backend` has a working Vitest setup and passing use-case specs.
+- `apps/api/` routes are stubbed; real endpoints need to be wired to factories.
+- `apps/worker/` and `infra/queue/` are placeholders and not yet functional.
+- `ui/` is a separate frontend package.
 - No linting, formatting, or CI configured.

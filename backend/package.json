@@ -1,0 +1,40 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "build": "tsc",
+    "start:api": "node ./src/apps/api/server.js",
+    "start:worker": "node ./src/apps/api/server.js",
+    "dev:api": "tsx ./src/apps/worker/run.ts",
+    "dev:worker": "tsx ./src/apps/worker/run.ts",
+    "test": "npx vitest --config ./vitest.config.ts",
+    "type:check": "npx tsc --noEmit"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@types/bcrypt": "6.0.0",
+    "@types/node": "^25.9.3",
+    "@types/pg": "^8.20.0",
+    "prisma": "^7.8.0",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "vite-tsconfig-paths": "6.1.1",
+    "vitest": "4.1.8"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "bcrypt": "6.0.0",
+    "bullmq": "5.78.1",
+    "dotenv": "^17.4.2",
+    "fastify": "5.8.5",
+    "ioredis": "5.11.1",
+    "pg": "^8.21.0",
+    "uuidv7": "1.2.1",
+    "zod": "4.4.3"
+  }
+}

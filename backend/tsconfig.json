@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "target": "ES2023",
+    "strict": true,
+    "esModuleInterop": true,
+    "ignoreDeprecations": "6.0",
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "skipLibCheck": true,
+
+    "baseUrl": ".",
+    "paths": {
+      "@apps/*": ["src/apps/*"],
+      "@domain/*": ["src/domain/*"],
+      "@infra/*": ["src/infra/*"],
+      "@utils/*": ["src/utils/*"],
+      "~types/*": ["src/types/*"]
+    }
+  },
+  "exclude": [
+    "prisma.config.ts",
+    "vitest.config.ts",
+    "dist",
+    "src/infra/db/generated/"
+  ]
+}
