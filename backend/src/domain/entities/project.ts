@@ -14,7 +14,7 @@ const ProjectSchema = z
     publicPageSlug: Slug.nullable(),
     createdAt: CreatedAt,
   })
-  .refine((data) => data.showPublicPage && !data.publicPageSlug, {
+  .refine((data) => !(data.showPublicPage && !data.publicPageSlug), {
     message: "If showPublicPage is true, a valid publicPageSlug must exist",
     path: ["publicPageSlug"],
   })
