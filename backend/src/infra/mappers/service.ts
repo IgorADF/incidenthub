@@ -9,6 +9,7 @@ export class ServiceMapper {
     return {
       id: props.id,
       projectId: props.projectId,
+      name: props.name,
       status: props.status,
       url: props.url,
       intervalSeconds: props.intervalSeconds,
@@ -29,6 +30,7 @@ export class ServiceMapper {
     return Service.fromProps({
       id: UUIDv7.parse(prismaEntity.id),
       projectId: UUIDv7.parse(prismaEntity.projectId),
+      name: prismaEntity.name,
       status: prismaEntity.status,
       url: prismaEntity.url,
       intervalSeconds: prismaEntity.intervalSeconds,

@@ -16,7 +16,7 @@ const ProjectSchema = z
   })
   .refine((data) => data.showPublicPage && !data.publicPageSlug, {
     message: "If showPublicPage is true, a valid publicPageSlug must exist",
-    path: ["timeoutSeconds"],
+    path: ["publicPageSlug"],
   })
   .transform((values) => {
     if (!values.showPublicPage) {

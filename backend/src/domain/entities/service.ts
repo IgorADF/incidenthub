@@ -40,13 +40,7 @@ export class Service extends DefaultEntity<ServiceType> {
       ...props,
       status: "unknown",
       consecutivesIncidentDetectionFails: 0,
-      intervalSeconds: props.intervalSeconds,
-      timeoutSeconds: props.timeoutSeconds,
-      expectedResponseStatus: props.expectedResponseStatus,
-      incidentDetectionFails: props.incidentDetectionFails,
-      emailToAlert: props.emailToAlert,
       enabled: true,
-
       ...DefaultEntity.generateEntityDefaultValues(),
     });
   }

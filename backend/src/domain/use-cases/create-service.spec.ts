@@ -4,7 +4,6 @@ import { IMUOW } from "@domain/repositories/in-memory/_uow";
 import { LimitExceededError } from "./errors/LimitExceededError";
 import { NotAllowedError } from "./errors/NotAllowedError";
 import { NotFoundError } from "./errors/NotFoundError";
-import { ValidationError } from "./errors/ValidationError";
 import { createTestAdminUser, createTestDevUser } from "@utils/tests/user";
 import { createTestOrganization } from "@utils/tests/organization";
 import { createTestProject } from "@utils/tests/project";
@@ -20,7 +19,6 @@ const serviceInput = {
   expectedResponseStatus: 204,
   incidentDetectionFails: 3,
   emailToAlert: "ops@example.com",
-  enabled: false,
 };
 
 describe("Create Service", () => {
@@ -136,32 +134,4 @@ describe("Create Service", () => {
     ).rejects.toBeInstanceOf(LimitExceededError);
   });
 
-  it("should throw ValidationError when url is invalid", async () => {
-    const { organization } = await createTestOrganization(uow);
-    const { user: admin } = await createTestAdminUser(uow, organization);
-    const { project } = await createTestProject(uow, organization);
-
-    await expect(
-      sut.execute(admin.getProps().id, project.getProps().id, {
-        ...serviceInput,
-        url: "not-a-url",
-      }),
-    ).rejects.toBeInstanceOf(ValidationError);
-  });
-
-  it("should throw ValidationError when timeoutSeconds is not smaller than intervalSeconds", async () => {
-    const { organization } = await createTestOrganization(uow);
-    const { user: admin } = await createTestAdminUser(uow, organization);
-    const { project } = await createTestProject(uow, organization);
-
-    await expect(
-      sut.execute(admin.getProps().id, project.getProps().id, {
-        ...serviceInput,
-
-        url: "https://api.example.com/health",
-        intervalSeconds: 30,
-        timeoutSeconds: 30,
-      }),
-    ).rejects.toBeInstanceOf(ValidationError);
-  });
 });

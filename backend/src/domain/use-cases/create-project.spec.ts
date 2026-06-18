@@ -107,12 +107,14 @@ describe("Create Project", () => {
 
     await sut.execute(admin.getProps().id, {
       ...projectInput,
+      showPublicPage: true,
       publicPageSlug: "incident-hub",
     });
 
     await expect(
       sut.execute(admin.getProps().id, {
         name: "Other Project",
+        showPublicPage: true,
         publicPageSlug: "incident-hub",
       }),
     ).rejects.toBeInstanceOf(EntityAlreadyExists);
@@ -135,12 +137,14 @@ describe("Create Project", () => {
 
     await sut.execute(adminA.getProps().id, {
       ...projectInput,
+      showPublicPage: true,
       publicPageSlug: "incident-hub",
     });
 
     await expect(
       sut.execute(adminB.getProps().id, {
         name: "Other Project",
+        showPublicPage: true,
         publicPageSlug: "incident-hub",
       }),
     ).rejects.toBeInstanceOf(EntityAlreadyExists);

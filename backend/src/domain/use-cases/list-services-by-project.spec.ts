@@ -26,7 +26,6 @@ describe("List Services By Project", () => {
       expectedResponseStatus: 204,
       incidentDetectionFails: 3,
       emailToAlert: "ops@example.com",
-      enabled: false,
       name: "BackendService",
     });
 
@@ -38,7 +37,6 @@ describe("List Services By Project", () => {
       expectedResponseStatus: 204,
       incidentDetectionFails: 3,
       emailToAlert: "ops@example.com",
-      enabled: false,
       name: "BackendService2",
     });
 
@@ -70,7 +68,6 @@ describe("List Services By Project", () => {
       expectedResponseStatus: 204,
       incidentDetectionFails: 3,
       emailToAlert: "ops@example.com",
-      enabled: false,
       name: "BackendService",
     });
 
@@ -82,7 +79,6 @@ describe("List Services By Project", () => {
       expectedResponseStatus: 204,
       incidentDetectionFails: 3,
       emailToAlert: "ops@example.com",
-      enabled: false,
       name: "BackendService2",
     });
 

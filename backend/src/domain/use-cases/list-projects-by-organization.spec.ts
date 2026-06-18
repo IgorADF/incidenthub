@@ -42,4 +42,19 @@ describe("List Projects By Organization", () => {
     const result = await sut.execute(organization.getProps().id);
     expect(result.projects).toEqual([]);
   });
+
+  it("should not include projects from other organizations", async () => {
+    const { organization: organizationA } = await createTestOrganization(uow);
+    const { organization: organizationB } = await createTestOrganization(uow, {
+      name: "Other Corp",
+    });
+
+    await createTestProject(uow, organizationA, { name: "Project A" });
+    await createTestProject(uow, organizationB, { name: "Project B" });
+
+    const result = await sut.execute(organizationA.getProps().id);
+
+    expect(result.projects).toHaveLength(1);
+    expect(result.projects[0].getProps().name).toBe("Project A");
+  });
 });

@@ -89,14 +89,14 @@ Use aliases for cross-layer imports. Use relative imports only within the same f
 
 ### Value-objects
 
-- Reusable Zod schemas that brand primitives: `UUIDv7`, `CreatedAt`.
+- Reusable Zod schemas that validate primitives: `UUIDv7`, `CreatedAt`, `Email`, `URL`, `Slug`, `Password`.
 - Example:
   ```ts
-  export const UUIDv7 = z.string().uuid().brand<"UUIDv7">();
-  export type UUIDv7 = z.infer<typeof UUIDv7>;
+  export const Email = z.email();
+  export type Email = z.infer<typeof Email>;
   ```
-- Use the schema to parse values (`UUIDv7.parse(rawId)`), which validates and applies the brand.
-- IDs are typed as `UUIDv7`; both primary keys and foreign keys use the same schema.
+- Use the schema to parse values (`Email.parse(rawEmail)`), which validates and returns the typed value.
+- IDs are typed with the `UUIDv7` schema; both primary keys and foreign keys use the same schema.
 
 ### Entities
 
@@ -108,6 +108,14 @@ Use aliases for cross-layer imports. Use relative imports only within the same f
 - Entities provide:
   - `create(props)` — omitting generated fields and fields with defaults.
   - `fromProps(props)` — for mappers to reconstruct persisted data.
+- When the full entity schema uses `.refine()`, the create-input type is a plain TypeScript type derived with `OmitDefaultValues` instead of a derived Zod schema, because refined schemas cannot be omitted:
+  ```ts
+  type ServiceType = z.infer<typeof ServiceSchema>;
+  export type CreateServiceType = OmitDefaultValues<
+    ServiceType,
+    "status" | "consecutivesIncidentDetectionFails" | "enabled"
+  >;
+  ```
 - Entities do **not** contain Prisma conversion methods. Mappers handle that.
 - Prisma models for entity-managed tables do **not** use `@default(uuid())` or `@default(now())` for `id` / `createdAt`.
 
@@ -153,7 +161,7 @@ Use aliases for cross-layer imports. Use relative imports only within the same f
 
 - Domain errors extend `DefaultUseCasesError` and expose `code` + `message`.
 - `EntityAlreadyExists` also carries an optional `context: { entity?, field? }` so callers can identify what conflicted.
-- `ValidationError` lives in `domain/errors/` and is thrown by `DefaultEntity` when schema validation fails.
+- `ValidationError` lives in `domain/entities/errors/` and is thrown by `DefaultEntity` when schema validation fails.
 
 ### Tests
 
@@ -161,6 +169,51 @@ Use aliases for cross-layer imports. Use relative imports only within the same f
 - Pattern: `new IMUOW()` in `beforeEach`, pass it to the use-case constructor, assert behavior.
 - Assert entity values through `.getProps()`, e.g. `result.organization.getProps().name`.
 - See `src/domain/use-cases/create-organization.spec.ts` for the canonical example.
+
+### Value-object tests
+
+- Each value-object schema has a co-located `.spec.ts` file in `src/domain/value-objects/`.
+- Tests exercise `.parse()` for valid inputs and `.safeParse()` for invalid inputs.
+- Cover success boundaries (min/max lengths, valid formats) and failure cases (empty values, wrong types, malformed formats).
+- Example:
+  ```ts
+  import { describe, it, expect } from "vitest";
+  import { Email } from "./email";
+
+  describe("Email value object", () => {
+    it("should parse a valid email", () => {
+      expect(Email.parse("admin@acme.com")).toBe("admin@acme.com");
+    });
+
+    it("should reject a string without @", () => {
+      expect(Email.safeParse("not-an-email").success).toBe(false);
+    });
+  });
+  ```
+
+### Entity tests
+
+- Each entity has a co-located `.spec.ts` file in `src/domain/entities/`.
+- Test `Entity.create` validation directly — do not route entity-level assertions through use-case specs.
+- Include boundary tests for every min/max constraint (e.g., exactly `min` accepted, `min - 1` rejected, exactly `max` accepted, `max + 1` rejected).
+- Example:
+  ```ts
+  import { describe, it, expect } from "vitest";
+  import { Organization } from "./organization";
+  import { ValidationError } from "./errors/ValidationError";
+
+  describe("Organization entity", () => {
+    it("should accept a name with exactly 50 characters", () => {
+      expect(() => Organization.create({ name: "a".repeat(50) })).not.toThrow();
+    });
+
+    it("should reject a name longer than 50 characters", () => {
+      expect(() => Organization.create({ name: "a".repeat(51) })).toThrow(
+        ValidationError,
+      );
+    });
+  });
+  ```
 
 ### Adding a new entity
 
