@@ -7,20 +7,21 @@ export class OrganizationMapper {
   static fromEntityToPrisma(
     entity: Organization,
   ): Prisma.OrganizationGetPayload<object> {
+    const props = entity.getProps();
     return {
-      id: entity.getProps().id.value,
-      name: entity.getProps().name,
-      createdAt: entity.getProps().createdAt.value,
+      id: props.id,
+      name: props.name,
+      createdAt: props.createdAt,
     };
   }
 
   static fromPrismaToEntity(
     prismaEntity: Prisma.OrganizationGetPayload<object>,
   ): Organization {
-    return new Organization({
-      id: new UUIDv7(prismaEntity.id),
+    return Organization.fromProps({
+      id: UUIDv7.parse(prismaEntity.id),
       name: prismaEntity.name,
-      createdAt: new CreatedAt(prismaEntity.createdAt),
+      createdAt: CreatedAt.parse(prismaEntity.createdAt),
     });
   }
 }

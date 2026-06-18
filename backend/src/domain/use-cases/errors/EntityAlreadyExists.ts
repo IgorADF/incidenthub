@@ -1,18 +1,15 @@
-import { DefaultError } from "./_DefaultError";
+import { DefaultUseCasesError } from "./_DefaultUseCasesError";
 
 export type DuplicateContext = {
   entity?: string;
   field?: string;
 };
 
-export class EntityAlreadyExists extends DefaultError {
+export class EntityAlreadyExists extends DefaultUseCasesError {
   context?: DuplicateContext;
 
   constructor(context?: DuplicateContext, message?: string) {
-    super(
-      "EntityAlreadyExists",
-      message ?? defaultMessage(context),
-    );
+    super("EntityAlreadyExists", message ?? defaultMessage(context));
     this.context = context;
   }
 }

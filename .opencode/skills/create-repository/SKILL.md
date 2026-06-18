@@ -18,13 +18,14 @@ Repositories abstract persistence for a single entity. Each repository has a con
    - See the `create-entity` skill for the mapper template.
 
 3. **Implement for Prisma** at `backend/src/infra/repositories/prisma/<plural>.ts`.
-   - Import `TPrismaClient` from `~types/prisma-client`.
+   - Import `TPrismaClient` from `@infra/db/prisma-client`.
    - Accept `TPrismaClient` in the constructor so the repo works inside and outside transactions.
    - Convert results with `<Entity>Mapper.fromPrismaToEntity` and writes with `<Entity>Mapper.fromEntityToPrisma`.
 
 4. **Implement in-memory fake** at `backend/src/domain/repositories/in-memory/<plural>.ts`.
    - Accept `IMUOWdb` from `./_uow`.
    - Store and query entity instances directly in the corresponding db array.
+   - Compare branded IDs directly (no `.value`).
 
 5. **Register the repository in the UOW**:
    - `backend/src/domain/repositories/interfaces/_uow.ts` — add the interface to `repositories`.
@@ -56,23 +57,22 @@ import { UUIDv7 } from "@domain/value-objects/uuidv7";
 import { CreatedAt } from "@domain/value-objects/created-at";
 
 export class ExampleMapper {
-  static fromEntityToPrisma(
-    entity: Example,
-  ): Prisma.ExampleGetPayload<object> {
+  static fromEntityToPrisma(entity: Example): Prisma.ExampleGetPayload<object> {
+    const props = entity.getProps();
     return {
-      id: entity.getProps().id.value,
-      name: entity.getProps().name,
-      createdAt: entity.getProps().createdAt.value,
+      id: props.id,
+      name: props.name,
+      createdAt: props.createdAt,
     };
   }
 
   static fromPrismaToEntity(
     prismaEntity: Prisma.ExampleGetPayload<object>,
   ): Example {
-    return new Example({
-      id: new UUIDv7(prismaEntity.id),
+    return Example.fromProps({
+      id: UUIDv7.parse(prismaEntity.id),
       name: prismaEntity.name,
-      createdAt: new CreatedAt(prismaEntity.createdAt),
+      createdAt: CreatedAt.parse(prismaEntity.createdAt),
     });
   }
 }
@@ -83,7 +83,7 @@ export class ExampleMapper {
 ```ts
 // backend/src/infra/repositories/prisma/examples.ts
 import { Example } from "@domain/entities/example";
-import { TPrismaClient } from "~types/prisma-client";
+import { TPrismaClient } from "@infra/db/prisma-client";
 import { ExamplesRepInterface } from "@domain/repositories/interfaces/examples";
 import { ExampleMapper } from "@infra/mappers/example";
 
@@ -121,7 +121,7 @@ export class IMExamplesRep implements ExamplesRepInterface {
   constructor(private readonly db: IMUOWdb) {}
 
   async getById(id: string) {
-    const record = this.db.examples.find((e) => e.getProps().id.value === id);
+    const record = this.db.examples.find((e) => e.getProps().id === id);
     return record ?? null;
   }
 

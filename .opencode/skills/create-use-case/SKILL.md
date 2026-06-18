@@ -12,9 +12,10 @@ Use-cases encapsulate a single business operation. They receive a `UOW` via cons
 1. **Create the use-case class** at `backend/src/domain/use-cases/<name>.ts`.
    - Import `UOW` from `@domain/repositories/interfaces/_uow`.
    - Define an input type for the `execute` parameters.
-   - Query repositories for business-rule checks.
+   - Query repositories for business-rule checks (authorization, uniqueness, limits).
    - Throw domain errors from `use-cases/errors/` when rules are violated.
    - Build entities, then persist them inside `this.uow.transaction(...)`.
+   - Do **not** validate format/range rules here; those live in the entity Zod schemas.
 
 2. **Create the production factory** at `backend/src/infra/factories/<name>.usecase.ts`.
    - Build a `PrismaUOW` from the singleton `prismaClient`.
@@ -27,7 +28,7 @@ Use-cases encapsulate a single business operation. They receive a `UOW` via cons
    - Assert errors by class instance.
 
 4. **Create or reuse domain errors** in `backend/src/domain/use-cases/errors/`.
-   - Errors extend `DefaultError` from `./_DefaultError`.
+   - Errors extend `DefaultUseCasesError` from `./_DefaultUseCasesError`.
    - Provide a `code` (class name) and a default message.
 
 ## Template
@@ -118,7 +119,7 @@ describe("Create Example", () => {
     const organization = await createOrganization(uow, "Acme Corp");
     const admin = await createAdminUser(uow, organization, "admin@acme.com");
 
-    const result = await sut.execute(admin.getProps().id.value, { name: "Foo" });
+    const result = await sut.execute(admin.getProps().id, { name: "Foo" });
 
     expect(result.example.getProps()).toEqual(
       expect.objectContaining({
@@ -133,7 +134,7 @@ describe("Create Example", () => {
     const dev = await createDevUser(uow, organization, "dev@acme.com");
 
     await expect(
-      sut.execute(dev.getProps().id.value, { name: "Foo" }),
+      sut.execute(dev.getProps().id, { name: "Foo" }),
     ).rejects.toBeInstanceOf(NotAllowedError);
   });
 });
@@ -145,9 +146,10 @@ describe("Create Example", () => {
 - **Authorization:** always verify the actor exists and has permission before processing the input.
 - **Uniqueness checks:** query repositories before building entities; throw `EntityAlreadyExists` with `{ entity, field }` context.
 - **Transactions:** build entities outside the transaction, then pass them into `uow.transaction` for persistence.
-- **Value-object comparison:** compare IDs and foreign keys with `.equals()` or `.value`, never with `===` or `!==`.
+- **Entity validation:** keep format/range rules (URL, email, positive numbers, cross-field rules) in the entity Zod schemas.
 - **Passwords:** never store plain text; hash with `hashPassword` from `@utils/password` before passing to `User.create`.
 - **Test factories:** prefer `createOrganization`, `createAdminUser`, and `createDevUser` from `@utils/test-factories` over inline entity creation.
+- **Branded IDs:** do not use `.value`; pass `UUIDv7` values directly.
 
 ## Verification
 

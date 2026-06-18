@@ -1,7 +1,7 @@
 import { Organization } from "@domain/entities/organization";
 import { OrganizationsRepInterface } from "@domain/repositories/interfaces/organizations";
+import { TPrismaClient } from "@infra/db/prisma-client";
 import { OrganizationMapper } from "@infra/mappers/organization";
-import { TPrismaClient } from "~types/prisma-client";
 
 export class PrismaOrganizationsRep implements OrganizationsRepInterface {
   constructor(private readonly prisma: TPrismaClient) {}

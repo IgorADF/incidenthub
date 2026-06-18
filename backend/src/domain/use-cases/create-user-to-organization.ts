@@ -8,6 +8,7 @@ type CreateUserToOrganizationInput = {
   email: string;
   password: string;
   type?: "ADMIN" | "DEV";
+  name: string;
 };
 
 export class CreateUserToOrganization {
@@ -39,6 +40,7 @@ export class CreateUserToOrganization {
       email: newUserData.email,
       password: await hashPassword(newUserData.password),
       type: newUserData.type ?? "DEV",
+      name: newUserData.name,
     });
 
     return await this.uow.transaction(async (reps) => {

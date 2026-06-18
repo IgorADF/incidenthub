@@ -1,7 +1,7 @@
 import { Service } from "@domain/entities/service";
 import { ServicesRepInterface } from "@domain/repositories/interfaces/services";
+import { TPrismaClient } from "@infra/db/prisma-client";
 import { ServiceMapper } from "@infra/mappers/service";
-import { TPrismaClient } from "~types/prisma-client";
 
 export class PrismaServicesRep implements ServicesRepInterface {
   constructor(private readonly prisma: TPrismaClient) {}

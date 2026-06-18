@@ -1,6 +1,7 @@
 import { comparePassword } from "@utils/password";
 import { UOW } from "@domain/repositories/interfaces/_uow";
 import { InvalidCredentialError } from "./errors/InvalidCredentialError";
+import { tryCatch } from "bullmq";
 
 type AuthenticateUserInput = {
   email: string;

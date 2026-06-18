@@ -7,7 +7,7 @@ export class IMServicesRep implements ServicesRepInterface {
 
   async getByProjectId(projectId: string) {
     return this.db.services.filter(
-      (s) => s.getProps().projectId.value === projectId,
+      (s) => s.getProps().projectId === projectId,
     );
   }
 

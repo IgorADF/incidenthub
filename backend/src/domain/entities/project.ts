@@ -1,26 +1,44 @@
+import { DefaultEntity } from "./_default-class";
+import z from "zod";
 import { UUIDv7 } from "@domain/value-objects/uuidv7";
-import { DefaultEntity } from "./_default";
 import { CreatedAt } from "@domain/value-objects/created-at";
-import { AssociationUUIDv7 } from "@domain/value-objects/association-uuidv7";
+import { Slug } from "@domain/value-objects/slug";
+import { OmitDefaultValues } from "~types/omit-default-values";
 
-interface IProject {
-  id: UUIDv7;
-  organizationId: AssociationUUIDv7;
-  name: string;
-  showPublicPage: boolean;
-  publicPageSlug: string | null;
-  createdAt: CreatedAt;
-}
+const ProjectSchema = z
+  .object({
+    id: UUIDv7,
+    organizationId: UUIDv7,
+    name: z.string().min(1).max(50),
+    showPublicPage: z.boolean(),
+    publicPageSlug: Slug.nullable(),
+    createdAt: CreatedAt,
+  })
+  .refine((data) => data.showPublicPage && !data.publicPageSlug, {
+    message: "If showPublicPage is true, a valid publicPageSlug must exist",
+    path: ["timeoutSeconds"],
+  })
+  .transform((values) => {
+    if (!values.showPublicPage) {
+      values.publicPageSlug = null;
+    }
 
-export class Project extends DefaultEntity<IProject> {
-  static create(props: Omit<IProject, "id" | "createdAt">) {
-    return new Project({
-      id: new UUIDv7(),
-      organizationId: props.organizationId,
-      name: props.name,
-      showPublicPage: props.showPublicPage,
-      publicPageSlug: props.publicPageSlug,
-      createdAt: new CreatedAt(),
+    return values;
+  });
+
+type ProjectType = z.infer<typeof ProjectSchema>;
+
+export type CreateProjectType = OmitDefaultValues<ProjectType>;
+
+export class Project extends DefaultEntity<ProjectType> {
+  static create(props: CreateProjectType) {
+    return Project.fromProps({
+      ...props,
+      ...DefaultEntity.generateEntityDefaultValues(),
     });
+  }
+
+  static fromProps(props: ProjectType) {
+    return new Project(props, ProjectSchema);
   }
 }

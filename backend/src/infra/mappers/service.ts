@@ -1,34 +1,34 @@
 import { Service } from "@domain/entities/service";
 import { Prisma } from "@infra/db/generated/client";
 import { UUIDv7 } from "@domain/value-objects/uuidv7";
-import { AssociationUUIDv7 } from "@domain/value-objects/association-uuidv7";
 import { CreatedAt } from "@domain/value-objects/created-at";
 
 export class ServiceMapper {
   static fromEntityToPrisma(entity: Service): Prisma.ServiceGetPayload<object> {
+    const props = entity.getProps();
     return {
-      id: entity.getProps().id.value,
-      projectId: entity.getProps().projectId.value,
-      status: entity.getProps().status,
-      url: entity.getProps().url,
-      intervalSeconds: entity.getProps().intervalSeconds,
-      timeoutSeconds: entity.getProps().timeoutSeconds,
-      expectedResponseStatus: entity.getProps().expectedResponseStatus,
-      incidentDetectionFails: entity.getProps().incidentDetectionFails,
+      id: props.id,
+      projectId: props.projectId,
+      status: props.status,
+      url: props.url,
+      intervalSeconds: props.intervalSeconds,
+      timeoutSeconds: props.timeoutSeconds,
+      expectedResponseStatus: props.expectedResponseStatus,
+      incidentDetectionFails: props.incidentDetectionFails,
       consecutivesIncidentDetectionFails:
-        entity.getProps().consecutivesIncidentDetectionFails,
-      emailToAlert: entity.getProps().emailToAlert,
-      enabled: entity.getProps().enabled,
-      createdAt: entity.getProps().createdAt.value,
+        props.consecutivesIncidentDetectionFails,
+      emailToAlert: props.emailToAlert,
+      enabled: props.enabled,
+      createdAt: props.createdAt,
     };
   }
 
   static fromPrismaToEntity(
     prismaEntity: Prisma.ServiceGetPayload<object>,
   ): Service {
-    return new Service({
-      id: new UUIDv7(prismaEntity.id),
-      projectId: new AssociationUUIDv7(prismaEntity.projectId),
+    return Service.fromProps({
+      id: UUIDv7.parse(prismaEntity.id),
+      projectId: UUIDv7.parse(prismaEntity.projectId),
       status: prismaEntity.status,
       url: prismaEntity.url,
       intervalSeconds: prismaEntity.intervalSeconds,
@@ -39,7 +39,7 @@ export class ServiceMapper {
         prismaEntity.consecutivesIncidentDetectionFails,
       emailToAlert: prismaEntity.emailToAlert,
       enabled: prismaEntity.enabled,
-      createdAt: new CreatedAt(prismaEntity.createdAt),
+      createdAt: CreatedAt.parse(prismaEntity.createdAt),
     });
   }
 }

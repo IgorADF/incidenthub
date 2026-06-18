@@ -1,10 +1,10 @@
-import { TPrismaClient } from "~types/prisma-client";
 import { PrismaClient } from "@infra/db/generated/client";
 import { PrismaOrganizationsRep } from "./organizations";
 import { PrismaProjectsRep } from "./projects";
 import { PrismaServicesRep } from "./services";
 import { PrismaUsersRep } from "./users";
 import { UOW } from "@domain/repositories/interfaces/_uow";
+import { TPrismaClient } from "@infra/db/prisma-client";
 
 export class PrismaUOW implements UOW {
   constructor(

@@ -1,6 +1,4 @@
-export class CreatedAt {
-  readonly value: Date;
-  constructor(value?: Date) {
-    this.value = value ?? new Date();
-  }
-}
+import z from "zod";
+
+export const CreatedAt = z.date();
+export type CreatedAt = z.infer<typeof CreatedAt>;

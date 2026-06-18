@@ -1,29 +1,34 @@
-import { DefaultEntity } from "./_default";
+import { DefaultEntity } from "./_default-class";
+import z from "zod";
 import { UUIDv7 } from "@domain/value-objects/uuidv7";
 import { CreatedAt } from "@domain/value-objects/created-at";
-import { HashedPassword } from "~types/hashed-password";
-import { AssociationUUIDv7 } from "@domain/value-objects/association-uuidv7";
+import { Email } from "@domain/value-objects/email";
+import { Password } from "@domain/value-objects/password";
+import { OmitDefaultValues } from "~types/omit-default-values";
 
-interface IUser {
-  id: UUIDv7;
-  organizationId: AssociationUUIDv7;
-  email: string;
-  password: HashedPassword;
-  type: "ADMIN" | "DEV";
-  createdAt: CreatedAt;
-}
+const UserSchema = z.object({
+  id: UUIDv7,
+  organizationId: UUIDv7,
+  name: z.string().min(1).max(50),
+  email: Email,
+  password: Password,
+  type: z.enum(["ADMIN", "DEV"]),
+  createdAt: CreatedAt,
+});
 
-export class User extends DefaultEntity<IUser> {
-  static create(
-    props: Omit<IUser, "id" | "createdAt"> & { password: HashedPassword },
-  ) {
-    return new User({
-      id: new UUIDv7(),
-      organizationId: props.organizationId,
-      email: props.email,
-      password: props.password,
-      type: props.type,
-      createdAt: new CreatedAt(),
+type UserType = z.infer<typeof UserSchema>;
+
+export type CreateUserType = OmitDefaultValues<UserType>;
+
+export class User extends DefaultEntity<UserType> {
+  static create(props: CreateUserType) {
+    return User.fromProps({
+      ...props,
+      ...DefaultEntity.generateEntityDefaultValues(),
     });
+  }
+
+  static fromProps(props: UserType) {
+    return new User(props, UserSchema);
   }
 }

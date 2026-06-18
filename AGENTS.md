@@ -53,12 +53,13 @@ Clean Architecture with Unit-of-Work.
 backend/src/
   domain/
     entities/              ← domain entities extending DefaultEntity<T>
-    value-objects/         ← UUIDv7, CreatedAt, AssociationUUIDv7
+    value-objects/         ← Zod schemas: UUIDv7, CreatedAt
+    errors/                ← domain-wide errors (e.g. ValidationError)
     repositories/
       interfaces/          ← repository contracts + UOW interface
       in-memory/           ← fakes for testing
     use-cases/             ← business-logic classes
-      errors/              ← domain errors extending DefaultError
+      errors/              ← use-case errors extending DefaultUseCasesError
     utils/                 ← domain-safe test helpers
   infra/
     db/                    ← Prisma schema + generated client
@@ -72,7 +73,7 @@ backend/src/
   apps/
     api/                   ← Fastify server, routes, controllers
     worker/                ← background job processors
-  types/                   ← shared types (TPrismaClient, HashedPassword)
+  types/                   ← shared types (TPrismaClient)
 ```
 
 ### Path aliases
@@ -80,25 +81,33 @@ backend/src/
 `tsconfig.json` defines:
 
 - `@domain/*` → `src/domain/*`
-- `@infra/*`  → `src/infra/*`
-- `@apps/*`   → `src/apps/*`
-- `~types/*`  → `src/types/*`
+- `@infra/*` → `src/infra/*`
+- `@apps/*` → `src/apps/*`
+- `~types/*` → `src/types/*`
 
 Use aliases for cross-layer imports. Use relative imports only within the same folder.
 
 ### Value-objects
 
-- Simple immutable classes wrapping a primitive: `UUIDv7`, `CreatedAt`, `AssociationUUIDv7`.
-- Prefer `readonly value` fields.
-- Validate on construction when possible (e.g. UUIDv7 must match UUID format).
-- Provide `equals(other)` for comparisons. Never compare value-object instances with `===` or `!==`.
+- Reusable Zod schemas that brand primitives: `UUIDv7`, `CreatedAt`.
+- Example:
+  ```ts
+  export const UUIDv7 = z.string().uuid().brand<"UUIDv7">();
+  export type UUIDv7 = z.infer<typeof UUIDv7>;
+  ```
+- Use the schema to parse values (`UUIDv7.parse(rawId)`), which validates and applies the brand.
+- IDs are typed as `UUIDv7`; both primary keys and foreign keys use the same schema.
 
 ### Entities
 
 - Every domain entity extends `DefaultEntity<T>`, stores frozen props, and exposes them via `getProps()`.
-- Entities generate their own `id` (via `UUIDv7`) and `createdAt` (via `CreatedAt`).
-- IDs are typed as `UUIDv7`, foreign keys as `AssociationUUIDv7`, dates as `CreatedAt`.
-- Entities provide only `create(props)` — omitting generated fields.
+- Each entity defines a Zod schema for its full props and a create-input schema.
+- `DefaultEntity` validates props against the schema in the constructor and throws `ValidationError` on failure.
+- Entities generate their own `id` (via `UUIDv7.parse(uuidv7())`) and `createdAt` (via `CreatedAt.parse(new Date())`).
+- IDs are typed as `UUIDv7`; foreign keys also use `UUIDv7`; dates are `CreatedAt`.
+- Entities provide:
+  - `create(props)` — omitting generated fields and fields with defaults.
+  - `fromProps(props)` — for mappers to reconstruct persisted data.
 - Entities do **not** contain Prisma conversion methods. Mappers handle that.
 - Prisma models for entity-managed tables do **not** use `@default(uuid())` or `@default(now())` for `id` / `createdAt`.
 
@@ -108,7 +117,7 @@ Use aliases for cross-layer imports. Use relative imports only within the same f
 - Each mapper provides:
   - `fromEntityToPrisma(entity)` — maps the entity to the generated Prisma payload type.
   - `fromPrismaToEntity(prismaEntity)` — maps a Prisma record back to the entity.
-- Mappers may call `new Entity(...)` to reconstruct persisted data. All other code uses `Entity.create(...)`.
+- Mappers may call `Entity.fromProps(props)` to reconstruct persisted data. All other code uses `Entity.create(...)`.
 
 ### Repositories
 
@@ -142,8 +151,9 @@ Use aliases for cross-layer imports. Use relative imports only within the same f
 
 ### Errors
 
-- Domain errors extend `DefaultError` and expose `code` + `message`.
+- Domain errors extend `DefaultUseCasesError` and expose `code` + `message`.
 - `EntityAlreadyExists` also carries an optional `context: { entity?, field? }` so callers can identify what conflicted.
+- `ValidationError` lives in `domain/errors/` and is thrown by `DefaultEntity` when schema validation fails.
 
 ### Tests
 
@@ -155,8 +165,8 @@ Use aliases for cross-layer imports. Use relative imports only within the same f
 ### Adding a new entity
 
 1. Add the Prisma model to `src/infra/db/schema.prisma` (no `@default(uuid())` / `@default(now())` for entity-managed fields).
-2. Create any new value-objects in `src/domain/value-objects/`.
-3. Create the entity class in `src/domain/entities/<name>.ts` with `create`.
+2. Create any new value-object schemas in `src/domain/value-objects/`.
+3. Create the entity class in `src/domain/entities/<name>.ts` with `create` and `fromProps`.
 4. Create the mapper in `src/infra/mappers/<name>.ts`.
 5. Add the repository interface to `domain/repositories/interfaces/`.
 6. Implement it in `infra/repositories/prisma/` and `domain/repositories/in-memory/`.

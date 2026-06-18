@@ -2,13 +2,10 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { CreateUserToOrganization } from "./create-user-to-organization";
 import { IMUOW } from "@domain/repositories/in-memory/_uow";
 import { comparePassword } from "@utils/password";
-import {
-  createAdminUser,
-  createDevUser,
-  createOrganization,
-} from "@utils/test-factories";
 import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
 import { NotAllowedError } from "./errors/NotAllowedError";
+import { createTestOrganization } from "@utils/tests/organization";
+import { createTestAdminUser, createTestDevUser } from "@utils/tests/user";
 
 let uow: IMUOW;
 let sut: CreateUserToOrganization;
@@ -16,6 +13,7 @@ let sut: CreateUserToOrganization;
 const newUserInput = {
   email: "newuser@acme.com",
   password: "secret",
+  name: "My User",
 };
 
 describe("Create User To Organization", () => {
@@ -25,10 +23,10 @@ describe("Create User To Organization", () => {
   });
 
   it("should create a new user in the same organization when creator is admin", async () => {
-    const organization = await createOrganization(uow, "Acme Corp");
-    const admin = await createAdminUser(uow, organization, "admin@acme.com");
+    const { organization } = await createTestOrganization(uow);
+    const { user: admin } = await createTestAdminUser(uow, organization);
 
-    const result = await sut.execute(admin.getProps().id.value, newUserInput);
+    const result = await sut.execute(admin.getProps().id, newUserInput);
 
     expect(result.user.getProps()).toEqual(
       expect.objectContaining({
@@ -44,10 +42,10 @@ describe("Create User To Organization", () => {
   });
 
   it("should create a new user with the provided type", async () => {
-    const organization = await createOrganization(uow, "Acme Corp");
-    const admin = await createAdminUser(uow, organization, "admin@acme.com");
+    const { organization } = await createTestOrganization(uow);
+    const { user: admin } = await createTestAdminUser(uow, organization);
 
-    const result = await sut.execute(admin.getProps().id.value, {
+    const result = await sut.execute(admin.getProps().id, {
       ...newUserInput,
       type: "ADMIN",
     });
@@ -62,21 +60,22 @@ describe("Create User To Organization", () => {
   });
 
   it("should throw NotAllowedError when creator is not an admin", async () => {
-    const organization = await createOrganization(uow, "Acme Corp");
-    const dev = await createDevUser(uow, organization, "dev@acme.com");
+    const { organization } = await createTestOrganization(uow);
+    const { user: dev } = await createTestDevUser(uow, organization);
 
     await expect(
-      sut.execute(dev.getProps().id.value, newUserInput),
+      sut.execute(dev.getProps().id, newUserInput),
     ).rejects.toBeInstanceOf(NotAllowedError);
   });
 
   it("should throw EntityAlreadyExists when email is already taken", async () => {
-    const organization = await createOrganization(uow, "Acme Corp");
-    const admin = await createAdminUser(uow, organization, "admin@acme.com");
-    await createDevUser(uow, organization, newUserInput.email);
+    const { organization } = await createTestOrganization(uow);
+    const { user: admin } = await createTestAdminUser(uow, organization);
+
+    await createTestDevUser(uow, organization, { email: newUserInput.email });
 
     await expect(
-      sut.execute(admin.getProps().id.value, newUserInput),
+      sut.execute(admin.getProps().id, newUserInput),
     ).rejects.toBeInstanceOf(EntityAlreadyExists);
   });
 });

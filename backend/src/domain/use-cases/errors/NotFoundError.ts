@@ -1,6 +1,6 @@
-import { DefaultError } from "./_DefaultError";
+import { DefaultUseCasesError } from "./_DefaultUseCasesError";
 
-export class NotFoundError extends DefaultError {
+export class NotFoundError extends DefaultUseCasesError {
   constructor(entity?: string) {
     super(
       "NotFoundError",

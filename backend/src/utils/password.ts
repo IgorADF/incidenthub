@@ -1,11 +1,10 @@
 import bcrypt from "bcrypt";
-import { HashedPassword } from "~types/hashed-password";
 
 const SALT_ROUNDS = 10;
 
-export async function hashPassword(password: string): Promise<HashedPassword> {
+export async function hashPassword(password: string): Promise<string> {
   const result = await bcrypt.hash(password, SALT_ROUNDS);
-  return result as HashedPassword;
+  return result;
 }
 
 export async function comparePassword(

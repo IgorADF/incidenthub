@@ -1,22 +1,26 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { CreateService } from "./create-service";
 import { IMUOW } from "@domain/repositories/in-memory/_uow";
-import {
-  createAdminUser,
-  createDevUser,
-  createOrganization,
-  createProject,
-} from "@utils/test-factories";
 import { LimitExceededError } from "./errors/LimitExceededError";
 import { NotAllowedError } from "./errors/NotAllowedError";
 import { NotFoundError } from "./errors/NotFoundError";
 import { ValidationError } from "./errors/ValidationError";
+import { createTestAdminUser, createTestDevUser } from "@utils/tests/user";
+import { createTestOrganization } from "@utils/tests/organization";
+import { createTestProject } from "@utils/tests/project";
 
 let uow: IMUOW;
 let sut: CreateService;
 
 const serviceInput = {
   url: "https://api.example.com/health",
+  name: "BackendService",
+  intervalSeconds: 120,
+  timeoutSeconds: 15,
+  expectedResponseStatus: 204,
+  incidentDetectionFails: 3,
+  emailToAlert: "ops@example.com",
+  enabled: false,
 };
 
 describe("Create Service", () => {
@@ -26,35 +30,35 @@ describe("Create Service", () => {
   });
 
   it("should create a service inside a project when creator is admin", async () => {
-    const organization = await createOrganization(uow, "Acme Corp");
-    const admin = await createAdminUser(uow, organization, "admin@acme.com");
-    const project = await createProject(uow, organization, "Incident Hub");
+    const { organization } = await createTestOrganization(uow);
+    const { user: admin } = await createTestAdminUser(uow, organization);
+    const { project } = await createTestProject(uow, organization);
 
     const result = await sut.execute(
-      admin.getProps().id.value,
-      project.getProps().id.value,
+      admin.getProps().id,
+      project.getProps().id,
       serviceInput,
     );
 
-    expect(result.service.getProps().id.value).toBeDefined();
+    expect(result.service.getProps().id).toBeDefined();
   });
 
   it("should create a service with custom values", async () => {
-    const organization = await createOrganization(uow, "Acme Corp");
-    const admin = await createAdminUser(uow, organization, "admin@acme.com");
-    const project = await createProject(uow, organization, "Incident Hub");
+    const { organization } = await createTestOrganization(uow);
+    const { user: admin } = await createTestAdminUser(uow, organization);
+    const { project } = await createTestProject(uow, organization);
 
     const result = await sut.execute(
-      admin.getProps().id.value,
-      project.getProps().id.value,
+      admin.getProps().id,
+      project.getProps().id,
       {
         url: "https://api.example.com/health",
+        name: "BackendService",
         intervalSeconds: 120,
         timeoutSeconds: 15,
         expectedResponseStatus: 204,
         incidentDetectionFails: 3,
         emailToAlert: "ops@example.com",
-        enabled: false,
       },
     );
 
@@ -65,107 +69,95 @@ describe("Create Service", () => {
         expectedResponseStatus: 204,
         incidentDetectionFails: 3,
         emailToAlert: "ops@example.com",
-        enabled: false,
+        enabled: true,
       }),
     );
   });
 
   it("should throw NotAllowedError when creator is not found", async () => {
-    const organization = await createOrganization(uow, "Acme Corp");
-    const project = await createProject(uow, organization, "Incident Hub");
+    const { organization } = await createTestOrganization(uow);
+    const { project } = await createTestProject(uow, organization);
 
     await expect(
-      sut.execute(
-        "non-existent-user-id",
-        project.getProps().id.value,
-        serviceInput,
-      ),
+      sut.execute("non-existent-user-id", project.getProps().id, serviceInput),
     ).rejects.toBeInstanceOf(NotAllowedError);
   });
 
   it("should throw NotAllowedError when creator is not an admin", async () => {
-    const organization = await createOrganization(uow, "Acme Corp");
-    const dev = await createDevUser(uow, organization, "dev@acme.com");
-    const project = await createProject(uow, organization, "Incident Hub");
+    const { organization } = await createTestOrganization(uow);
+    const { user: dev } = await createTestDevUser(uow, organization);
+    const { project } = await createTestProject(uow, organization);
 
     await expect(
-      sut.execute(
-        dev.getProps().id.value,
-        project.getProps().id.value,
-        serviceInput,
-      ),
+      sut.execute(dev.getProps().id, project.getProps().id, serviceInput),
     ).rejects.toBeInstanceOf(NotAllowedError);
   });
 
   it("should throw NotFoundError when project is not found", async () => {
-    const organization = await createOrganization(uow, "Acme Corp");
-    const admin = await createAdminUser(uow, organization, "admin@acme.com");
+    const { organization } = await createTestOrganization(uow);
+    const { user: admin } = await createTestAdminUser(uow, organization);
 
     await expect(
-      sut.execute(
-        admin.getProps().id.value,
-        "non-existent-project-id",
-        serviceInput,
-      ),
+      sut.execute(admin.getProps().id, "non-existent-project-id", serviceInput),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it("should throw NotAllowedError when project belongs to another organization", async () => {
-    const organizationA = await createOrganization(uow, "Acme Corp");
-    const organizationB = await createOrganization(uow, "Other Corp");
-    const adminA = await createAdminUser(uow, organizationA, "admin@acme.com");
-    const projectB = await createProject(uow, organizationB, "Other Project");
+    const { organization: organizationA } = await createTestOrganization(uow);
+    const { organization: organizationB } = await createTestOrganization(uow, {
+      name: "Other Corp",
+    });
+
+    const { user: adminA } = await createTestAdminUser(uow, organizationA);
+    const { project: projectB } = await createTestProject(uow, organizationB);
 
     await expect(
-      sut.execute(
-        adminA.getProps().id.value,
-        projectB.getProps().id.value,
-        serviceInput,
-      ),
+      sut.execute(adminA.getProps().id, projectB.getProps().id, serviceInput),
     ).rejects.toBeInstanceOf(NotAllowedError);
   });
 
   it("should throw LimitExceededError when project already has 10 services", async () => {
-    const organization = await createOrganization(uow, "Acme Corp");
-    const admin = await createAdminUser(uow, organization, "admin@acme.com");
-    const project = await createProject(uow, organization, "Incident Hub");
+    const { organization } = await createTestOrganization(uow);
+    const { user: admin } = await createTestAdminUser(uow, organization);
+    const { project } = await createTestProject(uow, organization);
 
     for (let i = 1; i <= 10; i++) {
-      await sut.execute(
-        admin.getProps().id.value,
-        project.getProps().id.value,
-        {
-          url: `https://api${i}.example.com/health`,
-        },
-      );
+      await sut.execute(admin.getProps().id, project.getProps().id, {
+        ...serviceInput,
+        url: `https://api${i}.example.com/health`,
+      });
     }
 
     await expect(
-      sut.execute(admin.getProps().id.value, project.getProps().id.value, {
+      sut.execute(admin.getProps().id, project.getProps().id, {
+        ...serviceInput,
         url: "https://api11.example.com/health",
       }),
     ).rejects.toBeInstanceOf(LimitExceededError);
   });
 
   it("should throw ValidationError when url is invalid", async () => {
-    const organization = await createOrganization(uow, "Acme Corp");
-    const admin = await createAdminUser(uow, organization, "admin@acme.com");
-    const project = await createProject(uow, organization, "Incident Hub");
+    const { organization } = await createTestOrganization(uow);
+    const { user: admin } = await createTestAdminUser(uow, organization);
+    const { project } = await createTestProject(uow, organization);
 
     await expect(
-      sut.execute(admin.getProps().id.value, project.getProps().id.value, {
+      sut.execute(admin.getProps().id, project.getProps().id, {
+        ...serviceInput,
         url: "not-a-url",
       }),
     ).rejects.toBeInstanceOf(ValidationError);
   });
 
   it("should throw ValidationError when timeoutSeconds is not smaller than intervalSeconds", async () => {
-    const organization = await createOrganization(uow, "Acme Corp");
-    const admin = await createAdminUser(uow, organization, "admin@acme.com");
-    const project = await createProject(uow, organization, "Incident Hub");
+    const { organization } = await createTestOrganization(uow);
+    const { user: admin } = await createTestAdminUser(uow, organization);
+    const { project } = await createTestProject(uow, organization);
 
     await expect(
-      sut.execute(admin.getProps().id.value, project.getProps().id.value, {
+      sut.execute(admin.getProps().id, project.getProps().id, {
+        ...serviceInput,
+
         url: "https://api.example.com/health",
         intervalSeconds: 30,
         timeoutSeconds: 30,

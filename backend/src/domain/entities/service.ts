@@ -1,51 +1,57 @@
-import { DefaultEntity } from "./_default";
+import { DefaultEntity } from "./_default-class";
+import z from "zod";
 import { UUIDv7 } from "@domain/value-objects/uuidv7";
 import { CreatedAt } from "@domain/value-objects/created-at";
-import { AssociationUUIDv7 } from "@domain/value-objects/association-uuidv7";
+import { URL } from "@domain/value-objects/url";
+import { Email } from "@domain/value-objects/email";
+import { OmitDefaultValues } from "~types/omit-default-values";
 
-interface IService {
-  id: UUIDv7;
-  projectId: AssociationUUIDv7;
-  status: string;
-  url: string;
-  intervalSeconds: number;
-  timeoutSeconds: number;
-  expectedResponseStatus: number;
-  incidentDetectionFails: number;
-  consecutivesIncidentDetectionFails: number;
-  emailToAlert: string | null;
-  enabled: boolean;
-  createdAt: CreatedAt;
-}
+const ServiceSchema = z
+  .object({
+    id: UUIDv7,
+    projectId: UUIDv7,
+    name: z.string().min(1).max(50),
+    status: z.string().min(1).max(50),
+    url: URL,
+    intervalSeconds: z.number().int().positive().min(5).max(99999),
+    timeoutSeconds: z.number().int().positive().min(5).max(20),
+    expectedResponseStatus: z.number().int().min(100).max(599),
+    incidentDetectionFails: z.number().int().positive().max(99),
+    consecutivesIncidentDetectionFails: z.number().int().min(0).max(99999),
+    emailToAlert: Email.nullable(),
+    enabled: z.boolean(),
+    createdAt: CreatedAt,
+  })
+  .refine((data) => data.timeoutSeconds < data.intervalSeconds, {
+    message: "timeoutSeconds must be smaller than intervalSeconds",
+    path: ["timeoutSeconds"],
+  });
 
-export class Service extends DefaultEntity<IService> {
-  static create(
-    props: Pick<IService, "projectId" | "url"> &
-      Partial<
-        Omit<
-          IService,
-          | "id"
-          | "projectId"
-          | "url"
-          | "status"
-          | "consecutivesIncidentDetectionFails"
-          | "createdAt"
-        >
-      >,
-  ) {
-    return new Service({
-      id: new UUIDv7(),
-      projectId: props.projectId,
+type ServiceType = z.infer<typeof ServiceSchema>;
+
+export type CreateServiceType = OmitDefaultValues<
+  ServiceType,
+  "status" | "consecutivesIncidentDetectionFails" | "enabled"
+>;
+
+export class Service extends DefaultEntity<ServiceType> {
+  static create(props: CreateServiceType) {
+    return Service.fromProps({
+      ...props,
       status: "unknown",
-      url: props.url,
-      intervalSeconds: props.intervalSeconds ?? 60,
-      timeoutSeconds: props.timeoutSeconds ?? 30,
-      expectedResponseStatus: props.expectedResponseStatus ?? 200,
-      incidentDetectionFails: props.incidentDetectionFails ?? 1,
       consecutivesIncidentDetectionFails: 0,
-      emailToAlert: props.emailToAlert ?? null,
-      enabled: props.enabled ?? true,
-      createdAt: new CreatedAt(),
+      intervalSeconds: props.intervalSeconds,
+      timeoutSeconds: props.timeoutSeconds,
+      expectedResponseStatus: props.expectedResponseStatus,
+      incidentDetectionFails: props.incidentDetectionFails,
+      emailToAlert: props.emailToAlert,
+      enabled: true,
+
+      ...DefaultEntity.generateEntityDefaultValues(),
     });
+  }
+
+  static fromProps(props: ServiceType) {
+    return new Service(props, ServiceSchema);
   }
 }

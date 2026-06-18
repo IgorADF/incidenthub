@@ -3,7 +3,6 @@ import { UOW } from "@domain/repositories/interfaces/_uow";
 import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
 import { LimitExceededError } from "./errors/LimitExceededError";
 import { NotAllowedError } from "./errors/NotAllowedError";
-import { AssociationUUIDv7 } from "@domain/value-objects/association-uuidv7";
 
 const MAX_PROJECTS_PER_ORGANIZATION = 5;
 
@@ -25,7 +24,7 @@ export class CreateProject {
 
     const organizationProjects =
       await this.uow.repositories.projects.getByOrganizationId(
-        creator.getProps().organizationId.value,
+        creator.getProps().organizationId,
       );
 
     const projectWithSameName = organizationProjects.find(
@@ -60,9 +59,7 @@ export class CreateProject {
     }
 
     const project = Project.create({
-      organizationId: new AssociationUUIDv7(
-        creator.getProps().organizationId.value,
-      ),
+      organizationId: creator.getProps().organizationId,
       name: input.name,
       showPublicPage: input.showPublicPage ?? false,
       publicPageSlug: input.publicPageSlug ?? null,

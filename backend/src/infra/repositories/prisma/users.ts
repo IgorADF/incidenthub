@@ -1,7 +1,7 @@
 import { User } from "@domain/entities/user";
 import { UsersRepInterface } from "@domain/repositories/interfaces/users";
+import { TPrismaClient } from "@infra/db/prisma-client";
 import { UserMapper } from "@infra/mappers/user";
-import { TPrismaClient } from "~types/prisma-client";
 
 export class PrismaUsersRep implements UsersRepInterface {
   constructor(private readonly prisma: TPrismaClient) {}

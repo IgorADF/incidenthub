@@ -1,12 +1,16 @@
-import { AssociationUUIDv7 } from "@domain/value-objects/association-uuidv7";
 import { Organization } from "@domain/entities/organization";
 import { User } from "@domain/entities/user";
 import { UOW } from "@domain/repositories/interfaces/_uow";
 import { hashPassword } from "@utils/password";
 import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
 
-type CreateOrganizationUser = {
+type CreateOrganizationType = {
+  name: string;
+};
+
+type CreateOrganizationUserType = {
   email: string;
+  name: string;
   password: string;
   type?: "ADMIN" | "DEV";
 };
@@ -14,7 +18,10 @@ type CreateOrganizationUser = {
 export class CreateOrganization {
   constructor(private readonly uow: UOW) {}
 
-  async execute(orgName: string, userToCreate: CreateOrganizationUser) {
+  async execute(
+    { name: orgName }: CreateOrganizationType,
+    userToCreate: CreateOrganizationUserType,
+  ) {
     const orgWithSameName =
       await this.uow.repositories.organizations.getByName(orgName);
 
@@ -38,7 +45,8 @@ export class CreateOrganization {
 
     const organization = Organization.create({ name: orgName });
     const user = User.create({
-      organizationId: new AssociationUUIDv7(organization.getProps().id.value),
+      organizationId: organization.getProps().id,
+      name: userToCreate.name,
       email: userToCreate.email,
       password: await hashPassword(userToCreate.password),
       type: userToCreate.type ?? "ADMIN",

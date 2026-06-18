@@ -6,7 +6,7 @@ export class IMUsersRep implements UsersRepInterface {
   constructor(private readonly db: IMUOWdb) {}
 
   async getById(id: string) {
-    const record = this.db.users.find((u) => u.getProps().id.value === id);
+    const record = this.db.users.find((u) => u.getProps().id === id);
     return record ?? null;
   }
 

@@ -7,7 +7,12 @@ import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
 let uow: IMUOW;
 let sut: CreateOrganization;
 
+const orgInput = {
+  name: "Acme Corp",
+};
+
 const userInput = {
+  name: "User",
   email: "admin@acme.com",
   password: "secret",
 };
@@ -19,7 +24,7 @@ describe("Create Organization", () => {
   });
 
   it("should create a new organization and the first user", async () => {
-    const result = await sut.execute("Acme Corp", userInput);
+    const result = await sut.execute(orgInput, userInput);
 
     expect(result.organization.getProps()).toEqual(
       expect.objectContaining({ name: "Acme Corp" }),
@@ -39,7 +44,7 @@ describe("Create Organization", () => {
   });
 
   it("should create the first user with the provided type", async () => {
-    const result = await sut.execute("Acme Corp", {
+    const result = await sut.execute(orgInput, {
       ...userInput,
       type: "DEV",
     });
@@ -48,28 +53,36 @@ describe("Create Organization", () => {
   });
 
   it("should throw EntityAlreadyExists when org name is taken", async () => {
-    await sut.execute("Acme Corp", userInput);
+    await sut.execute(orgInput, userInput);
 
     await expect(
-      sut.execute("Acme Corp", { email: "other@acme.com", password: "secret" }),
+      sut.execute(orgInput, {
+        email: "other@acme.com",
+        name: "New User",
+        password: "secret",
+      }),
     ).rejects.toBeInstanceOf(EntityAlreadyExists);
   });
 
   it("should throw EntityAlreadyExists when user email is taken", async () => {
-    await sut.execute("Acme Corp", userInput);
+    await sut.execute(orgInput, userInput);
 
-    await expect(sut.execute("Other Corp", userInput)).rejects.toBeInstanceOf(
-      EntityAlreadyExists,
-    );
+    await expect(
+      sut.execute({ name: "Other Corp" }, userInput),
+    ).rejects.toBeInstanceOf(EntityAlreadyExists);
   });
 
   it("should allow different users with same org name ", async () => {
-    await sut.execute("Acme Corp", userInput);
+    await sut.execute(orgInput, userInput);
 
-    const result = await sut.execute("Other Corp", {
-      email: "admin@other.com",
-      password: "secret",
-    });
+    const result = await sut.execute(
+      { name: "Other Corp" },
+      {
+        email: "admin@other.com",
+        name: "New User",
+        password: "secret",
+      },
+    );
 
     expect(result.organization.getProps().name).toBe("Other Corp");
     expect(result.user.getProps().email).toBe("admin@other.com");

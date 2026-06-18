@@ -1,6 +1,6 @@
-import { DefaultError } from "./_DefaultError";
+import { DefaultUseCasesError } from "./_DefaultUseCasesError";
 
-export class NotAllowedError extends DefaultError {
+export class NotAllowedError extends DefaultUseCasesError {
   constructor(message?: string) {
     super(
       "NotAllowedError",
