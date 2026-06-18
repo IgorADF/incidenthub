@@ -25,7 +25,7 @@ Repositories abstract persistence for a single entity. Each repository has a con
 4. **Implement in-memory fake** at `backend/src/domain/repositories/in-memory/<plural>.ts`.
    - Accept `IMUOWdb` from `./_uow`.
    - Store and query entity instances directly in the corresponding db array.
-   - Compare branded IDs directly (no `.value`).
+   - Compare IDs with `entity.getProps().id`.
 
 5. **Register the repository in the UOW**:
    - `backend/src/domain/repositories/interfaces/_uow.ts` — add the interface to `repositories`.

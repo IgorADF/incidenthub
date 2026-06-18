@@ -4,9 +4,12 @@ import { IMUOW } from "@domain/repositories/in-memory/_uow";
 import { LimitExceededError } from "./errors/LimitExceededError";
 import { NotAllowedError } from "./errors/NotAllowedError";
 import { NotFoundError } from "./errors/NotFoundError";
-import { createTestAdminUser, createTestDevUser } from "@utils/tests/user";
-import { createTestOrganization } from "@utils/tests/organization";
-import { createTestProject } from "@utils/tests/project";
+import {
+  createTestAdminUser,
+  createTestDevUser,
+} from "@domain/use-cases/utils/tests/user";
+import { createTestOrganization } from "@domain/use-cases/utils/tests/organization";
+import { createTestProject } from "@domain/use-cases/utils/tests/project";
 
 let uow: IMUOW;
 let sut: CreateService;
@@ -133,5 +136,4 @@ describe("Create Service", () => {
       }),
     ).rejects.toBeInstanceOf(LimitExceededError);
   });
-
 });

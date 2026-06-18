@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { Project } from "./project";
 import { ValidationError } from "./errors/ValidationError";
-import { DefaultEntity } from "./_default-class";
+import { DefaultEntity } from "./_default";
 
 const baseProject = {
   organizationId: DefaultEntity.generateUUIDv7(),

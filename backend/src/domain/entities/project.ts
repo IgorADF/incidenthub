@@ -1,4 +1,4 @@
-import { DefaultEntity } from "./_default-class";
+import { DefaultEntity } from "./_default";
 import z from "zod";
 import { UUIDv7 } from "@domain/value-objects/uuidv7";
 import { CreatedAt } from "@domain/value-objects/created-at";

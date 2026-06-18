@@ -33,7 +33,7 @@ npm run build              # tsc
 npm run start:api          # node dist/apps/api/server.js
 npm run start:worker       # node dist/apps/worker/main.js
 
-npm run test               # vitest run (one-shot)
+npm run tests              # vitest run (one-shot)
 npx vitest run
 npx vitest run src/domain/use-cases/create-organization.spec.ts
 ```
@@ -60,7 +60,7 @@ backend/src/
       in-memory/           ← fakes for testing
     use-cases/             ← business-logic classes
       errors/              ← use-case errors extending DefaultUseCasesError
-    utils/                 ← domain-safe test helpers
+      utils/tests/         ← use-case test helpers (createTestOrganization, etc.)
   infra/
     db/                    ← Prisma schema + generated client
     envs.ts                ← Zod env validation
@@ -220,11 +220,12 @@ Use aliases for cross-layer imports. Use relative imports only within the same f
 1. Add the Prisma model to `src/infra/db/schema.prisma` (no `@default(uuid())` / `@default(now())` for entity-managed fields).
 2. Create any new value-object schemas in `src/domain/value-objects/`.
 3. Create the entity class in `src/domain/entities/<name>.ts` with `create` and `fromProps`.
-4. Create the mapper in `src/infra/mappers/<name>.ts`.
-5. Add the repository interface to `domain/repositories/interfaces/`.
-6. Implement it in `infra/repositories/prisma/` and `domain/repositories/in-memory/`.
-7. Register it in `UOW.repositories`, `PrismaUOW.createRepositories`, and `IMUOW.createRepositories`.
-8. Add use-case, factory, and spec following the existing naming conventions.
+4. Create the entity spec in `src/domain/entities/<name>.spec.ts` with validation and boundary tests.
+5. Create the mapper in `src/infra/mappers/<name>.ts`.
+6. Add the repository interface to `domain/repositories/interfaces/`.
+7. Implement it in `infra/repositories/prisma/` and `domain/repositories/in-memory/`.
+8. Register it in `UOW.repositories`, `PrismaUOW.createRepositories`, and `IMUOW.createRepositories`.
+9. Add use-case, factory, and spec following the existing naming conventions.
 
 ## Prisma notes
 

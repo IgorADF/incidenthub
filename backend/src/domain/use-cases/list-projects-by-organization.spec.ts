@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { ListProjectsByOrganization } from "./list-projects-by-organization";
 import { IMUOW } from "@domain/repositories/in-memory/_uow";
-import { createTestOrganization } from "@utils/tests/organization";
-import { createTestProject } from "@utils/tests/project";
+import { createTestOrganization } from "@domain/use-cases/utils/tests/organization";
+import { createTestProject } from "@domain/use-cases/utils/tests/project";
 
 let uow: IMUOW;
 let sut: ListProjectsByOrganization;

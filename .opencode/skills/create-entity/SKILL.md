@@ -15,13 +15,14 @@ This project uses Clean Architecture with domain entities that manage their own 
    - These values are generated and validated by the entity class, not the database.
    - Map fields with `@map("snake_case")` and the table with `@@map("table_name")`.
 
-2. **Create value-object schemas** if the entity needs new identifiers or dates.
+2. **Create value-object schemas** if the entity needs new domain primitives that do not exist yet.
    - Existing value-objects live in `backend/src/domain/value-objects/`.
-   - They are simple Zod branded schemas.
+   - They are simple Zod schemas.
+   - Reuse `UUIDv7` and `CreatedAt` for ids and timestamps; do not recreate them.
    - Example:
      ```ts
-     export const UUIDv7 = z.string().uuid().brand<"UUIDv7">();
-     export type UUIDv7 = z.infer<typeof UUIDv7>;
+     export const Email = z.email();
+     export type Email = z.infer<typeof Email>;
      ```
 
 3. **Create the entity class** at `backend/src/domain/entities/<name>.ts`.
@@ -41,7 +42,7 @@ import { DefaultEntity } from "./_default";
 import z from "zod";
 import { UUIDv7 } from "@domain/value-objects/uuidv7";
 import { CreatedAt } from "@domain/value-objects/created-at";
-import { uuidv7 } from "uuidv7";
+import { OmitDefaultValues } from "~types/omit-default-values";
 
 const ExampleSchema = z.object({
   id: UUIDv7,
@@ -50,16 +51,15 @@ const ExampleSchema = z.object({
   createdAt: CreatedAt,
 });
 
-const ExampleCreateSchema = ExampleSchema.omit({ id: true, createdAt: true });
-
 type ExampleType = z.infer<typeof ExampleSchema>;
 
+export type CreateExampleType = OmitDefaultValues<ExampleType>;
+
 export class Example extends DefaultEntity<ExampleType> {
-  static create(props: z.infer<typeof ExampleCreateSchema>) {
+  static create(props: CreateExampleType) {
     return Example.fromProps({
       ...props,
-      id: UUIDv7.parse(uuidv7()),
-      createdAt: CreatedAt.parse(new Date()),
+      ...DefaultEntity.generateEntityDefaultValues(),
     });
   }
 

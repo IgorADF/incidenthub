@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { ListServicesByProject } from "./list-services-by-project";
 import { IMUOW } from "@domain/repositories/in-memory/_uow";
 import { Service } from "@domain/entities/service";
-import { createTestOrganization } from "@utils/tests/organization";
-import { createTestProject } from "@utils/tests/project";
+import { createTestOrganization } from "@domain/use-cases/utils/tests/organization";
+import { createTestProject } from "@domain/use-cases/utils/tests/project";
 
 let uow: IMUOW;
 let sut: ListServicesByProject;

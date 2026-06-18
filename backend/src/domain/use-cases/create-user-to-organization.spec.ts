@@ -4,8 +4,11 @@ import { IMUOW } from "@domain/repositories/in-memory/_uow";
 import { comparePassword } from "@utils/password";
 import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
 import { NotAllowedError } from "./errors/NotAllowedError";
-import { createTestOrganization } from "@utils/tests/organization";
-import { createTestAdminUser, createTestDevUser } from "@utils/tests/user";
+import { createTestOrganization } from "@domain/use-cases/utils/tests/organization";
+import {
+  createTestAdminUser,
+  createTestDevUser,
+} from "@domain/use-cases/utils/tests/user";
 
 let uow: IMUOW;
 let sut: CreateUserToOrganization;

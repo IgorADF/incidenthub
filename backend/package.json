@@ -8,7 +8,7 @@
     "start:worker": "node ./src/apps/api/server.js",
     "dev:api": "tsx ./src/apps/worker/run.ts",
     "dev:worker": "tsx ./src/apps/worker/run.ts",
-    "test": "npx vitest --config ./vitest.config.ts",
+    "tests": "npx vitest --config ./vitest.config.ts",
     "type:check": "npx tsc --noEmit"
   },
   "keywords": [],

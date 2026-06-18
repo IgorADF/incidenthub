@@ -23,9 +23,10 @@ Use-cases encapsulate a single business operation. They receive a `UOW` via cons
 
 3. **Create unit tests** at `backend/src/domain/use-cases/<name>.spec.ts`.
    - Use `IMUOW` and instantiate the use-case directly.
-   - Seed helper data with `createOrganization`, `createAdminUser`, `createDevUser`, and `createUser` from `@utils/test-factories`.
+   - Seed helper data with `createTestOrganization`, `createTestAdminUser`, `createTestDevUser`, and `createTestProject` from `@domain/use-cases/utils/tests/organization`, `@domain/use-cases/utils/tests/user`, and `@domain/use-cases/utils/tests/project`.
    - Assert on `result.entity.getProps().field`.
    - Assert errors by class instance.
+   - Keep entity-level validation (format, range, cross-field rules) in the entity spec; use-case specs should test auth, uniqueness, limits, and wiring.
 
 4. **Create or reuse domain errors** in `backend/src/domain/use-cases/errors/`.
    - Errors extend `DefaultUseCasesError` from `./_DefaultUseCasesError`.
@@ -98,11 +99,11 @@ export function createExampleFactory() {
 import { describe, it, expect, beforeEach } from "vitest";
 import { CreateExample } from "./create-example";
 import { IMUOW } from "@domain/repositories/in-memory/_uow";
+import { createTestOrganization } from "@domain/use-cases/utils/tests/organization";
 import {
-  createAdminUser,
-  createDevUser,
-  createOrganization,
-} from "@utils/test-factories";
+  createTestAdminUser,
+  createTestDevUser,
+} from "@domain/use-cases/utils/tests/user";
 import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
 import { NotAllowedError } from "./errors/NotAllowedError";
 
@@ -116,8 +117,8 @@ describe("Create Example", () => {
   });
 
   it("should create an example when creator is admin", async () => {
-    const organization = await createOrganization(uow, "Acme Corp");
-    const admin = await createAdminUser(uow, organization, "admin@acme.com");
+    const { organization } = await createTestOrganization(uow);
+    const { user: admin } = await createTestAdminUser(uow, organization);
 
     const result = await sut.execute(admin.getProps().id, { name: "Foo" });
 
@@ -130,8 +131,8 @@ describe("Create Example", () => {
   });
 
   it("should throw NotAllowedError when creator is not admin", async () => {
-    const organization = await createOrganization(uow, "Acme Corp");
-    const dev = await createDevUser(uow, organization, "dev@acme.com");
+    const { organization } = await createTestOrganization(uow);
+    const { user: dev } = await createTestDevUser(uow, organization);
 
     await expect(
       sut.execute(dev.getProps().id, { name: "Foo" }),
@@ -146,10 +147,9 @@ describe("Create Example", () => {
 - **Authorization:** always verify the actor exists and has permission before processing the input.
 - **Uniqueness checks:** query repositories before building entities; throw `EntityAlreadyExists` with `{ entity, field }` context.
 - **Transactions:** build entities outside the transaction, then pass them into `uow.transaction` for persistence.
-- **Entity validation:** keep format/range rules (URL, email, positive numbers, cross-field rules) in the entity Zod schemas.
+- **Entity validation:** keep format/range/cross-field rules in the entity Zod schemas and test them in the entity spec; do not duplicate them in use-case specs.
 - **Passwords:** never store plain text; hash with `hashPassword` from `@utils/password` before passing to `User.create`.
-- **Test factories:** prefer `createOrganization`, `createAdminUser`, and `createDevUser` from `@utils/test-factories` over inline entity creation.
-- **Branded IDs:** do not use `.value`; pass `UUIDv7` values directly.
+- **Test factories:** prefer `createTestOrganization`, `createTestAdminUser`, `createTestDevUser`, and `createTestProject` from `@domain/use-cases/utils/tests/organization`, `@domain/use-cases/utils/tests/user`, and `@domain/use-cases/utils/tests/project` over inline entity creation.
 
 ## Verification
 

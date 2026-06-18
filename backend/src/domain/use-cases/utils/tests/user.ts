@@ -1,7 +1,7 @@
 import { Organization } from "@domain/entities/organization";
 import { CreateUserType, User } from "@domain/entities/user";
 import { IMUOW } from "@domain/repositories/in-memory/_uow";
-import { hashPassword } from "../password";
+import { hashPassword } from "../../../../utils/password";
 
 export async function createTestUser(uow: IMUOW, data: CreateUserType) {
   const user = User.create({

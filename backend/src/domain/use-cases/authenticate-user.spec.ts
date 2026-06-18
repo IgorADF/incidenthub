@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { AuthenticateUser } from "./authenticate-user";
 import { IMUOW } from "@domain/repositories/in-memory/_uow";
-import { createTestAdminUser } from "@utils/tests/user";
+import { createTestAdminUser } from "@domain/use-cases/utils/tests/user";
 import { InvalidCredentialError } from "./errors/InvalidCredentialError";
-import { createTestOrganization } from "@utils/tests/organization";
+import { createTestOrganization } from "@domain/use-cases/utils/tests/organization";
 
 let uow: IMUOW;
 let sut: AuthenticateUser;
