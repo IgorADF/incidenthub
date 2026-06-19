@@ -171,6 +171,7 @@ Use aliases for cross-layer imports. Use relative imports only within the same f
 - Domain errors extend `DefaultUseCasesError` and expose `code` + `message`.
 - `EntityAlreadyExists` also carries an optional `context: { entity?, field? }` so callers can identify what conflicted.
 - `ValidationError` lives in `domain/entities/errors/` and is thrown by `DefaultEntity` when schema validation fails.
+- `ValidationError` exposes `issues: { path: string; message: string }[]` so callers can react per field. The `message` is a human-readable concatenation of all issues.
 
 ### Tests
 

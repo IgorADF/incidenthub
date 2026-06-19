@@ -9,7 +9,11 @@ export class DefaultEntity<T> {
     const { success, data, error } = schema.safeParse(props);
 
     if (!success) {
-      throw new ValidationError(JSON.stringify(z.treeifyError(error)));
+      const issues = error.issues.map((issue) => ({
+        path: issue.path.length > 0 ? issue.path.join(".") : "(root)",
+        message: issue.message,
+      }));
+      throw new ValidationError(issues);
     }
     this.props = Object.freeze(data as T);
   }

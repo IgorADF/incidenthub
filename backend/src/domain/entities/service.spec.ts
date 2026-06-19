@@ -159,4 +159,21 @@ describe("Service entity", () => {
       Service.create({ ...baseService, intervalSeconds: 30, timeoutSeconds: 31 }),
     ).toThrow(ValidationError);
   });
+
+  it("should expose structured validation issues", () => {
+    try {
+      Service.create({ ...baseService, name: "" });
+      expect.fail("Expected ValidationError to be thrown");
+    } catch (error) {
+      expect(error).toBeInstanceOf(ValidationError);
+      expect((error as ValidationError).issues).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: "name",
+            message: expect.any(String),
+          }),
+        ]),
+      );
+    }
+  });
 });
