@@ -1,10 +1,11 @@
 import { PrismaClient } from "@infra/db/generated/client";
+import { UOW } from "@domain/repositories/interfaces/_uow";
+import { TPrismaClient } from "@infra/db/prisma-client";
+import { PrismaHealthChecksRep } from "./health-checks";
 import { PrismaOrganizationsRep } from "./organizations";
 import { PrismaProjectsRep } from "./projects";
 import { PrismaServicesRep } from "./services";
 import { PrismaUsersRep } from "./users";
-import { UOW } from "@domain/repositories/interfaces/_uow";
-import { TPrismaClient } from "@infra/db/prisma-client";
 
 export class PrismaUOW implements UOW {
   constructor(
@@ -14,6 +15,7 @@ export class PrismaUOW implements UOW {
 
   private createRepositories(client: TPrismaClient) {
     return {
+      healthChecks: new PrismaHealthChecksRep(client),
       organizations: new PrismaOrganizationsRep(client),
       projects: new PrismaProjectsRep(client),
       services: new PrismaServicesRep(client),
