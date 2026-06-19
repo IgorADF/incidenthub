@@ -58,18 +58,19 @@ backend/src/
     repositories/
       interfaces/          ← repository contracts + UOW interface
       in-memory/           ← fakes for testing
+    services/              ← domain service interfaces (ports)
     use-cases/             ← business-logic classes
       errors/              ← use-case errors extending DefaultUseCasesError
       utils/tests/         ← use-case test helpers (createTestOrganization, etc.)
   infra/
     db/                    ← Prisma schema + generated client
     envs.ts                ← Zod env validation
-    factories/             ← production wiring of use-cases
+    factories/             ← production wiring of use-cases + services
     mappers/               ← entity ↔ Prisma conversion
     queue/                 ← BullMQ queues
-    redis/                 ← Redis connection
+    redis:                 ← Redis connection
     repositories/prisma/   ← Prisma implementations
-    utils/                 ← infra helpers (hashing, etc.)
+    services/              ← infra implementations of domain service interfaces (adapters)
   apps/
     api/                   ← Fastify server, routes, controllers
     worker/                ← background job processors
@@ -147,15 +148,23 @@ Use aliases for cross-layer imports. Use relative imports only within the same f
 
 ### Use-cases
 
-- A use-case is a class whose constructor takes a `UOW`.
+- A use-case is a class whose constructor takes a `UOW` and any domain service interfaces it needs (e.g., `HashPasswordInterface`).
 - The public method is usually `execute(...)`.
 - Business rules (e.g. uniqueness checks) query `uow.repositories` directly.
+- Outward-facing concerns (hashing, external APIs, email) are handled by injected domain services, never by importing infra directly.
 - Build the entities first, then persist them inside `uow.transaction`.
+
+### Domain services
+
+- Domain service interfaces (ports) live in `src/domain/services/`.
+- They declare operations the domain needs but does not implement (e.g., password hashing).
+- Infra provides concrete adapters in `src/infra/services/`.
+- Use-cases depend on the interface; factories inject the production adapter.
 
 ### Factories
 
 - Production factories are in `infra/factories/<name>.usecase.ts`.
-- They create a `PrismaUOW` from the singleton `prismaClient`, instantiate the use-case, and return `{ useCase }`.
+- They create a `PrismaUOW` from the singleton `prismaClient`, instantiate the required infra services, inject them into the use-case, and return `{ useCase }`.
 
 ### Errors
 
@@ -167,6 +176,7 @@ Use aliases for cross-layer imports. Use relative imports only within the same f
 
 - Unit tests use `IMUOW` — no database needed.
 - Pattern: `new IMUOW()` in `beforeEach`, pass it to the use-case constructor, assert behavior.
+- When a use-case depends on a domain service, instantiate a test double (e.g., `HashPasswordTestService`) and pass it to the constructor.
 - Assert entity values through `.getProps()`, e.g. `result.organization.getProps().name`.
 - See `src/domain/use-cases/create-organization.spec.ts` for the canonical example.
 

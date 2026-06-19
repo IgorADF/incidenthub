@@ -102,7 +102,7 @@ export class ExampleMapper {
 
 ## Special cases
 
-- **Passwords** should be typed as `Password` from `backend\src\domain\value-objects\hashed-password.ts` and hashed outside the entity (use `hashPassword` from `@utils/password`).
+- **Passwords** should be typed as `Password` from `@domain/value-objects/password` and hashed outside the entity by a domain service implementing `HashPasswordInterface`; never hash directly with bcrypt in a use-case.
 - **Optional fields** in Prisma become `field: Type | null` in the entity interface; never use `undefined` in the interface.
 - **Enums** from Prisma are cast via `z.enum([...])` inside the entity.
 - **Cross-field validation** (e.g. `timeoutSeconds < intervalSeconds`) is done with `.refine()` on the entity schema.
