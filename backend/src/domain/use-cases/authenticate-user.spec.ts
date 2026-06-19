@@ -4,8 +4,10 @@ import { IMUOW } from "@domain/repositories/in-memory/_uow";
 import { createTestAdminUser } from "@domain/use-cases/utils/tests/user";
 import { InvalidCredentialError } from "./errors/InvalidCredentialError";
 import { createTestOrganization } from "@domain/use-cases/utils/tests/organization";
+import { HashPasswordTestService } from "@domain/services/hash-password";
 
 let uow: IMUOW;
+let hashPasswordTestService: HashPasswordTestService;
 let sut: AuthenticateUser;
 
 const credentials = {
@@ -16,18 +18,27 @@ const credentials = {
 describe("Authenticate User", () => {
   beforeEach(() => {
     uow = new IMUOW();
-    sut = new AuthenticateUser(uow);
+    hashPasswordTestService = new HashPasswordTestService();
+    sut = new AuthenticateUser(uow, hashPasswordTestService);
   });
 
   it("should authenticate user with valid credentials", async () => {
     const { organization } = await createTestOrganization(uow);
 
-    await createTestAdminUser(uow, organization, {
+    const { user } = await createTestAdminUser(
+      uow,
+      organization,
+      {
+        email: credentials.email,
+        password: credentials.password,
+      },
+      hashPasswordTestService,
+    );
+
+    const result = await sut.execute({
       email: credentials.email,
       password: credentials.password,
     });
-
-    const result = await sut.execute(credentials);
 
     expect(result.user.getProps()).toEqual(
       expect.objectContaining({
@@ -44,7 +55,12 @@ describe("Authenticate User", () => {
 
   it("should throw InvalidCredentialError when password is incorrect", async () => {
     const { organization } = await createTestOrganization(uow);
-    const { user } = await createTestAdminUser(uow, organization);
+    const { user } = await createTestAdminUser(
+      uow,
+      organization,
+      {},
+      hashPasswordTestService,
+    );
 
     const error = await sut
       .execute({

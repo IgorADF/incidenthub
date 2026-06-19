@@ -1,12 +1,20 @@
 import { Organization } from "@domain/entities/organization";
 import { CreateUserType, User } from "@domain/entities/user";
 import { IMUOW } from "@domain/repositories/in-memory/_uow";
-import { hashPassword } from "../../../../utils/password";
+import { HashPasswordTestService } from "@domain/services/hash-password";
 
-export async function createTestUser(uow: IMUOW, data: CreateUserType) {
+const _hashPasswordService = new HashPasswordTestService();
+
+export async function createTestUser(
+  uow: IMUOW,
+  data: CreateUserType,
+  hashPasswordTestService?: HashPasswordTestService,
+) {
   const user = User.create({
     ...data,
-    password: await hashPassword(data.password as string),
+    password: await (
+      hashPasswordTestService ?? _hashPasswordService
+    ).hashPassword(data.password as string),
   });
 
   await uow.repositories.users.create(user);
@@ -17,6 +25,7 @@ export async function createTestAdminUser(
   uow: IMUOW,
   organization: Organization,
   data?: Partial<CreateUserType>,
+  hashPasswordTestService?: HashPasswordTestService,
 ) {
   const organizationId = organization.getProps().id;
 
@@ -31,7 +40,7 @@ export async function createTestAdminUser(
     type: "ADMIN",
   };
 
-  const user = await createTestUser(uow, creationData);
+  const user = await createTestUser(uow, creationData, hashPasswordTestService);
 
   return {
     user,
@@ -43,6 +52,7 @@ export async function createTestDevUser(
   uow: IMUOW,
   organization: Organization,
   data?: Partial<CreateUserType>,
+  hashPasswordTestService?: HashPasswordTestService,
 ) {
   const organizationId = organization.getProps().id;
 
@@ -57,7 +67,7 @@ export async function createTestDevUser(
     type: "DEV",
   };
 
-  const user = await createTestUser(uow, creationData);
+  const user = await createTestUser(uow, creationData, hashPasswordTestService);
 
   return {
     user,

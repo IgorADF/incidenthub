@@ -1,8 +1,8 @@
 import { User } from "@domain/entities/user";
 import { UOW } from "@domain/repositories/interfaces/_uow";
-import { hashPassword } from "@utils/password";
 import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
 import { NotAllowedError } from "./errors/NotAllowedError";
+import { HashPasswordInterface } from "@domain/services/hash-password.interface";
 
 type CreateUserToOrganizationInput = {
   email: string;
@@ -12,7 +12,10 @@ type CreateUserToOrganizationInput = {
 };
 
 export class CreateUserToOrganization {
-  constructor(private readonly uow: UOW) {}
+  constructor(
+    private readonly uow: UOW,
+    private readonly hashPasswordService: HashPasswordInterface,
+  ) {}
 
   async execute(
     creatorUserId: string,
@@ -38,7 +41,9 @@ export class CreateUserToOrganization {
     const user = User.create({
       organizationId: creator.getProps().organizationId,
       email: newUserData.email,
-      password: await hashPassword(newUserData.password),
+      password: await this.hashPasswordService.hashPassword(
+        newUserData.password,
+      ),
       type: newUserData.type ?? "DEV",
       name: newUserData.name,
     });

@@ -1,7 +1,6 @@
-import { comparePassword } from "@utils/password";
 import { UOW } from "@domain/repositories/interfaces/_uow";
 import { InvalidCredentialError } from "./errors/InvalidCredentialError";
-import { tryCatch } from "bullmq";
+import { HashPasswordInterface } from "@domain/services/hash-password.interface";
 
 type AuthenticateUserInput = {
   email: string;
@@ -9,7 +8,10 @@ type AuthenticateUserInput = {
 };
 
 export class AuthenticateUser {
-  constructor(private readonly uow: UOW) {}
+  constructor(
+    private readonly uow: UOW,
+    private readonly hashPasswordService: HashPasswordInterface,
+  ) {}
 
   async execute(input: AuthenticateUserInput) {
     const user = await this.uow.repositories.users.getByEmail(input.email);
@@ -18,7 +20,7 @@ export class AuthenticateUser {
       throw new InvalidCredentialError();
     }
 
-    const isPasswordValid = await comparePassword(
+    const isPasswordValid = await this.hashPasswordService.compare(
       input.password,
       user.getProps().password,
     );

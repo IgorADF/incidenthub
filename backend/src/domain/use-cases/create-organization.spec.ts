@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { CreateOrganization } from "./create-organization";
 import { IMUOW } from "@domain/repositories/in-memory/_uow";
-import { comparePassword } from "@utils/password";
 import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
+import { HashPasswordTestService } from "@domain/services/hash-password";
 
 let uow: IMUOW;
+let hashPasswordTestService: HashPasswordTestService;
 let sut: CreateOrganization;
 
 const orgInput = {
@@ -20,7 +21,8 @@ const userInput = {
 describe("Create Organization", () => {
   beforeEach(() => {
     uow = new IMUOW();
-    sut = new CreateOrganization(uow);
+    hashPasswordTestService = new HashPasswordTestService();
+    sut = new CreateOrganization(uow, hashPasswordTestService);
   });
 
   it("should create a new organization and the first user", async () => {
@@ -39,7 +41,10 @@ describe("Create Organization", () => {
     );
     expect(result.user.getProps().id).toBeDefined();
     await expect(
-      comparePassword(userInput.password, result.user.getProps().password),
+      hashPasswordTestService.compare(
+        userInput.password,
+        result.user.getProps().password,
+      ),
     ).resolves.toBe(true);
   });
 
