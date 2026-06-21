@@ -5,11 +5,14 @@ export type ValidationIssue = {
   message: string;
 };
 
-export class ValidationError extends _DefaultEntitiesError {
+export class ValidationEntitiesError extends _DefaultEntitiesError {
   public readonly issues: ValidationIssue[];
 
   constructor(issues: ValidationIssue[]) {
-    super("ValidationError", ValidationError.formatMessage(issues));
+    super(
+      "ValidationEntitiesError",
+      ValidationEntitiesError.formatMessage(issues),
+    );
     this.issues = issues;
   }
 

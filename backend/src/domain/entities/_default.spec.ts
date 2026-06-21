@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { DefaultEntity } from "./_default";
-import { ValidationError } from "./errors/ValidationError";
+import { ValidationEntitiesError } from "./errors/ValidationEntitiesError";
 import z from "zod";
 
 const TestSchema = z.object({
@@ -36,7 +36,7 @@ describe("DefaultEntity", () => {
     expect(entity.getProps().createdAt).toBeDefined();
   });
 
-  it("should throw ValidationError when props are invalid", () => {
+  it("should throw ValidationEntitiesError when props are invalid", () => {
     expect(() =>
       TestEntity.fromProps({
         id: "not-a-uuid",
@@ -44,7 +44,7 @@ describe("DefaultEntity", () => {
         age: -1,
         createdAt: new Date(),
       }),
-    ).toThrow(ValidationError);
+    ).toThrow(ValidationEntitiesError);
   });
 
   it("should expose structured validation issues", () => {
@@ -55,10 +55,10 @@ describe("DefaultEntity", () => {
         age: -1,
         createdAt: new Date(),
       });
-      expect.fail("Expected ValidationError to be thrown");
+      expect.fail("Expected ValidationEntitiesError to be thrown");
     } catch (error) {
-      expect(error).toBeInstanceOf(ValidationError);
-      const validationError = error as ValidationError;
+      expect(error).toBeInstanceOf(ValidationEntitiesError);
+      const validationError = error as ValidationEntitiesError;
 
       expect(validationError.issues).toEqual(
         expect.arrayContaining([
@@ -82,7 +82,7 @@ describe("DefaultEntity", () => {
         createdAt: new Date(),
       });
     } catch (error) {
-      const validationError = error as ValidationError;
+      const validationError = error as ValidationEntitiesError;
       expect(validationError.message).toContain("id:");
       expect(validationError.message).toContain("name:");
       expect(validationError.message).toContain("age:");
@@ -115,10 +115,13 @@ describe("DefaultEntity", () => {
         createdAt: new Date(),
       });
     } catch (error) {
-      const validationError = error as ValidationError;
+      const validationError = error as ValidationEntitiesError;
       expect(validationError.issues).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ path: "(root)", message: "root level error" }),
+          expect.objectContaining({
+            path: "(root)",
+            message: "root level error",
+          }),
         ]),
       );
     }

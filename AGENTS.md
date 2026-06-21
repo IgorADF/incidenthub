@@ -54,7 +54,7 @@ backend/src/
   domain/
     entities/              ← domain entities extending DefaultEntity<T>
     value-objects/         ← Zod schemas: UUIDv7, CreatedAt
-    errors/                ← domain-wide errors (e.g. ValidationError)
+    errors/                ← domain-wide errors (e.g. ValidationEntitiesError)
     repositories/
       interfaces/          ← repository contracts + UOW interface
       in-memory/           ← fakes for testing
@@ -103,7 +103,7 @@ Use aliases for cross-layer imports. Use relative imports only within the same f
 
 - Every domain entity extends `DefaultEntity<T>`, stores frozen props, and exposes them via `getProps()`.
 - Each entity defines a Zod schema for its full props and a create-input schema.
-- `DefaultEntity` validates props against the schema in the constructor and throws `ValidationError` on failure.
+- `DefaultEntity` validates props against the schema in the constructor and throws `ValidationEntitiesError` on failure.
 - Entities generate their own `id` (via `UUIDv7.parse(uuidv7())`) and `createdAt` (via `CreatedAt.parse(new Date())`).
 - IDs are typed as `UUIDv7`; foreign keys also use `UUIDv7`; dates are `CreatedAt`.
 - Entities provide:
@@ -170,8 +170,8 @@ Use aliases for cross-layer imports. Use relative imports only within the same f
 
 - Domain errors extend `DefaultUseCasesError` and expose `code` + `message`.
 - `EntityAlreadyExists` also carries an optional `context: { entity?, field? }` so callers can identify what conflicted.
-- `ValidationError` lives in `domain/entities/errors/` and is thrown by `DefaultEntity` when schema validation fails.
-- `ValidationError` exposes `issues: { path: string; message: string }[]` so callers can react per field. The `message` is a human-readable concatenation of all issues.
+- `ValidationEntitiesError` lives in `domain/entities/errors/` and is thrown by `DefaultEntity` when schema validation fails.
+- `ValidationEntitiesError` exposes `issues: { path: string; message: string }[]` so callers can react per field. The `message` is a human-readable concatenation of all issues.
 
 ### Tests
 
@@ -187,6 +187,7 @@ Use aliases for cross-layer imports. Use relative imports only within the same f
 - Tests exercise `.parse()` for valid inputs and `.safeParse()` for invalid inputs.
 - Cover success boundaries (min/max lengths, valid formats) and failure cases (empty values, wrong types, malformed formats).
 - Example:
+
   ```ts
   import { describe, it, expect } from "vitest";
   import { Email } from "./email";
@@ -208,10 +209,11 @@ Use aliases for cross-layer imports. Use relative imports only within the same f
 - Test `Entity.create` validation directly — do not route entity-level assertions through use-case specs.
 - Include boundary tests for every min/max constraint (e.g., exactly `min` accepted, `min - 1` rejected, exactly `max` accepted, `max + 1` rejected).
 - Example:
+
   ```ts
   import { describe, it, expect } from "vitest";
   import { Organization } from "./organization";
-  import { ValidationError } from "./errors/ValidationError";
+  import { ValidationEntitiesError } from "./errors/ValidationEntitiesError";
 
   describe("Organization entity", () => {
     it("should accept a name with exactly 50 characters", () => {
@@ -220,7 +222,7 @@ Use aliases for cross-layer imports. Use relative imports only within the same f
 
     it("should reject a name longer than 50 characters", () => {
       expect(() => Organization.create({ name: "a".repeat(51) })).toThrow(
-        ValidationError,
+        ValidationEntitiesError,
       );
     });
   });

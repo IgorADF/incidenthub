@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { Project } from "./project";
-import { ValidationError } from "./errors/ValidationError";
+import { ValidationEntitiesError } from "./errors/ValidationEntitiesError";
 import { DefaultEntity } from "./_default";
 
 const baseProject = {
@@ -42,20 +42,20 @@ describe("Project entity", () => {
 
   it("should reject an empty name", () => {
     expect(() => Project.create({ ...baseProject, name: "" })).toThrow(
-      ValidationError,
+      ValidationEntitiesError,
     );
   });
 
   it("should reject a name longer than 50 characters", () => {
     expect(() =>
       Project.create({ ...baseProject, name: "a".repeat(51) }),
-    ).toThrow(ValidationError);
+    ).toThrow(ValidationEntitiesError);
   });
 
   it("should reject showPublicPage true without a slug", () => {
     expect(() =>
       Project.create({ ...baseProject, showPublicPage: true }),
-    ).toThrow(ValidationError);
+    ).toThrow(ValidationEntitiesError);
   });
 
   it("should reject an invalid public page slug", () => {
@@ -65,7 +65,7 @@ describe("Project entity", () => {
         showPublicPage: true,
         publicPageSlug: "Invalid Slug",
       }),
-    ).toThrow(ValidationError);
+    ).toThrow(ValidationEntitiesError);
   });
 
   it("should strip a leading slash from the slug", () => {

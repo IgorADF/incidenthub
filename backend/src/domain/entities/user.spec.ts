@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { User } from "./user";
-import { ValidationError } from "./errors/ValidationError";
+import { ValidationEntitiesError } from "./errors/ValidationEntitiesError";
 import { DefaultEntity } from "./_default";
 
 const baseUser = {
@@ -25,24 +25,26 @@ describe("User entity", () => {
   });
 
   it("should accept a name with exactly 50 characters", () => {
-    expect(() => User.create({ ...baseUser, name: "a".repeat(50) })).not.toThrow();
+    expect(() =>
+      User.create({ ...baseUser, name: "a".repeat(50) }),
+    ).not.toThrow();
   });
 
   it("should reject an empty name", () => {
     expect(() => User.create({ ...baseUser, name: "" })).toThrow(
-      ValidationError,
+      ValidationEntitiesError,
     );
   });
 
   it("should reject a name longer than 50 characters", () => {
     expect(() => User.create({ ...baseUser, name: "a".repeat(51) })).toThrow(
-      ValidationError,
+      ValidationEntitiesError,
     );
   });
 
   it("should reject an invalid email", () => {
     expect(() => User.create({ ...baseUser, email: "not-an-email" })).toThrow(
-      ValidationError,
+      ValidationEntitiesError,
     );
   });
 
@@ -58,13 +60,13 @@ describe("User entity", () => {
 
   it("should reject an empty password", () => {
     expect(() => User.create({ ...baseUser, password: "" })).toThrow(
-      ValidationError,
+      ValidationEntitiesError,
     );
   });
 
   it("should reject a password longer than 65 characters", () => {
     expect(() =>
       User.create({ ...baseUser, password: "a".repeat(66) }),
-    ).toThrow(ValidationError);
+    ).toThrow(ValidationEntitiesError);
   });
 });

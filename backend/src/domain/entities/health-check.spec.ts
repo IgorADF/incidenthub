@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { HealthCheck } from "./health-check";
-import { ValidationError } from "./errors/ValidationError";
+import { ValidationEntitiesError } from "./errors/ValidationEntitiesError";
 import { DefaultEntity } from "./_default";
 
 const baseHealthCheck = {
@@ -38,13 +38,13 @@ describe("HealthCheck entity", () => {
   it("should reject responseStatus below the lower boundary", () => {
     expect(() =>
       HealthCheck.create({ ...baseHealthCheck, responseStatus: 99 }),
-    ).toThrow(ValidationError);
+    ).toThrow(ValidationEntitiesError);
   });
 
   it("should reject responseStatus above the upper boundary", () => {
     expect(() =>
       HealthCheck.create({ ...baseHealthCheck, responseStatus: 600 }),
-    ).toThrow(ValidationError);
+    ).toThrow(ValidationEntitiesError);
   });
 
   it("should accept the minimum requestTime", () => {
@@ -56,13 +56,13 @@ describe("HealthCheck entity", () => {
   it("should reject non-positive requestTime", () => {
     expect(() =>
       HealthCheck.create({ ...baseHealthCheck, requestTime: 0 }),
-    ).toThrow(ValidationError);
+    ).toThrow(ValidationEntitiesError);
   });
 
   it("should reject an invalid URL", () => {
     expect(() =>
       HealthCheck.create({ ...baseHealthCheck, url: "not-a-url" }),
-    ).toThrow(ValidationError);
+    ).toThrow(ValidationEntitiesError);
   });
 
   it("should accept responseJsonData as a string", () => {

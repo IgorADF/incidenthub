@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { Incident } from "./incident";
-import { ValidationError } from "./errors/ValidationError";
+import { ValidationEntitiesError } from "./errors/ValidationEntitiesError";
 import { DefaultEntity } from "./_default";
 
 const now = new Date();
@@ -29,9 +29,9 @@ describe("Incident entity", () => {
   });
 
   it("should reject emailsSent below the lower boundary", () => {
-    expect(() =>
-      Incident.create({ ...baseIncident, emailsSent: -1 }),
-    ).toThrow(ValidationError);
+    expect(() => Incident.create({ ...baseIncident, emailsSent: -1 })).toThrow(
+      ValidationEntitiesError,
+    );
   });
 
   it("should accept a resolvedAt date", () => {

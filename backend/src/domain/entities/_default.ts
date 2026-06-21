@@ -1,5 +1,5 @@
 import z from "zod";
-import { ValidationError } from "@domain/entities/errors/ValidationError";
+import { ValidationEntitiesError } from "@domain/entities/errors/ValidationEntitiesError";
 import { uuidv7 } from "uuidv7";
 
 export class DefaultEntity<T> {
@@ -13,7 +13,7 @@ export class DefaultEntity<T> {
         path: issue.path.length > 0 ? issue.path.join(".") : "(root)",
         message: issue.message,
       }));
-      throw new ValidationError(issues);
+      throw new ValidationEntitiesError(issues);
     }
     this.props = Object.freeze(data as T);
   }

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { Service } from "./service";
-import { ValidationError } from "./errors/ValidationError";
+import { ValidationEntitiesError } from "./errors/ValidationEntitiesError";
 import { DefaultEntity } from "./_default";
 
 const baseService = {
@@ -36,14 +36,14 @@ describe("Service entity", () => {
 
   it("should reject an empty name", () => {
     expect(() => Service.create({ ...baseService, name: "" })).toThrow(
-      ValidationError,
+      ValidationEntitiesError,
     );
   });
 
   it("should reject a name longer than 50 characters", () => {
     expect(() =>
       Service.create({ ...baseService, name: "a".repeat(51) }),
-    ).toThrow(ValidationError);
+    ).toThrow(ValidationEntitiesError);
   });
 
   it("should accept the minimum valid intervalSeconds", () => {
@@ -61,13 +61,13 @@ describe("Service entity", () => {
   it("should reject intervalSeconds below the lower boundary", () => {
     expect(() =>
       Service.create({ ...baseService, intervalSeconds: 4 }),
-    ).toThrow(ValidationError);
+    ).toThrow(ValidationEntitiesError);
   });
 
   it("should reject intervalSeconds above the upper boundary", () => {
     expect(() =>
       Service.create({ ...baseService, intervalSeconds: 100000 }),
-    ).toThrow(ValidationError);
+    ).toThrow(ValidationEntitiesError);
   });
 
   it("should accept timeoutSeconds at the lower boundary", () => {
@@ -83,15 +83,15 @@ describe("Service entity", () => {
   });
 
   it("should reject timeoutSeconds below the lower boundary", () => {
-    expect(() =>
-      Service.create({ ...baseService, timeoutSeconds: 4 }),
-    ).toThrow(ValidationError);
+    expect(() => Service.create({ ...baseService, timeoutSeconds: 4 })).toThrow(
+      ValidationEntitiesError,
+    );
   });
 
   it("should reject timeoutSeconds above the upper boundary", () => {
     expect(() =>
       Service.create({ ...baseService, timeoutSeconds: 21 }),
-    ).toThrow(ValidationError);
+    ).toThrow(ValidationEntitiesError);
   });
 
   it("should accept expectedResponseStatus at the lower boundary", () => {
@@ -109,13 +109,13 @@ describe("Service entity", () => {
   it("should reject expectedResponseStatus below the lower boundary", () => {
     expect(() =>
       Service.create({ ...baseService, expectedResponseStatus: 99 }),
-    ).toThrow(ValidationError);
+    ).toThrow(ValidationEntitiesError);
   });
 
   it("should reject expectedResponseStatus above the upper boundary", () => {
     expect(() =>
       Service.create({ ...baseService, expectedResponseStatus: 600 }),
-    ).toThrow(ValidationError);
+    ).toThrow(ValidationEntitiesError);
   });
 
   it("should accept incidentDetectionFails at the lower boundary", () => {
@@ -133,40 +133,48 @@ describe("Service entity", () => {
   it("should reject incidentDetectionFails below the lower boundary", () => {
     expect(() =>
       Service.create({ ...baseService, incidentDetectionFails: 0 }),
-    ).toThrow(ValidationError);
+    ).toThrow(ValidationEntitiesError);
   });
 
   it("should reject incidentDetectionFails above the upper boundary", () => {
     expect(() =>
       Service.create({ ...baseService, incidentDetectionFails: 100 }),
-    ).toThrow(ValidationError);
+    ).toThrow(ValidationEntitiesError);
   });
 
   it("should reject an invalid URL", () => {
-    expect(() =>
-      Service.create({ ...baseService, url: "not-a-url" }),
-    ).toThrow(ValidationError);
+    expect(() => Service.create({ ...baseService, url: "not-a-url" })).toThrow(
+      ValidationEntitiesError,
+    );
   });
 
   it("should reject timeoutSeconds equal to intervalSeconds", () => {
     expect(() =>
-      Service.create({ ...baseService, intervalSeconds: 30, timeoutSeconds: 30 }),
-    ).toThrow(ValidationError);
+      Service.create({
+        ...baseService,
+        intervalSeconds: 30,
+        timeoutSeconds: 30,
+      }),
+    ).toThrow(ValidationEntitiesError);
   });
 
   it("should reject timeoutSeconds greater than intervalSeconds", () => {
     expect(() =>
-      Service.create({ ...baseService, intervalSeconds: 30, timeoutSeconds: 31 }),
-    ).toThrow(ValidationError);
+      Service.create({
+        ...baseService,
+        intervalSeconds: 30,
+        timeoutSeconds: 31,
+      }),
+    ).toThrow(ValidationEntitiesError);
   });
 
   it("should expose structured validation issues", () => {
     try {
       Service.create({ ...baseService, name: "" });
-      expect.fail("Expected ValidationError to be thrown");
+      expect.fail("Expected ValidationEntitiesError to be thrown");
     } catch (error) {
-      expect(error).toBeInstanceOf(ValidationError);
-      expect((error as ValidationError).issues).toEqual(
+      expect(error).toBeInstanceOf(ValidationEntitiesError);
+      expect((error as ValidationEntitiesError).issues).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             path: "name",

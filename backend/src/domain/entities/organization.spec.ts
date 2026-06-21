@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { Organization } from "./organization";
-import { ValidationError } from "./errors/ValidationError";
+import { ValidationEntitiesError } from "./errors/ValidationEntitiesError";
 
 describe("Organization entity", () => {
   it("should create an organization with a valid name", () => {
@@ -20,12 +20,14 @@ describe("Organization entity", () => {
   });
 
   it("should reject an empty name", () => {
-    expect(() => Organization.create({ name: "" })).toThrow(ValidationError);
+    expect(() => Organization.create({ name: "" })).toThrow(
+      ValidationEntitiesError,
+    );
   });
 
   it("should reject a name longer than 50 characters", () => {
     expect(() => Organization.create({ name: "a".repeat(51) })).toThrow(
-      ValidationError,
+      ValidationEntitiesError,
     );
   });
 });
