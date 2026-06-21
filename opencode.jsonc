@@ -1,5 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "autoupdate": true,
   //   "mcp": {
   //     "name-of-mcp-server": {
   //       // ...
