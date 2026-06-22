@@ -20,4 +20,14 @@ export class IMIncidentsRep implements IncidentsRepInterface {
     this.db.incidents.push(data);
     return data;
   }
+
+  async update(data: Incident) {
+    const index = this.db.incidents.findIndex(
+      (i) => i.getProps().id === data.getProps().id,
+    );
+    if (index !== -1) {
+      this.db.incidents[index] = data;
+    }
+    return data;
+  }
 }

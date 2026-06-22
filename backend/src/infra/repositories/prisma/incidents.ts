@@ -26,4 +26,12 @@ export class PrismaIncidentsRep implements IncidentsRepInterface {
     });
     return IncidentMapper.fromPrismaToEntity(record);
   }
+
+  async update(data: Incident) {
+    const record = await this.prisma.incident.update({
+      where: { id: data.getProps().id },
+      data: IncidentMapper.fromEntityToPrisma(data),
+    });
+    return IncidentMapper.fromPrismaToEntity(record);
+  }
 }
