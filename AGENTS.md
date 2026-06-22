@@ -228,17 +228,420 @@ Use aliases for cross-layer imports. Use relative imports only within the same f
   });
   ```
 
-### Adding a new entity
+### Adding a new entity, repository, and use-case
 
-1. Add the Prisma model to `src/infra/db/schema.prisma` (no `@default(uuid())` / `@default(now())` for entity-managed fields).
-2. Create any new value-object schemas in `src/domain/value-objects/`.
-3. Create the entity class in `src/domain/entities/<name>.ts` with `create` and `fromProps`.
-4. Create the entity spec in `src/domain/entities/<name>.spec.ts` with validation and boundary tests.
-5. Create the mapper in `src/infra/mappers/<name>.ts`.
-6. Add the repository interface to `domain/repositories/interfaces/`.
-7. Implement it in `infra/repositories/prisma/` and `domain/repositories/in-memory/`.
-8. Register it in `UOW.repositories`, `PrismaUOW.createRepositories`, and `IMUOW.createRepositories`.
-9. Add use-case, factory, and spec following the existing naming conventions.
+The full workflow for adding a domain feature, with templates. Each step references the conventions described in the sections above.
+
+#### 1. Prisma model
+
+Add the model to `src/infra/db/schema.prisma`:
+- Use `@id` on the primary key, but **do not** use `@default(uuid())`.
+- Use `createdAt DateTime` but **do not** use `@default(now())`.
+- These values are generated and validated by the entity class, not the database.
+- Map fields with `@map("snake_case")` and the table with `@@map("table_name")`.
+
+#### 2. Value-objects
+
+Create new value-object schemas in `src/domain/value-objects/` only if the entity needs new domain primitives that do not exist yet. Reuse `UUIDv7` and `CreatedAt` for ids and timestamps; do not recreate them.
+
+```ts
+export const Email = z.email();
+export type Email = z.infer<typeof Email>;
+```
+
+#### 3. Entity
+
+Create the entity class in `src/domain/entities/<name>.ts`:
+- Extend `DefaultEntity<T>` from `./_default`.
+- Define a Zod schema for the full entity props (include `id` and `createdAt`).
+- Define a create-input type by omitting generated fields.
+- Provide `create(props)` and `fromProps(props)` static methods.
+- Do **not** add Prisma conversion methods to the entity.
+
+```ts
+// backend/src/domain/entities/example.ts
+import { DefaultEntity } from "./_default";
+import z from "zod";
+import { UUIDv7 } from "@domain/value-objects/uuidv7";
+import { CreatedAt } from "@domain/value-objects/created-at";
+import { OmitDefaultValues } from "~types/omit-default-values";
+
+const ExampleSchema = z.object({
+  id: UUIDv7,
+  organizationId: UUIDv7,
+  name: z.string().min(1).max(100),
+  createdAt: CreatedAt,
+});
+
+type ExampleType = z.infer<typeof ExampleSchema>;
+
+export type CreateExampleType = OmitDefaultValues<ExampleType>;
+
+export class Example extends DefaultEntity<ExampleType> {
+  static create(props: CreateExampleType) {
+    return Example.fromProps({
+      ...props,
+      ...DefaultEntity.generateEntityDefaultValues(),
+    });
+  }
+
+  static fromProps(props: ExampleType) {
+    return new Example(props, ExampleSchema);
+  }
+}
+```
+
+Entity special cases:
+- **Passwords** are typed as `Password` from `@domain/value-objects/password` and hashed outside the entity by a domain service implementing `HashPasswordInterface`; never hash directly with bcrypt in a use-case.
+- **Optional fields** in Prisma become `field: Type | null` in the entity interface; never use `undefined`.
+- **Enums** from Prisma are cast via `z.enum([...])` inside the entity.
+- **Cross-field validation** (e.g. `timeoutSeconds < intervalSeconds`) is done with `.refine()` on the entity schema. When the schema uses `.refine()`, the create-input type is a plain TypeScript type derived with `OmitDefaultValues` instead of a derived Zod schema (refined schemas cannot be omitted).
+- **Soft-delete fields** such as `deletedAt` are carried in the mapper but are not part of the core domain interface unless required by business rules.
+
+#### 4. Entity spec
+
+Create the spec in `src/domain/entities/<name>.spec.ts` following the entity test conventions above (boundary tests for every min/max constraint, test `Entity.create` directly).
+
+#### 5. Mapper
+
+Create the mapper in `src/infra/mappers/<name>.ts`:
+
+```ts
+// backend/src/infra/mappers/example.ts
+import { Example } from "@domain/entities/example";
+import { Prisma } from "@infra/db/generated/client";
+import { UUIDv7 } from "@domain/value-objects/uuidv7";
+import { CreatedAt } from "@domain/value-objects/created-at";
+
+export class ExampleMapper {
+  static fromEntityToPrisma(entity: Example): Prisma.ExampleGetPayload<object> {
+    const props = entity.getProps();
+    return {
+      id: props.id,
+      organizationId: props.organizationId,
+      name: props.name,
+      createdAt: props.createdAt,
+    };
+  }
+
+  static fromPrismaToEntity(
+    prismaEntity: Prisma.ExampleGetPayload<object>,
+  ): Example {
+    return Example.fromProps({
+      id: UUIDv7.parse(prismaEntity.id),
+      organizationId: UUIDv7.parse(prismaEntity.organizationId),
+      name: prismaEntity.name,
+      createdAt: CreatedAt.parse(prismaEntity.createdAt),
+    });
+  }
+}
+```
+
+#### 6. Repository interface
+
+Create the interface in `domain/repositories/interfaces/<plural>.ts`:
+- Import the entity from `@domain/entities/<name>`.
+- Return `Entity | null` for lookups and `Entity` for writes.
+
+```ts
+// backend/src/domain/repositories/interfaces/examples.ts
+import { Example } from "@domain/entities/example";
+
+export interface ExamplesRepInterface {
+  getById: (id: string) => Promise<Example | null>;
+  getByName: (name: string) => Promise<Example | null>;
+  create: (data: Example) => Promise<Example>;
+}
+```
+
+#### 7. Prisma repository implementation
+
+Implement in `infra/repositories/prisma/<plural>.ts`:
+- Import `TPrismaClient` from `@infra/db/prisma-client`.
+- Accept `TPrismaClient` in the constructor so the repo works inside and outside transactions.
+- Convert results with `<Entity>Mapper.fromPrismaToEntity` and writes with `<Entity>Mapper.fromEntityToPrisma`.
+
+```ts
+// backend/src/infra/repositories/prisma/examples.ts
+import { Example } from "@domain/entities/example";
+import { TPrismaClient } from "@infra/db/prisma-client";
+import { ExamplesRepInterface } from "@domain/repositories/interfaces/examples";
+import { ExampleMapper } from "@infra/mappers/example";
+
+export class PrismaExamplesRep implements ExamplesRepInterface {
+  constructor(private readonly prisma: TPrismaClient) {}
+
+  async getById(id: string) {
+    const record = await this.prisma.example.findUnique({ where: { id } });
+    return record ? ExampleMapper.fromPrismaToEntity(record) : null;
+  }
+
+  async getByName(name: string) {
+    const record = await this.prisma.example.findUnique({ where: { name } });
+    return record ? ExampleMapper.fromPrismaToEntity(record) : null;
+  }
+
+  async create(data: Example) {
+    const record = await this.prisma.example.create({
+      data: ExampleMapper.fromEntityToPrisma(data),
+    });
+    return ExampleMapper.fromPrismaToEntity(record);
+  }
+}
+```
+
+#### 8. In-memory repository implementation
+
+Implement in `domain/repositories/in-memory/<plural>.ts`:
+- Accept `IMUOWdb` from `./_uow`.
+- Store and query entity instances directly in the corresponding db array.
+- Compare IDs with `entity.getProps().id`.
+
+```ts
+// backend/src/domain/repositories/in-memory/examples.ts
+import { Example } from "@domain/entities/example";
+import { ExamplesRepInterface } from "@domain/repositories/interfaces/examples";
+import { IMUOWdb } from "./_uow";
+
+export class IMExamplesRep implements ExamplesRepInterface {
+  constructor(private readonly db: IMUOWdb) {}
+
+  async getById(id: string) {
+    const record = this.db.examples.find((e) => e.getProps().id === id);
+    return record ?? null;
+  }
+
+  async getByName(name: string) {
+    const record = this.db.examples.find((e) => e.getProps().name === name);
+    return record ?? null;
+  }
+
+  async create(data: Example) {
+    this.db.examples.push(data);
+    return data;
+  }
+}
+```
+
+#### 9. UOW registration
+
+Register the repository in three places:
+
+`domain/repositories/interfaces/_uow.ts`:
+
+```ts
+import { ExamplesRepInterface } from "./examples";
+
+export interface UOW {
+  repositories: {
+    examples: ExamplesRepInterface;
+    // ...
+  };
+
+  transaction<T>(
+    callback: (repositories: UOW["repositories"]) => Promise<T>,
+  ): Promise<T>;
+}
+```
+
+`infra/repositories/prisma/_uow.ts`:
+
+```ts
+import { PrismaExamplesRep } from "./examples";
+
+private createRepositories(client: TPrismaClient) {
+  return {
+    examples: new PrismaExamplesRep(client),
+    // ...
+  };
+}
+```
+
+`domain/repositories/in-memory/_uow.ts`:
+
+```ts
+import { Example } from "@domain/entities/example";
+import { IMExamplesRep } from "./examples";
+
+export type IMUOWdb = {
+  examples: Example[];
+  // ...
+};
+
+private createRepositories() {
+  return {
+    examples: new IMExamplesRep(this.db),
+    // ...
+  };
+}
+```
+
+#### 10. Use-case
+
+Create the use-case class in `src/domain/use-cases/<name>.ts`:
+- Import `UOW` from `@domain/repositories/interfaces/_uow`.
+- Import domain service interfaces (ports) from `@domain/services/<name>.interface` when the use-case needs hashing, external APIs, email, etc.
+- Define an input type for the `execute` parameters.
+- Query repositories for business-rule checks (authorization, uniqueness, limits).
+- Throw domain errors from `use-cases/errors/` when rules are violated.
+- Build entities, then persist them inside `this.uow.transaction(...)`.
+- Do **not** validate format/range rules here; those live in the entity Zod schemas.
+- Do **not** import infra directly; depend on domain service interfaces and let factories inject adapters.
+
+```ts
+// backend/src/domain/use-cases/create-example.ts
+import { Example } from "@domain/entities/example";
+import { UOW } from "@domain/repositories/interfaces/_uow";
+import { HashPasswordInterface } from "@domain/services/hash-password.interface";
+import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
+import { NotAllowedError } from "./errors/NotAllowedError";
+
+type CreateExampleInput = {
+  name: string;
+  password: string;
+};
+
+export class CreateExample {
+  constructor(
+    private readonly uow: UOW,
+    private readonly hashPasswordService: HashPasswordInterface,
+  ) {}
+
+  async execute(creatorUserId: string, input: CreateExampleInput) {
+    const creator = await this.uow.repositories.users.getById(creatorUserId);
+
+    if (!creator || creator.getProps().type !== "ADMIN") {
+      throw new NotAllowedError();
+    }
+
+    const existing = await this.uow.repositories.examples.getByName(input.name);
+
+    if (existing) {
+      throw new EntityAlreadyExists({ entity: "example", field: "name" });
+    }
+
+    const example = Example.create({
+      organizationId: creator.getProps().organizationId,
+      name: input.name,
+      password: await this.hashPasswordService.hashPassword(input.password),
+    });
+
+    return await this.uow.transaction(async (reps) => {
+      await reps.examples.create(example);
+      return { example };
+    });
+  }
+}
+```
+
+#### 11. Factory
+
+Create the production factory in `infra/factories/<name>.usecase.ts`:
+- Build a `PrismaUOW` from the singleton `prismaClient`.
+- Instantiate the infra service adapters the use-case needs.
+- Inject the adapters into the use-case and return `{ useCase }`.
+
+```ts
+// backend/src/infra/factories/create-example.usecase.ts
+import { CreateExample } from "@domain/use-cases/create-example";
+import { prismaClient } from "@infra/db/prisma-client";
+import { PrismaUOW } from "@infra/repositories/prisma/_uow";
+import { HashPasswordService } from "@infra/services/hash-password";
+
+export function createExampleFactory() {
+  const uow = new PrismaUOW(prismaClient);
+  const hashPasswordService = new HashPasswordService();
+  const useCase = new CreateExample(uow, hashPasswordService);
+
+  return { useCase };
+}
+```
+
+#### 12. Use-case spec
+
+Create the unit test in `src/domain/use-cases/<name>.spec.ts`:
+- Use `IMUOW` and instantiate the use-case directly.
+- When the use-case depends on a domain service, pass a test double to the constructor.
+- Seed helper data with `createTestOrganization`, `createTestAdminUser`, `createTestDevUser`, and `createTestProject` from `@domain/use-cases/utils/tests/organization`, `@domain/use-cases/utils/tests/user`, and `@domain/use-cases/utils/tests/project`.
+- Assert on `result.entity.getProps().field`.
+- Assert errors by class instance.
+- Keep entity-level validation (format, range, cross-field rules) in the entity spec; use-case specs test auth, uniqueness, limits, and wiring.
+
+```ts
+// backend/src/domain/use-cases/create-example.spec.ts
+import { describe, it, expect, beforeEach } from "vitest";
+import { CreateExample } from "./create-example";
+import { IMUOW } from "@domain/repositories/in-memory/_uow";
+import { HashPasswordTestService } from "@domain/services/hash-password";
+import { createTestOrganization } from "@domain/use-cases/utils/tests/organization";
+import {
+  createTestAdminUser,
+  createTestDevUser,
+} from "@domain/use-cases/utils/tests/user";
+import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
+import { NotAllowedError } from "./errors/NotAllowedError";
+
+let uow: IMUOW;
+let hashPasswordTestService: HashPasswordTestService;
+let sut: CreateExample;
+
+describe("Create Example", () => {
+  beforeEach(() => {
+    uow = new IMUOW();
+    hashPasswordTestService = new HashPasswordTestService();
+    sut = new CreateExample(uow, hashPasswordTestService);
+  });
+
+  it("should create an example when creator is admin", async () => {
+    const { organization } = await createTestOrganization(uow);
+    const { user: admin } = await createTestAdminUser(uow, organization);
+
+    const result = await sut.execute(admin.getProps().id, { name: "Foo", password: "secret" });
+
+    expect(result.example.getProps()).toEqual(
+      expect.objectContaining({
+        name: "Foo",
+        organizationId: organization.getProps().id,
+      }),
+    );
+  });
+
+  it("should throw NotAllowedError when creator is not admin", async () => {
+    const { organization } = await createTestOrganization(uow);
+    const { user: dev } = await createTestDevUser(uow, organization);
+
+    await expect(
+      sut.execute(dev.getProps().id, { name: "Foo", password: "secret" }),
+    ).rejects.toBeInstanceOf(NotAllowedError);
+  });
+});
+```
+
+#### Use-case conventions
+
+- **Class naming:** convert the kebab-case file name to PascalCase, preserving every word boundary, e.g. `create-organization` → `CreateOrganization`, `authenticate-user` → `AuthenticateUser`, `create-user-to-organization` → `CreateUserToOrganization`.
+- **Authorization:** always verify the actor exists and has permission before processing the input.
+- **Uniqueness checks:** query repositories before building entities; throw `EntityAlreadyExists` with `{ entity, field }` context.
+- **Transactions:** build entities outside the transaction, then pass them into `uow.transaction` for persistence.
+- **Entity validation:** keep format/range/cross-field rules in the entity Zod schemas and test them in the entity spec; do not duplicate them in use-case specs.
+- **Domain services:** depend on interfaces from `@domain/services/<name>.interface`; let factories inject infra adapters. Never import infra directly from a use-case.
+- **Passwords:** never store plain text; hash with the injected `HashPasswordInterface` before passing to `User.create`.
+- **Test factories:** prefer `createTestOrganization`, `createTestAdminUser`, `createTestDevUser`, and `createTestProject` over inline entity creation.
+
+#### Verification
+
+Run the new spec in isolation first:
+
+```bash
+npx vitest run src/domain/use-cases/<name>.spec.ts
+```
+
+Then run the full suite and type-check:
+
+```bash
+npx vitest run
+npx tsc --noEmit
+```
 
 ## Prisma notes
 
