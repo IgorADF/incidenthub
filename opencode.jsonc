@@ -9,6 +9,13 @@
       "enabled": true,
     },
 
+    // UI
+    "shadcn": {
+      "type": "local",
+      "command": ["npx", "shadcn@latest", "mcp"],
+      "enabled": true,
+    },
+
     // All
     "zod": {
       "type": "remote",
