@@ -1,13 +1,11 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "autoupdate": true,
-  //   "mcp": {
-  //     "name-of-mcp-server": {
-  //       // ...
-  //       "enabled": true,
-  //     },
-  //     "name-of-other-mcp-server": {
-  //       // ...
-  //     },
-  //   },
+  "mcp": {
+    "bullmq": {
+      "type": "remote",
+      "url": "https://docs.bullmq.io/~gitbook/mcp",
+      "enabled": true,
+    },
+  },
 }
