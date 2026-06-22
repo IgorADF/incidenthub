@@ -54,7 +54,7 @@ describe("Service entity", () => {
 
   it("should accept intervalSeconds at the upper boundary", () => {
     expect(() =>
-      Service.create({ ...baseService, intervalSeconds: 99999 }),
+      Service.create({ ...baseService, intervalSeconds: 9999 }),
     ).not.toThrow();
   });
 

@@ -4,10 +4,12 @@
   "description": "",
   "scripts": {
     "build": "tsc",
-    "start:api": "node ./src/apps/api/server.js",
-    "start:worker": "node ./src/apps/api/server.js",
-    "dev:api": "tsx ./src/apps/worker/run.ts",
-    "dev:worker": "tsx ./src/apps/worker/run.ts",
+    "start:api": "node ./dist/apps/api/server.js",
+    "start:worker:healthcheck": "node ./dist/apps/workers/healthcheck/main.js",
+    "start:worker:notification": "node ./dist/apps/workers/notification/main.js",
+    "dev:api": "tsx ./src/apps/api/server.ts",
+    "dev:worker:healthcheck": "tsx ./src/apps/workers/healthcheck/main.ts",
+    "dev:worker:notification": "tsx ./src/apps/workers/notification/main.ts",
     "tests": "npx vitest --config ./vitest.config.ts",
     "type:check": "npx tsc --noEmit"
   },
@@ -29,6 +31,7 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "axios": "1.18.0",
     "bcrypt": "6.0.0",
     "bullmq": "5.78.1",
     "dotenv": "^17.4.2",

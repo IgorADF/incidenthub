@@ -13,11 +13,11 @@ const ServiceSchema = z
     name: z.string().min(1).max(50),
     status: z.string().min(1).max(50),
     url: URL,
-    intervalSeconds: z.number().int().positive().min(5).max(99999),
+    intervalSeconds: z.number().int().positive().min(5).max(9999),
     timeoutSeconds: z.number().int().positive().min(5).max(20),
     expectedResponseStatus: z.number().int().min(100).max(599),
     incidentDetectionFails: z.number().int().positive().max(99),
-    consecutivesIncidentDetectionFails: z.number().int().min(0).max(99999),
+    consecutivesIncidentDetectionFails: z.number().int().min(0).max(99),
     emailToAlert: Email.nullable(),
     enabled: z.boolean(),
     createdAt: CreatedAt,
@@ -27,7 +27,7 @@ const ServiceSchema = z
     path: ["timeoutSeconds"],
   });
 
-type ServiceType = z.infer<typeof ServiceSchema>;
+export type ServiceType = z.infer<typeof ServiceSchema>;
 
 export type CreateServiceType = OmitDefaultValues<
   ServiceType,
