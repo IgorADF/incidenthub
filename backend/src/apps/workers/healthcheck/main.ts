@@ -6,7 +6,7 @@ import {
   HC_JOB_NAME,
   HealthcheckScheduler,
   TICK_JOB_NAME,
-} from "@infra/queue/scheduler";
+} from "@infra/queue/healthcheck-scheduler";
 import { executeHealthCheckFactory } from "@infra/factories/execute-health-check.usecase";
 import { repopulateSchedulesFactory } from "@infra/factories/repopulate-schedules.usecase";
 import { ListAllDueServices } from "@domain/use-cases/list-all-due-services";
