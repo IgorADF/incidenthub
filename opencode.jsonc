@@ -2,9 +2,17 @@
   "$schema": "https://opencode.ai/config.json",
   "autoupdate": true,
   "mcp": {
+    // Backend services
     "bullmq": {
       "type": "remote",
       "url": "https://docs.bullmq.io/~gitbook/mcp",
+      "enabled": true,
+    },
+
+    // All
+    "zod": {
+      "type": "remote",
+      "url": "https://mcp.inkeep.com/zod/mcp",
       "enabled": true,
     },
   },
