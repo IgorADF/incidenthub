@@ -44,6 +44,9 @@
     "zod": "4.4.3"
   },
   "overrides": {
-    "@hono/node-server": "1.19.14"
+    "@hono/node-server": "1.19.14",
+    "bullmq": {
+      "ioredis": "5.11.1"
+    }
   }
 }

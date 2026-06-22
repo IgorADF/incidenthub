@@ -70,14 +70,18 @@ model Service {
   consecutivesIncidentDetectionFails Int      @default(0) @map("consecutives_incident_detection_fails")
   emailToAlert                       String?  @map("email_to_alert")
   enabled                            Boolean  @default(true)
+  currentIncidentId                  String?  @unique @map("current_incident_id")
+  lastCheckedAt                      DateTime? @map("last_checked_at")
   createdAt                          DateTime @map("created_at")
 
-  project      Project       @relation(fields: [projectId], references: [id])
-  healthChecks HealthCheck[]
-  incidents    Incident[]
+  project         Project       @relation(fields: [projectId], references: [id])
+  currentIncident Incident?     @relation("ServiceCurrentIncident", fields: [currentIncidentId], references: [id])
+  healthChecks    HealthCheck[]
+  incidents       Incident[]    @relation("ServiceIncidents")
 
   @@unique([projectId, name])
   @@index([projectId])
+  @@index([enabled, lastCheckedAt])
   @@map("services")
 }
 
@@ -107,7 +111,8 @@ model Incident {
   emailsSent Int       @map("emails_sent")
   createdAt  DateTime  @map("created_at")
 
-  service Service @relation(fields: [serviceId], references: [id])
+  service           Service  @relation("ServiceIncidents", fields: [serviceId], references: [id])
+  currentForService Service? @relation("ServiceCurrentIncident")
 
   @@index([serviceId])
   @@index([startedAt])

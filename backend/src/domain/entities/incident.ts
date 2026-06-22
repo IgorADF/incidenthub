@@ -28,4 +28,18 @@ export class Incident extends DefaultEntity<IncidentType> {
   static fromProps(props: IncidentType) {
     return new Incident(props, IncidentSchema);
   }
+
+  resolve(resolvedAt: Date): Incident {
+    return Incident.fromProps({
+      ...this.getProps(),
+      resolvedAt,
+    });
+  }
+
+  incrementEmailsSent(): Incident {
+    return Incident.fromProps({
+      ...this.getProps(),
+      emailsSent: this.getProps().emailsSent + 1,
+    });
+  }
 }

@@ -20,6 +20,8 @@ const ServiceSchema = z
     consecutivesIncidentDetectionFails: z.number().int().min(0).max(99),
     emailToAlert: Email.nullable(),
     enabled: z.boolean(),
+    currentIncidentId: UUIDv7.nullable(),
+    lastCheckedAt: CreatedAt.nullable(),
     createdAt: CreatedAt,
   })
   .refine((data) => data.timeoutSeconds < data.intervalSeconds, {
@@ -31,7 +33,11 @@ export type ServiceType = z.infer<typeof ServiceSchema>;
 
 export type CreateServiceType = OmitDefaultValues<
   ServiceType,
-  "status" | "consecutivesIncidentDetectionFails" | "enabled"
+  | "status"
+  | "consecutivesIncidentDetectionFails"
+  | "enabled"
+  | "currentIncidentId"
+  | "lastCheckedAt"
 >;
 
 export class Service extends DefaultEntity<ServiceType> {
@@ -41,11 +47,71 @@ export class Service extends DefaultEntity<ServiceType> {
       status: "unknown",
       consecutivesIncidentDetectionFails: 0,
       enabled: true,
+      currentIncidentId: null,
+      lastCheckedAt: null,
       ...DefaultEntity.generateEntityDefaultValues(),
     });
   }
 
   static fromProps(props: ServiceType) {
     return new Service(props, ServiceSchema);
+  }
+
+  markChecking(): Service {
+    return Service.fromProps({ ...this.getProps(), status: "CHECKING" });
+  }
+
+  recordSuccess(): Service {
+    return Service.fromProps({
+      ...this.getProps(),
+      consecutivesIncidentDetectionFails: 0,
+    });
+  }
+
+  recordFailure(): Service {
+    const props = this.getProps();
+    const nextFails = Math.min(props.consecutivesIncidentDetectionFails + 1, 99);
+    return Service.fromProps({
+      ...props,
+      consecutivesIncidentDetectionFails: nextFails,
+    });
+  }
+
+  markIncident(): Service {
+    return Service.fromProps({ ...this.getProps(), status: "INCIDENT" });
+  }
+
+  disable(): Service {
+    return Service.fromProps({
+      ...this.getProps(),
+      status: "DISABLED",
+      enabled: false,
+    });
+  }
+
+  enable(): Service {
+    return Service.fromProps({
+      ...this.getProps(),
+      status: "CHECKING",
+      enabled: true,
+    });
+  }
+
+  markCheckedAt(date: Date): Service {
+    return Service.fromProps({
+      ...this.getProps(),
+      lastCheckedAt: date,
+    });
+  }
+
+  setCurrentIncident(incidentId: string): Service {
+    return Service.fromProps({
+      ...this.getProps(),
+      currentIncidentId: incidentId,
+    });
+  }
+
+  resolveCurrentIncident(): Service {
+    return Service.fromProps({ ...this.getProps(), currentIncidentId: null });
   }
 }

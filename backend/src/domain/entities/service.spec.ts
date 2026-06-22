@@ -184,4 +184,150 @@ describe("Service entity", () => {
       );
     }
   });
+
+  it("should default currentIncidentId and lastCheckedAt to null on create", () => {
+    const service = Service.create(baseService);
+
+    expect(service.getProps().currentIncidentId).toBeNull();
+    expect(service.getProps().lastCheckedAt).toBeNull();
+  });
+
+  describe("Service domain methods", () => {
+    it("markChecking should set status to CHECKING", () => {
+      const service = Service.create(baseService);
+      const updated = service.markChecking();
+
+      expect(updated.getProps().status).toBe("CHECKING");
+      expect(service.getProps().status).toBe("unknown");
+    });
+
+    it("recordSuccess should reset consecutivesIncidentDetectionFails to 0", () => {
+      const service = Service.create(baseService);
+      const failing = service.recordFailure().recordFailure();
+      expect(failing.getProps().consecutivesIncidentDetectionFails).toBe(2);
+
+      const recovered = failing.recordSuccess();
+
+      expect(recovered.getProps().consecutivesIncidentDetectionFails).toBe(0);
+    });
+
+    it("recordFailure should increment consecutivesIncidentDetectionFails by 1", () => {
+      const service = Service.create(baseService);
+
+      const one = service.recordFailure();
+      const two = one.recordFailure();
+      const three = two.recordFailure();
+
+      expect(one.getProps().consecutivesIncidentDetectionFails).toBe(1);
+      expect(two.getProps().consecutivesIncidentDetectionFails).toBe(2);
+      expect(three.getProps().consecutivesIncidentDetectionFails).toBe(3);
+    });
+
+    it("recordFailure should cap at 99 (schema max)", () => {
+      const service = Service.create(baseService);
+      let current = service;
+      for (let i = 0; i < 100; i++) {
+        current = current.recordFailure();
+      }
+
+      expect(current.getProps().consecutivesIncidentDetectionFails).toBe(99);
+    });
+
+    it("markIncident should set status to INCIDENT", () => {
+      const service = Service.create(baseService);
+
+      const updated = service.markIncident();
+
+      expect(updated.getProps().status).toBe("INCIDENT");
+    });
+
+    it("disable should set status to DISABLED and enabled to false", () => {
+      const service = Service.create(baseService);
+
+      const updated = service.disable();
+
+      expect(updated.getProps().status).toBe("DISABLED");
+      expect(updated.getProps().enabled).toBe(false);
+    });
+
+    it("enable should set status to CHECKING and enabled to true", () => {
+      const service = Service.create(baseService).disable();
+
+      const updated = service.enable();
+
+      expect(updated.getProps().status).toBe("CHECKING");
+      expect(updated.getProps().enabled).toBe(true);
+    });
+
+    it("markCheckedAt should set lastCheckedAt to the given date", () => {
+      const service = Service.create(baseService);
+      const date = new Date("2026-01-15T10:30:00Z");
+
+      const updated = service.markCheckedAt(date);
+
+      expect(updated.getProps().lastCheckedAt).toEqual(date);
+    });
+
+    it("markCheckedAt should reject an invalid date", () => {
+      const service = Service.create(baseService);
+
+      expect(() => service.markCheckedAt(new Date("invalid"))).toThrow(
+        ValidationEntitiesError,
+      );
+    });
+
+    it("setCurrentIncident should set currentIncidentId to a valid UUIDv7", () => {
+      const service = Service.create(baseService);
+      const incidentId = DefaultEntity.generateUUIDv7();
+
+      const updated = service.setCurrentIncident(incidentId);
+
+      expect(updated.getProps().currentIncidentId).toBe(incidentId);
+    });
+
+    it("setCurrentIncident should reject an invalid UUID", () => {
+      const service = Service.create(baseService);
+
+      expect(() => service.setCurrentIncident("not-a-uuid")).toThrow(
+        ValidationEntitiesError,
+      );
+    });
+
+    it("resolveCurrentIncident should set currentIncidentId to null", () => {
+      const service = Service.create(baseService);
+      const incidentId = DefaultEntity.generateUUIDv7();
+      const withIncident = service.setCurrentIncident(incidentId);
+
+      const resolved = withIncident.resolveCurrentIncident();
+
+      expect(resolved.getProps().currentIncidentId).toBeNull();
+    });
+
+    it("domain methods should be chainable", () => {
+      const incidentId = DefaultEntity.generateUUIDv7();
+      const date = new Date("2026-01-15T10:30:00Z");
+
+      const updated = Service.create(baseService)
+        .recordFailure()
+        .recordFailure()
+        .recordFailure()
+        .markIncident()
+        .setCurrentIncident(incidentId)
+        .markCheckedAt(date);
+
+      expect(updated.getProps().consecutivesIncidentDetectionFails).toBe(3);
+      expect(updated.getProps().status).toBe("INCIDENT");
+      expect(updated.getProps().currentIncidentId).toBe(incidentId);
+      expect(updated.getProps().lastCheckedAt).toEqual(date);
+    });
+
+    it("domain methods should not mutate the original instance", () => {
+      const service = Service.create(baseService);
+
+      service.recordFailure().markIncident();
+
+      expect(service.getProps().consecutivesIncidentDetectionFails).toBe(0);
+      expect(service.getProps().status).toBe("unknown");
+    });
+  });
 });

@@ -20,6 +20,8 @@ export class ServiceMapper {
         props.consecutivesIncidentDetectionFails,
       emailToAlert: props.emailToAlert,
       enabled: props.enabled,
+      currentIncidentId: props.currentIncidentId,
+      lastCheckedAt: props.lastCheckedAt,
       createdAt: props.createdAt,
     };
   }
@@ -41,6 +43,12 @@ export class ServiceMapper {
         prismaEntity.consecutivesIncidentDetectionFails,
       emailToAlert: prismaEntity.emailToAlert,
       enabled: prismaEntity.enabled,
+      currentIncidentId: prismaEntity.currentIncidentId
+        ? UUIDv7.parse(prismaEntity.currentIncidentId)
+        : null,
+      lastCheckedAt: prismaEntity.lastCheckedAt
+        ? CreatedAt.parse(prismaEntity.lastCheckedAt)
+        : null,
       createdAt: CreatedAt.parse(prismaEntity.createdAt),
     });
   }

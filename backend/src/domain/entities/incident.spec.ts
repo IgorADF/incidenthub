@@ -44,4 +44,48 @@ describe("Incident entity", () => {
 
     expect(incident.getProps().resolvedAt).toBe(resolvedAt);
   });
+
+  describe("Incident domain methods", () => {
+    it("resolve should set resolvedAt to the given date", () => {
+      const incident = Incident.create(baseIncident);
+      const resolvedAt = new Date(now.getTime() + 5000);
+
+      const resolved = incident.resolve(resolvedAt);
+
+      expect(resolved.getProps().resolvedAt).toEqual(resolvedAt);
+      expect(incident.getProps().resolvedAt).toBeNull();
+    });
+
+    it("resolve should reject an invalid date", () => {
+      const incident = Incident.create(baseIncident);
+
+      expect(() => incident.resolve(new Date("invalid"))).toThrow(
+        ValidationEntitiesError,
+      );
+    });
+
+    it("incrementEmailsSent should add 1 to emailsSent", () => {
+      const incident = Incident.create(baseIncident);
+
+      const one = incident.incrementEmailsSent();
+      const two = one.incrementEmailsSent();
+
+      expect(one.getProps().emailsSent).toBe(1);
+      expect(two.getProps().emailsSent).toBe(2);
+      expect(incident.getProps().emailsSent).toBe(0);
+    });
+
+    it("resolve and incrementEmailsSent should be chainable", () => {
+      const incident = Incident.create(baseIncident);
+      const resolvedAt = new Date(now.getTime() + 5000);
+
+      const resolved = incident
+        .incrementEmailsSent()
+        .incrementEmailsSent()
+        .resolve(resolvedAt);
+
+      expect(resolved.getProps().emailsSent).toBe(2);
+      expect(resolved.getProps().resolvedAt).toEqual(resolvedAt);
+    });
+  });
 });
