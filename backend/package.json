@@ -17,6 +17,7 @@
   "type": "module",
   "devDependencies": {
     "@types/bcrypt": "6.0.0",
+    "@types/jsonwebtoken": "9.0.10",
     "@types/node": "^25.9.3",
     "@types/nodemailer": "8.0.1",
     "@types/pg": "^8.20.0",
@@ -33,6 +34,7 @@
     "dotenv": "^17.4.2",
     "fastify": "5.8.5",
     "ioredis": "5.11.1",
+    "jsonwebtoken": "9.0.3",
     "nodemailer": "9.0.1",
     "pg": "^8.21.0",
     "uuidv7": "1.2.1",
