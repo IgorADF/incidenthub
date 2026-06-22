@@ -7,8 +7,15 @@ const now = new Date();
 const baseIncident = {
   serviceId: DefaultEntity.generateUUIDv7(),
   startedAt: now,
-  resolvedAt: null,
+};
+
+const baseFullProps = {
+  id: DefaultEntity.generateUUIDv7(),
+  serviceId: baseIncident.serviceId,
+  startedAt: now,
+  resolvedAt: null as Date | null,
   emailsSent: 0,
+  createdAt: now,
 };
 
 describe("Incident entity", () => {
@@ -22,23 +29,30 @@ describe("Incident entity", () => {
     expect(incident.getProps().id).toBeDefined();
   });
 
-  it("should accept emailsSent at the lower boundary", () => {
+  it("should default resolvedAt to null and emailsSent to 0 on create", () => {
+    const incident = Incident.create(baseIncident);
+
+    expect(incident.getProps().resolvedAt).toBeNull();
+    expect(incident.getProps().emailsSent).toBe(0);
+  });
+
+  it("should accept emailsSent at the lower boundary via fromProps", () => {
     expect(() =>
-      Incident.create({ ...baseIncident, emailsSent: 0 }),
+      Incident.fromProps({ ...baseFullProps, emailsSent: 0 }),
     ).not.toThrow();
   });
 
-  it("should reject emailsSent below the lower boundary", () => {
-    expect(() => Incident.create({ ...baseIncident, emailsSent: -1 })).toThrow(
-      ValidationEntitiesError,
-    );
+  it("should reject emailsSent below the lower boundary via fromProps", () => {
+    expect(() =>
+      Incident.fromProps({ ...baseFullProps, emailsSent: -1 }),
+    ).toThrow(ValidationEntitiesError);
   });
 
-  it("should accept a resolvedAt date", () => {
+  it("should accept a resolvedAt date via fromProps", () => {
     const resolvedAt = new Date(now.getTime() + 1000);
 
-    const incident = Incident.create({
-      ...baseIncident,
+    const incident = Incident.fromProps({
+      ...baseFullProps,
       resolvedAt,
     });
 

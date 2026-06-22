@@ -9,10 +9,10 @@ const HealthCheckSchema = z.object({
   id: UUIDv7,
   serviceId: UUIDv7,
   url: URL,
-  requestTime: z.number().int().positive(),
+  requestTime: z.number().int().min(0),
   isError: z.boolean(),
   timedOut: z.boolean(),
-  responseStatus: z.number().int().min(100).max(599),
+  responseStatus: z.number().int().min(0).max(599),
   responseJsonData: z.string().nullable(),
   createdAt: CreatedAt,
 });

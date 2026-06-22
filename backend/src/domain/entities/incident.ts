@@ -15,12 +15,17 @@ const IncidentSchema = z.object({
 
 type IncidentType = z.infer<typeof IncidentSchema>;
 
-export type CreateIncidentType = OmitDefaultValues<IncidentType>;
+export type CreateIncidentType = OmitDefaultValues<
+  IncidentType,
+  "resolvedAt" | "emailsSent"
+>;
 
 export class Incident extends DefaultEntity<IncidentType> {
   static create(props: CreateIncidentType) {
     return Incident.fromProps({
       ...props,
+      resolvedAt: null,
+      emailsSent: 0,
       ...DefaultEntity.generateEntityDefaultValues(),
     });
   }

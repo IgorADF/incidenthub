@@ -23,9 +23,9 @@ describe("HealthCheck entity", () => {
     expect(healthCheck.getProps().id).toBeDefined();
   });
 
-  it("should accept responseStatus at the lower boundary", () => {
+  it("should accept responseStatus at the lower boundary (0 = no response)", () => {
     expect(() =>
-      HealthCheck.create({ ...baseHealthCheck, responseStatus: 100 }),
+      HealthCheck.create({ ...baseHealthCheck, responseStatus: 0 }),
     ).not.toThrow();
   });
 
@@ -37,7 +37,7 @@ describe("HealthCheck entity", () => {
 
   it("should reject responseStatus below the lower boundary", () => {
     expect(() =>
-      HealthCheck.create({ ...baseHealthCheck, responseStatus: 99 }),
+      HealthCheck.create({ ...baseHealthCheck, responseStatus: -1 }),
     ).toThrow(ValidationEntitiesError);
   });
 
@@ -47,15 +47,15 @@ describe("HealthCheck entity", () => {
     ).toThrow(ValidationEntitiesError);
   });
 
-  it("should accept the minimum requestTime", () => {
+  it("should accept requestTime of 0 (instant failure)", () => {
     expect(() =>
-      HealthCheck.create({ ...baseHealthCheck, requestTime: 1 }),
+      HealthCheck.create({ ...baseHealthCheck, requestTime: 0 }),
     ).not.toThrow();
   });
 
-  it("should reject non-positive requestTime", () => {
+  it("should reject negative requestTime", () => {
     expect(() =>
-      HealthCheck.create({ ...baseHealthCheck, requestTime: 0 }),
+      HealthCheck.create({ ...baseHealthCheck, requestTime: -1 }),
     ).toThrow(ValidationEntitiesError);
   });
 
