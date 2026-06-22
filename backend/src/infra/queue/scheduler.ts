@@ -4,8 +4,8 @@ import { ListAllDueServices } from "@domain/use-cases/list-all-due-services";
 
 const TICK_SCHEDULER_ID = "healthcheck-tick";
 const TICK_INTERVAL_MS = 5000;
-const TICK_JOB_NAME = "healthcheck:tick";
-const HC_JOB_NAME = "healthcheck";
+export const TICK_JOB_NAME = "healthcheck:tick";
+export const HC_JOB_NAME = "healthcheck";
 
 export class HealthcheckScheduler implements SchedulerInterface {
   constructor(
