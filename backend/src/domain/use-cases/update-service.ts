@@ -2,16 +2,19 @@ import { Service } from "@domain/entities/service";
 import { UOW } from "@domain/repositories/interfaces/_uow";
 import { NotAllowedError } from "./errors/NotAllowedError";
 import { NotFoundError } from "./errors/NotFoundError";
+import z from "zod";
 
-type UpdateServiceInput = {
-  name?: string;
-  url?: string;
-  intervalSeconds?: number;
-  timeoutSeconds?: number;
-  expectedResponseStatus?: number;
-  incidentDetectionFails?: number;
-  emailToAlert?: string | null;
-};
+export const UpdateServiceInputSchema = z.object({
+  name: z.string().optional(),
+  url: z.string().optional(),
+  intervalSeconds: z.number().optional(),
+  timeoutSeconds: z.number().optional(),
+  expectedResponseStatus: z.number().optional(),
+  incidentDetectionFails: z.number().optional(),
+  emailToAlert: z.string().nullable().optional(),
+});
+
+export type UpdateServiceInput = z.infer<typeof UpdateServiceInputSchema>;
 
 export class UpdateService {
   constructor(private readonly uow: UOW) {}

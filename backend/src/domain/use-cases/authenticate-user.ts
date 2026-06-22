@@ -1,11 +1,14 @@
+import z from "zod";
 import { UOW } from "@domain/repositories/interfaces/_uow";
 import { InvalidCredentialError } from "./errors/InvalidCredentialError";
 import { HashPasswordInterface } from "@domain/services/hash-password.interface";
 
-type AuthenticateUserInput = {
-  email: string;
-  password: string;
-};
+export const AuthenticateUserInputSchema = z.object({
+  email: z.string(),
+  password: z.string(),
+});
+
+export type AuthenticateUserInput = z.infer<typeof AuthenticateUserInputSchema>;
 
 export class AuthenticateUser {
   constructor(

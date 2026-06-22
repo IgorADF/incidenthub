@@ -1,13 +1,14 @@
+import z from "zod";
 import { UOW } from "@domain/repositories/interfaces/_uow";
-import { Email } from "@domain/value-objects/email";
 import { EmailInterface } from "@domain/services/email.interface";
 import { JwtInterface } from "@domain/services/jwt.interface";
 import { NotFoundError } from "./errors/NotFoundError";
-import { ValidationUseCasesError } from "./errors/ValidationUseCasesError";
 
-type ForgotPasswordInput = {
-  email: string;
-};
+export const ForgotPasswordInputSchema = z.object({
+  email: z.string(),
+});
+
+export type ForgotPasswordInput = z.infer<typeof ForgotPasswordInputSchema>;
 
 export class ForgotPassword {
   constructor(
@@ -18,14 +19,7 @@ export class ForgotPassword {
   ) {}
 
   async execute(input: ForgotPasswordInput) {
-    const { data: email, success: successEmailValidation } = Email.safeParse(
-      input.email,
-    );
-    if (!successEmailValidation) {
-      throw new ValidationUseCasesError("Invalid email");
-    }
-
-    const user = await this.uow.repositories.users.getByEmail(email);
+    const user = await this.uow.repositories.users.getByEmail(input.email);
     if (!user) {
       throw new NotFoundError("user");
     }
@@ -34,7 +28,7 @@ export class ForgotPassword {
       sub: user.getProps().id,
     });
 
-    this.sendEmail(email, resetToken);
+    this.sendEmail(input.email, resetToken);
 
     return { sent: true };
   }

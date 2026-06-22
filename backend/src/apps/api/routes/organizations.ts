@@ -1,24 +1,16 @@
 import type { FastifyInstance, FastifyPluginOptions } from "fastify";
-import z from "zod";
 import { createOrganizationFactory } from "@infra/factories/create-organization.usecase";
+import {
+  CreateOrganizationInputSchema,
+} from "@domain/use-cases/create-organization";
 import { EntityAlreadyExists } from "@domain/use-cases/errors/EntityAlreadyExists";
-
-const createOrganizationBody = z.object({
-  name: z.string().min(1).max(50),
-  user: z.object({
-    email: z.email(),
-    name: z.string().min(1).max(50),
-    password: z.string().min(1).max(65),
-    type: z.enum(["ADMIN", "DEV"]).optional(),
-  }),
-});
 
 export async function organizationRoutes(
   app: FastifyInstance,
   _options: FastifyPluginOptions,
 ) {
   app.post("/organizations", async (request, reply) => {
-    const parsed = createOrganizationBody.safeParse(request.body);
+    const parsed = CreateOrganizationInputSchema.safeParse(request.body);
 
     if (!parsed.success) {
       return reply.status(400).send({
@@ -32,10 +24,7 @@ export async function organizationRoutes(
     const { useCase } = createOrganizationFactory();
 
     try {
-      const { organization, user } = await useCase.execute(
-        { name: parsed.data.name },
-        parsed.data.user,
-      );
+      const { organization, user } = await useCase.execute(parsed.data);
 
       const orgProps = organization.getProps();
       const userProps = user.getProps();

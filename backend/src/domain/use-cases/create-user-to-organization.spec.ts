@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { CreateUserToOrganization } from "./create-user-to-organization";
+import {
+  CreateUserToOrganization,
+  CreateUserToOrganizationInput,
+} from "./create-user-to-organization";
 import { IMUOW } from "@domain/repositories/in-memory/_uow";
 import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
 import { NotAllowedError } from "./errors/NotAllowedError";
@@ -14,10 +17,11 @@ let uow: IMUOW;
 let hashPasswordTestService: HashPasswordTestService;
 let sut: CreateUserToOrganization;
 
-const newUserInput = {
+const newUserInput: CreateUserToOrganizationInput = {
   email: "newuser@acme.com",
   password: "secret",
   name: "My User",
+  type: "DEV",
 };
 
 describe("Create User To Organization", () => {
@@ -36,7 +40,10 @@ describe("Create User To Organization", () => {
       hashPasswordTestService,
     );
 
-    const result = await sut.execute(admin.getProps().id, newUserInput);
+    const result = await sut.execute(admin.getProps().id, {
+      ...newUserInput,
+      type: "DEV",
+    });
 
     expect(result.user.getProps()).toEqual(
       expect.objectContaining({

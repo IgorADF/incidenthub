@@ -3,18 +3,21 @@ import { UOW } from "@domain/repositories/interfaces/_uow";
 import { LimitExceededError } from "./errors/LimitExceededError";
 import { NotAllowedError } from "./errors/NotAllowedError";
 import { NotFoundError } from "./errors/NotFoundError";
+import z from "zod";
 
 const MAX_SERVICES_PER_PROJECT = 10;
 
-type CreateServiceInput = {
-  url: string;
-  name: string;
-  intervalSeconds: number;
-  timeoutSeconds: number;
-  expectedResponseStatus: number;
-  incidentDetectionFails: number;
-  emailToAlert: string;
-};
+export const CreateServiceInputSchema = z.object({
+  url: z.string(),
+  name: z.string(),
+  intervalSeconds: z.number(),
+  timeoutSeconds: z.number(),
+  expectedResponseStatus: z.number(),
+  incidentDetectionFails: z.number(),
+  emailToAlert: z.string(),
+});
+
+export type CreateServiceInput = z.infer<typeof CreateServiceInputSchema>;
 
 export class CreateService {
   constructor(private readonly uow: UOW) {}

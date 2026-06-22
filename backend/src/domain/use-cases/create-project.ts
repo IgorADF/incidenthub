@@ -3,14 +3,17 @@ import { UOW } from "@domain/repositories/interfaces/_uow";
 import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
 import { LimitExceededError } from "./errors/LimitExceededError";
 import { NotAllowedError } from "./errors/NotAllowedError";
+import z from "zod";
 
 const MAX_PROJECTS_PER_ORGANIZATION = 5;
 
-type CreateProjectInput = {
-  name: string;
-  showPublicPage?: boolean;
-  publicPageSlug?: string;
-};
+export const CreateProjectInputSchema = z.object({
+  name: z.string(),
+  showPublicPage: z.boolean().optional(),
+  publicPageSlug: z.string().nullable().optional(),
+});
+
+export type CreateProjectInput = z.infer<typeof CreateProjectInputSchema>;
 
 export class CreateProject {
   constructor(private readonly uow: UOW) {}

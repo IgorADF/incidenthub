@@ -7,7 +7,6 @@ import { HashPasswordTestService } from "@domain/services/hash-password";
 import { EmailTestService } from "@domain/services/email";
 import { JwtTestService } from "@domain/services/jwt";
 import { NotFoundError } from "./errors/NotFoundError";
-import { ValidationUseCasesError } from "./errors/ValidationUseCasesError";
 
 let uow: IMUOW;
 let emailTestService: EmailTestService;
@@ -57,10 +56,10 @@ describe("Forgot Password", () => {
     expect(payload.sub).toBe(user.getProps().id);
   });
 
-  it("should throw ValidationUseCasesError when email is invalid", async () => {
+  it("should throw NotFoundError when email is invalid", async () => {
     const error = await sut.execute({ email: "not-an-email" }).catch((e) => e);
 
-    expect(error).toBeInstanceOf(ValidationUseCasesError);
+    expect(error).toBeInstanceOf(NotFoundError);
     expect(emailTestService.sentEmails).toHaveLength(0);
   });
 

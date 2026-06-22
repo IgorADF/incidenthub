@@ -3,13 +3,18 @@ import { UOW } from "@domain/repositories/interfaces/_uow";
 import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
 import { NotAllowedError } from "./errors/NotAllowedError";
 import { HashPasswordInterface } from "@domain/services/hash-password.interface";
+import z from "zod";
 
-type CreateUserToOrganizationInput = {
-  email: string;
-  password: string;
-  type?: "ADMIN" | "DEV";
-  name: string;
-};
+export const CreateUserToOrganizationInputSchema = z.object({
+  email: z.string(),
+  password: z.string(),
+  name: z.string(),
+  type: z.enum(["ADMIN", "DEV"]),
+});
+
+export type CreateUserToOrganizationInput = z.infer<
+  typeof CreateUserToOrganizationInputSchema
+>;
 
 export class CreateUserToOrganization {
   constructor(
@@ -44,7 +49,7 @@ export class CreateUserToOrganization {
       password: await this.hashPasswordService.hashPassword(
         newUserData.password,
       ),
-      type: newUserData.type ?? "DEV",
+      type: newUserData.type,
       name: newUserData.name,
     });
 

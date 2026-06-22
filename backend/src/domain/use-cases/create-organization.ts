@@ -3,17 +3,22 @@ import { User } from "@domain/entities/user";
 import { UOW } from "@domain/repositories/interfaces/_uow";
 import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
 import { HashPasswordInterface } from "@domain/services/hash-password.interface";
+import z from "zod";
 
-type CreateOrganizationType = {
-  name: string;
-};
+export const CreateOrganizationInputSchema = z.object({
+  organization: z.object({
+    name: z.string(),
+  }),
+  user: z.object({
+    email: z.string(),
+    name: z.string(),
+    password: z.string(),
+  }),
+});
 
-type CreateOrganizationUserType = {
-  email: string;
-  name: string;
-  password: string;
-  type?: "ADMIN" | "DEV";
-};
+export type CreateOrganizationInput = z.infer<
+  typeof CreateOrganizationInputSchema
+>;
 
 export class CreateOrganization {
   constructor(
@@ -21,12 +26,10 @@ export class CreateOrganization {
     private readonly hashPasswordService: HashPasswordInterface,
   ) {}
 
-  async execute(
-    { name: orgName }: CreateOrganizationType,
-    userToCreate: CreateOrganizationUserType,
-  ) {
-    const orgWithSameName =
-      await this.uow.repositories.organizations.getByName(orgName);
+  async execute(input: CreateOrganizationInput) {
+    const orgWithSameName = await this.uow.repositories.organizations.getByName(
+      input.organization.name,
+    );
 
     if (orgWithSameName) {
       throw new EntityAlreadyExists({
@@ -36,7 +39,7 @@ export class CreateOrganization {
     }
 
     const userWithSameEmail = await this.uow.repositories.users.getByEmail(
-      userToCreate.email,
+      input.user.email,
     );
 
     if (userWithSameEmail) {
@@ -46,15 +49,17 @@ export class CreateOrganization {
       });
     }
 
-    const organization = Organization.create({ name: orgName });
+    const organization = Organization.create({
+      name: input.organization.name,
+    });
     const user = User.create({
       organizationId: organization.getProps().id,
-      name: userToCreate.name,
-      email: userToCreate.email,
+      name: input.user.name,
+      email: input.user.email,
       password: await this.hashPasswordService.hashPassword(
-        userToCreate.password,
+        input.user.password,
       ),
-      type: userToCreate.type ?? "ADMIN",
+      type: "ADMIN",
     });
 
     return await this.uow.transaction(async (reps) => {
