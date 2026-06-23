@@ -1,23 +1,14 @@
-import { JwtInterface, JwtSignInput, JwtVerifyResult } from "./jwt.interface";
+import {
+  JwtInterface,
+  JwtSignInput,
+  JwtVerifyResult,
+  JwtAuthSignInput,
+  JwtAuthVerifyResult,
+} from "./jwt.interface";
 
 export class JwtTestService implements JwtInterface {
   private counter = 0;
-  private tokens: { [token: string]: JwtVerifyResult } = {};
-
-  // async sign(input: JwtSignInput, ) {
-  //   this.counter += 1;
-  //   const token = `test-token-${this.counter}`;
-  //   this.tokens[token] = { sub: input.sub };
-  //   return token;
-  // }
-
-  // async verify(token: string) {
-  //   const payload = this.tokens[token];
-  //   if (!payload) {
-  //     throw new Error("Invalid token");
-  //   }
-  //   return payload;
-  // }
+  private tokens: { [token: string]: JwtVerifyResult | JwtAuthVerifyResult } = {};
 
   async signForgotPassword(input: JwtSignInput) {
     this.counter += 1;
@@ -27,7 +18,22 @@ export class JwtTestService implements JwtInterface {
   }
 
   async verifyForgotPassword(token: string) {
-    const payload = this.tokens[token];
+    const payload = this.tokens[token] as JwtVerifyResult | undefined;
+    if (!payload) {
+      throw new Error("Invalid token");
+    }
+    return payload;
+  }
+
+  async signAuth(input: JwtAuthSignInput) {
+    this.counter += 1;
+    const token = `test-auth-token-${this.counter}`;
+    this.tokens[token] = { ...input };
+    return token;
+  }
+
+  async verifyAuth(token: string) {
+    const payload = this.tokens[token] as JwtAuthVerifyResult | undefined;
     if (!payload) {
       throw new Error("Invalid token");
     }
