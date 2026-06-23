@@ -24,9 +24,9 @@ async function createApp() {
     openapi: {
       openapi: "3.0.0",
       info: {
-        title: "Test swagger",
-        description: "Testing the Fastify swagger API",
-        version: "0.1.0",
+        title: "IncidentHub API",
+        description: "Operational platform API for service health monitoring",
+        version: "1.0.0",
       },
       // servers: [
       //   {
