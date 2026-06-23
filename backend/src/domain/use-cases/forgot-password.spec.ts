@@ -6,7 +6,6 @@ import { createTestAdminUser } from "@domain/use-cases/utils/tests/user";
 import { HashPasswordTestService } from "@domain/services/hash-password";
 import { EmailTestService } from "@domain/services/email";
 import { JwtTestService } from "@domain/services/jwt";
-import { NotFoundError } from "./errors/NotFoundError";
 
 let uow: IMUOW;
 let emailTestService: EmailTestService;
@@ -56,19 +55,17 @@ describe("Forgot Password", () => {
     expect(payload.sub).toBe(user.getProps().id);
   });
 
-  it("should throw NotFoundError when email is invalid", async () => {
-    const error = await sut.execute({ email: "not-an-email" }).catch((e) => e);
+  it("should return sent:true without sending email when email is invalid", async () => {
+    const result = await sut.execute({ email: "not-an-email" });
 
-    expect(error).toBeInstanceOf(NotFoundError);
+    expect(result.sent).toBe(true);
     expect(emailTestService.sentEmails).toHaveLength(0);
   });
 
-  it("should throw NotFoundError when user is not found", async () => {
-    const error = await sut
-      .execute({ email: "nobody@acme.com" })
-      .catch((e) => e);
+  it("should return sent:true without sending email when user is not found", async () => {
+    const result = await sut.execute({ email: "nobody@acme.com" });
 
-    expect(error).toBeInstanceOf(NotFoundError);
+    expect(result.sent).toBe(true);
     expect(emailTestService.sentEmails).toHaveLength(0);
   });
 });

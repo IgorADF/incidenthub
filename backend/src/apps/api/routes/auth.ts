@@ -6,6 +6,8 @@ import { AuthenticateUserInputSchema, AuthenticateUserInput } from "@domain/use-
 import { ForgotPasswordInputSchema, ForgotPasswordInput } from "@domain/use-cases/forgot-password";
 import { JwtService } from "@infra/services/jwt";
 
+const jwtService = new JwtService();
+
 export async function authRoutes(
   app: FastifyInstance,
   _options: FastifyPluginOptions,
@@ -35,7 +37,6 @@ export async function authRoutes(
       const { user } = await useCase.execute(request.body);
       const userProps = user.getProps();
 
-      const jwtService = new JwtService();
       const token = await jwtService.signAuth({
         userId: userProps.id,
         organizationId: userProps.organizationId,

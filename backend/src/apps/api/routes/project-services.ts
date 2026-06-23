@@ -7,21 +7,7 @@ import {
   CreateServiceInput,
 } from "@domain/use-cases/create-service";
 import { authHook } from "../plugins/auth";
-
-const serviceResponseSchema = z.object({
-  id: z.string(),
-  projectId: z.string(),
-  name: z.string(),
-  url: z.string(),
-  intervalSeconds: z.number().int(),
-  timeoutSeconds: z.number().int(),
-  expectedResponseStatus: z.number().int(),
-  incidentDetectionFails: z.number().int(),
-  emailToAlert: z.string().nullable(),
-  enabled: z.boolean(),
-  currentIncidentId: z.string().nullable(),
-  createdAt: z.date(),
-});
+import { serviceResponseSchema } from "./_schemas";
 
 const paramsSchema = z.object({
   projectId: z.string().uuid(),
@@ -79,7 +65,7 @@ export async function projectServiceRoutes(
     async (request, reply) => {
       const projectId = request.params.projectId;
       const { useCase } = listServicesByProjectFactory();
-      const { services } = await useCase.execute(projectId);
+      const { services } = await useCase.execute(request.user!.userId, projectId);
       return reply.status(200).send({
         services: services.map((s) => {
           const props = s.getProps();

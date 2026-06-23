@@ -1,6 +1,8 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { JwtService } from "@infra/services/jwt";
 
+const jwtService = new JwtService();
+
 export type AuthUser = {
   userId: string;
   organizationId: string;
@@ -19,17 +21,24 @@ export async function authHook(
 ) {
   const header = request.headers.authorization;
 
-  if (!header || !header.startsWith("Bearer ")) {
+  if (!header) {
     return reply.status(401).send({
       code: "UNAUTHORIZED",
       message: "Missing or invalid Authorization header",
     });
   }
 
-  const token = header.slice("Bearer ".length).trim();
+  const match = /^(\S+)\s+(.+)$/i.exec(header);
+  if (!match || match[1].toLowerCase() !== "bearer") {
+    return reply.status(401).send({
+      code: "UNAUTHORIZED",
+      message: "Missing or invalid Authorization header",
+    });
+  }
+
+  const token = match[2].trim();
 
   try {
-    const jwtService = new JwtService();
     const payload = await jwtService.verifyAuth(token);
     request.user = {
       userId: payload.userId,
