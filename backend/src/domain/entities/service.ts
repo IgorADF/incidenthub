@@ -2,7 +2,7 @@ import { DefaultEntity } from "./_default";
 import z from "zod";
 import { UUIDv7 } from "@domain/value-objects/uuidv7";
 import { CreatedAt } from "@domain/value-objects/created-at";
-import { URL } from "@domain/value-objects/url";
+import { Url } from "@domain/value-objects/url";
 import { Email } from "@domain/value-objects/email";
 import { OmitDefaultValues } from "~types/omit-default-values";
 
@@ -11,8 +11,8 @@ const ServiceSchema = z
     id: UUIDv7,
     projectId: UUIDv7,
     name: z.string().min(1).max(50),
-    status: z.string().min(1).max(50),
-    url: URL,
+    status: z.enum(["CHECKING", "INCIDENT", "DISABLED"]),
+    url: Url,
     intervalSeconds: z.number().int().positive().min(5).max(9999),
     timeoutSeconds: z.number().int().positive().min(5).max(20),
     expectedResponseStatus: z.number().int().min(100).max(599),
@@ -44,7 +44,7 @@ export class Service extends DefaultEntity<ServiceType> {
   static create(props: CreateServiceType) {
     return Service.fromProps({
       ...props,
-      status: "unknown",
+      status: "CHECKING",
       consecutivesIncidentDetectionFails: 0,
       enabled: true,
       currentIncidentId: null,
@@ -70,7 +70,10 @@ export class Service extends DefaultEntity<ServiceType> {
 
   recordFailure(): Service {
     const props = this.getProps();
-    const nextFails = Math.min(props.consecutivesIncidentDetectionFails + 1, 99);
+    const nextFails = Math.min(
+      props.consecutivesIncidentDetectionFails + 1,
+      99,
+    );
     return Service.fromProps({
       ...props,
       consecutivesIncidentDetectionFails: nextFails,

@@ -1,11 +1,11 @@
-import { _DefaultEntitiesError } from "./_DefaultEntitiesError";
+import { DefaultEntitiesError } from "./_DefaultEntitiesError";
 
 export type ValidationIssue = {
   path: string;
   message: string;
 };
 
-export class ValidationEntitiesError extends _DefaultEntitiesError {
+export class ValidationEntitiesError extends DefaultEntitiesError {
   public readonly issues: ValidationIssue[];
 
   constructor(issues: ValidationIssue[]) {

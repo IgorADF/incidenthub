@@ -6,7 +6,7 @@ import { IMUOW } from "@domain/repositories/in-memory/_uow";
 
 export async function createTestOrganization(
   uow: IMUOW,
-  data?: CreateOrganizationType,
+  data?: Partial<CreateOrganizationType>,
 ) {
   const organizationCreationData: CreateOrganizationType = {
     name: "Dev Corporation",

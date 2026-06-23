@@ -14,3 +14,5 @@ export const Slug = z
         "Slug must be lowercase alphanumeric, words separated by single hyphens",
       ),
   );
+
+export type Slug = z.infer<typeof Slug>;

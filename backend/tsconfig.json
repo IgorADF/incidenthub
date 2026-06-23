@@ -12,10 +12,8 @@
 
     "baseUrl": ".",
     "paths": {
-      "@apps/*": ["src/apps/*"],
       "@domain/*": ["src/domain/*"],
       "@infra/*": ["src/infra/*"],
-      "@utils/*": ["src/utils/*"],
       "~types/*": ["src/types/*"]
     }
   },

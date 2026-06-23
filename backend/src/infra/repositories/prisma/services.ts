@@ -1,4 +1,4 @@
-import { Service, ServiceType } from "@domain/entities/service";
+import { Service } from "@domain/entities/service";
 import { ServicesRepInterface } from "@domain/repositories/interfaces/services";
 import { TPrismaClient } from "@infra/db/prisma-client";
 import { ServiceMapper } from "@infra/mappers/service";
@@ -21,16 +21,20 @@ export class PrismaServicesRep implements ServicesRepInterface {
   }
 
   async listAllDue(now: Date) {
-    const records = await this.prisma.$queryRaw<ServiceType[]>`
-      SELECT * FROM services
-      WHERE enabled = true
-      AND (
-        last_checked_at IS NULL
-        OR last_checked_at + (interval_seconds || ' seconds')::interval <= ${now}
-      )
-    `;
+    const records = await this.prisma.service.findMany({
+      where: { enabled: true },
+    });
 
-    return records.map(ServiceMapper.fromPrismaToEntity);
+    return records
+      .map(ServiceMapper.fromPrismaToEntity)
+      .filter((service) => {
+        const props = service.getProps();
+        if (props.lastCheckedAt === null) return true;
+        const dueAt = new Date(
+          props.lastCheckedAt.getTime() + props.intervalSeconds * 1000,
+        );
+        return dueAt <= now;
+      });
   }
 
   async create(data: Service) {

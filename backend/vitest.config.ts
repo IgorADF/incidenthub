@@ -5,8 +5,5 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
-  // plugins: [tsconfigPaths()],
-  test: {
-    // Your Vitest settings here
-  },
+  test: {},
 });

@@ -19,7 +19,7 @@ describe("Service entity", () => {
     const service = Service.create(baseService);
 
     expect(service.getProps().name).toBe("Backend Service");
-    expect(service.getProps().status).toBe("unknown");
+    expect(service.getProps().status).toBe("CHECKING");
     expect(service.getProps().consecutivesIncidentDetectionFails).toBe(0);
     expect(service.getProps().enabled).toBe(true);
   });
@@ -198,7 +198,7 @@ describe("Service entity", () => {
       const updated = service.markChecking();
 
       expect(updated.getProps().status).toBe("CHECKING");
-      expect(service.getProps().status).toBe("unknown");
+      expect(service.getProps().status).toBe("CHECKING");
     });
 
     it("recordSuccess should reset consecutivesIncidentDetectionFails to 0", () => {
@@ -327,7 +327,7 @@ describe("Service entity", () => {
       service.recordFailure().markIncident();
 
       expect(service.getProps().consecutivesIncidentDetectionFails).toBe(0);
-      expect(service.getProps().status).toBe("unknown");
+      expect(service.getProps().status).toBe("CHECKING");
     });
   });
 });

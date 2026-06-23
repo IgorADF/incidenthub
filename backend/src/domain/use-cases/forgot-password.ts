@@ -28,7 +28,7 @@ export class ForgotPassword {
       sub: user.getProps().id,
     });
 
-    this.sendEmail(input.email, resetToken);
+    await this.sendEmail(input.email, resetToken);
 
     return { sent: true };
   }

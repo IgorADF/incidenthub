@@ -8,11 +8,11 @@ Independent TypeScript packages, no root `package.json` or monorepo tooling.
 
 - `backend/` — Single package that contains the domain layer, infrastructure, and two separate entrypoints:
   - `apps/api/` — Fastify v5 HTTP API.
-  - `apps/worker/` — Background job processors (queue consumers).
+  - `apps/workers/` — Background job processors (queue consumers).
 - `ui/` — React/Vite frontend.
 - `ProjectIdea.txt` — business requirements (Portuguese).
 
-The API and worker are separate processes. They share `domain/` and `infra/` but never import each other.
+The API and workers are separate processes. They share `domain/` and `infra/` but never import each other.
 
 ## Commands
 
@@ -28,10 +28,12 @@ npx prisma migrate reset   # reset DB
 npx prisma studio          # open DB GUI
 
 npm run dev:api            # tsx watch src/apps/api/server.ts, port 3000
-npm run dev:worker         # tsx watch src/apps/worker/main.ts
+npm run dev:worker:healthcheck  # tsx watch src/apps/workers/healthcheck/main.ts
+npm run dev:worker:notification # tsx watch src/apps/workers/notification/main.ts
 npm run build              # tsc
 npm run start:api          # node dist/apps/api/server.js
-npm run start:worker       # node dist/apps/worker/main.js
+npm run start:worker:healthcheck  # node dist/apps/workers/healthcheck/main.js
+npm run start:worker:notification # node dist/apps/workers/notification/main.js
 
 npm run tests              # vitest run (one-shot)
 npx vitest run
@@ -660,7 +662,8 @@ npx tsc --noEmit
 ## Current State
 
 - `backend` has a working Vitest setup and passing use-case specs.
-- `apps/api/` routes are stubbed; real endpoints need to be wired to factories.
-- `apps/worker/` and `infra/queue/` are placeholders and not yet functional.
+- `apps/api/` routes are being wired to factories; `POST /organizations` is implemented.
+- `apps/workers/` are fully functional BullMQ consumers (healthcheck + notification) with DLQs, Redis locking, and graceful shutdown.
+- `infra/queue/` is functional with BullMQ queues and a healthcheck scheduler.
 - `ui/` is a separate frontend package.
 - No linting, formatting, or CI configured.

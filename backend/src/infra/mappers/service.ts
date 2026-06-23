@@ -33,7 +33,7 @@ export class ServiceMapper {
       id: UUIDv7.parse(prismaEntity.id),
       projectId: UUIDv7.parse(prismaEntity.projectId),
       name: prismaEntity.name,
-      status: prismaEntity.status,
+      status: prismaEntity.status as "CHECKING" | "INCIDENT" | "DISABLED",
       url: prismaEntity.url,
       intervalSeconds: prismaEntity.intervalSeconds,
       timeoutSeconds: prismaEntity.timeoutSeconds,

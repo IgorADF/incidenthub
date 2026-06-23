@@ -2,13 +2,13 @@ import { DefaultEntity } from "./_default";
 import z from "zod";
 import { UUIDv7 } from "@domain/value-objects/uuidv7";
 import { CreatedAt } from "@domain/value-objects/created-at";
-import { URL } from "@domain/value-objects/url";
+import { Url } from "@domain/value-objects/url";
 import { OmitDefaultValues } from "~types/omit-default-values";
 
 const HealthCheckSchema = z.object({
   id: UUIDv7,
   serviceId: UUIDv7,
-  url: URL,
+  url: Url,
   requestTime: z.number().int().min(0),
   isError: z.boolean(),
   timedOut: z.boolean(),

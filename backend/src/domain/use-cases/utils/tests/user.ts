@@ -18,7 +18,7 @@ export async function createTestUser(
   });
 
   await uow.repositories.users.create(user);
-  return user;
+  return { user, creationData: data };
 }
 
 export async function createTestAdminUser(
@@ -40,7 +40,7 @@ export async function createTestAdminUser(
     type: "ADMIN",
   };
 
-  const user = await createTestUser(uow, creationData, hashPasswordTestService);
+  const { user } = await createTestUser(uow, creationData, hashPasswordTestService);
 
   return {
     user,
@@ -67,7 +67,7 @@ export async function createTestDevUser(
     type: "DEV",
   };
 
-  const user = await createTestUser(uow, creationData, hashPasswordTestService);
+  const { user } = await createTestUser(uow, creationData, hashPasswordTestService);
 
   return {
     user,

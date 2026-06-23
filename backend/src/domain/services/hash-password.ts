@@ -5,7 +5,7 @@ export class HashPasswordTestService implements HashPasswordInterface {
   passwordCache: { [k: string]: string } = {};
 
   async compare(input: string, hash: string) {
-    if (this.passwordCache[hash] == input) {
+    if (this.passwordCache[hash] === input) {
       return true;
     }
 

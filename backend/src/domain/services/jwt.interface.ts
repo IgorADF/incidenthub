@@ -7,9 +7,6 @@ export interface JwtVerifyResult {
 }
 
 export interface JwtInterface {
-  // sign: (input: JwtSignInput) => Promise<string>;
-  // verify: (token: string) => Promise<JwtVerifyResult>;
-
   signForgotPassword: (input: JwtSignInput) => Promise<string>;
   verifyForgotPassword: (token: string) => Promise<JwtVerifyResult>;
 }

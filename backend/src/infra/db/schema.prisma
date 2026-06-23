@@ -58,21 +58,21 @@ model Project {
 }
 
 model Service {
-  id                                 String   @id
-  projectId                          String   @map("project_id")
+  id                                 String    @id
+  projectId                          String    @map("project_id")
   name                               String
-  status                             String   @default("unknown")
+  status                             String
   url                                String
-  intervalSeconds                    Int      @default(60) @map("interval_seconds")
-  timeoutSeconds                     Int      @default(30) @map("timeout_seconds")
-  expectedResponseStatus             Int      @default(200) @map("expected_response_status")
-  incidentDetectionFails             Int      @default(1) @map("incident_detection_fails")
-  consecutivesIncidentDetectionFails Int      @default(0) @map("consecutives_incident_detection_fails")
-  emailToAlert                       String?  @map("email_to_alert")
-  enabled                            Boolean  @default(true)
-  currentIncidentId                  String?  @unique @map("current_incident_id")
+  intervalSeconds                    Int       @default(60) @map("interval_seconds")
+  timeoutSeconds                     Int       @default(30) @map("timeout_seconds")
+  expectedResponseStatus             Int       @default(200) @map("expected_response_status")
+  incidentDetectionFails             Int       @default(1) @map("incident_detection_fails")
+  consecutivesIncidentDetectionFails Int       @default(0) @map("consecutives_incident_detection_fails")
+  emailToAlert                       String?   @map("email_to_alert")
+  enabled                            Boolean   @default(true)
+  currentIncidentId                  String?   @unique @map("current_incident_id")
   lastCheckedAt                      DateTime? @map("last_checked_at")
-  createdAt                          DateTime @map("created_at")
+  createdAt                          DateTime  @map("created_at")
 
   project         Project       @relation(fields: [projectId], references: [id])
   currentIncident Incident?     @relation("ServiceCurrentIncident", fields: [currentIncidentId], references: [id])

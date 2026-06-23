@@ -1,4 +1,4 @@
-export class _DefaultEntitiesError {
+export class DefaultEntitiesError {
   code: string;
   message: string;
 
