@@ -1,13 +1,20 @@
-import { app } from "./app";
-
-const PORT = Number(process.env.PORT) || 3000;
+import { envs } from "@infra/envs";
+import { createApp } from "./app";
 
 const start = async () => {
+  let app;
+
   try {
-    await app.listen({ port: PORT });
-    console.log(`Server is running on port ${PORT}`);
+    const { app: _app } = await createApp();
+    app = _app;
+
+    await app.listen({ port: envs.PORT });
+    console.log(`Server is running on port ${envs.PORT}`);
   } catch (err) {
-    app.log.error(err);
+    if (app) {
+      app.log.error(err);
+    }
+
     process.exit(1);
   }
 };
