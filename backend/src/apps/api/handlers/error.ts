@@ -1,5 +1,9 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import z from "zod";
+import {
+  hasZodFastifySchemaValidationErrors,
+  isResponseSerializationError,
+} from "fastify-type-provider-zod";
+import { ValidationEntitiesError } from "@domain/entities/errors/ValidationEntitiesError";
 import { DefaultUseCasesError } from "@domain/use-cases/errors/_DefaultUseCasesError";
 import { EntityAlreadyExists } from "@domain/use-cases/errors/EntityAlreadyExists";
 import { NotAllowedError } from "@domain/use-cases/errors/NotAllowedError";
@@ -12,12 +16,27 @@ export function errorHandler(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
-  if (error instanceof z.ZodError) {
+  if (hasZodFastifySchemaValidationErrors(error)) {
     return reply.status(400).send({
       code: "VALIDATION_ERROR",
-      message: error.issues
-        .map((i) => `${i.path.join(".")}: ${i.message}`)
-        .join("; "),
+      message: "Request doesn't match the schema",
+      details: error.validation,
+    });
+  }
+
+  if (isResponseSerializationError(error)) {
+    return reply.status(500).send({
+      code: "INTERNAL_ERROR",
+      message: "Response doesn't match the schema",
+      details: error.cause.issues,
+    });
+  }
+
+  if (error instanceof ValidationEntitiesError) {
+    return reply.status(400).send({
+      code: "VALIDATION_ERROR",
+      message: error.message,
+      issues: error.issues,
     });
   }
 
