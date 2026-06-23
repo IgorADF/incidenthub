@@ -26,4 +26,8 @@ export class PrismaHealthChecksRep implements HealthChecksRepInterface {
     });
     return HealthCheckMapper.fromPrismaToEntity(record);
   }
+
+  async deleteByServiceId(serviceId: string) {
+    await this.prisma.healthCheck.deleteMany({ where: { serviceId } });
+  }
 }

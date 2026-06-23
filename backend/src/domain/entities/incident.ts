@@ -4,7 +4,7 @@ import { UUIDv7 } from "@domain/value-objects/uuidv7";
 import { CreatedAt } from "@domain/value-objects/created-at";
 import { OmitDefaultValues } from "~types/omit-default-values";
 
-const IncidentSchema = z.object({
+export const IncidentSchema = z.object({
   id: UUIDv7,
   serviceId: UUIDv7,
   startedAt: CreatedAt,

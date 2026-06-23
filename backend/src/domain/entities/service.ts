@@ -6,7 +6,7 @@ import { Url } from "@domain/value-objects/url";
 import { Email } from "@domain/value-objects/email";
 import { OmitDefaultValues } from "~types/omit-default-values";
 
-const ServiceSchema = z
+export const ServiceSchema = z
   .object({
     id: UUIDv7,
     projectId: UUIDv7,

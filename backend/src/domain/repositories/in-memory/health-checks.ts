@@ -20,4 +20,10 @@ export class IMHealthChecksRep implements HealthChecksRepInterface {
     this.db.healthChecks.push(data);
     return data;
   }
+
+  async deleteByServiceId(serviceId: string) {
+    this.db.healthChecks = this.db.healthChecks.filter(
+      (h) => h.getProps().serviceId !== serviceId,
+    );
+  }
 }

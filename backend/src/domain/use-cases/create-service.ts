@@ -1,4 +1,4 @@
-import { Service } from "@domain/entities/service";
+import { Service, ServiceSchema } from "@domain/entities/service";
 import { UOW } from "@domain/repositories/interfaces/_uow";
 import { LimitExceededError } from "./errors/LimitExceededError";
 import { NotAllowedError } from "./errors/NotAllowedError";
@@ -8,13 +8,13 @@ import z from "zod";
 const MAX_SERVICES_PER_PROJECT = 10;
 
 export const CreateServiceInputSchema = z.object({
-  url: z.string(),
-  name: z.string(),
-  intervalSeconds: z.number(),
-  timeoutSeconds: z.number(),
-  expectedResponseStatus: z.number(),
-  incidentDetectionFails: z.number(),
-  emailToAlert: z.string(),
+  url: ServiceSchema.shape.url,
+  name: ServiceSchema.shape.name,
+  intervalSeconds: ServiceSchema.shape.intervalSeconds,
+  timeoutSeconds: ServiceSchema.shape.timeoutSeconds,
+  expectedResponseStatus: ServiceSchema.shape.expectedResponseStatus,
+  incidentDetectionFails: ServiceSchema.shape.incidentDetectionFails,
+  emailToAlert: ServiceSchema.shape.emailToAlert,
 });
 
 export type CreateServiceInput = z.infer<typeof CreateServiceInputSchema>;

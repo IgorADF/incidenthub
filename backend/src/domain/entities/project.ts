@@ -5,7 +5,7 @@ import { CreatedAt } from "@domain/value-objects/created-at";
 import { Slug } from "@domain/value-objects/slug";
 import { OmitDefaultValues } from "~types/omit-default-values";
 
-const ProjectSchema = z
+export const ProjectSchema = z
   .object({
     id: UUIDv7,
     organizationId: UUIDv7,
@@ -18,7 +18,7 @@ const ProjectSchema = z
     message: "If showPublicPage is true, a valid publicPageSlug must exist",
     path: ["publicPageSlug"],
   })
-  .transform((values) => {
+  .overwrite((values) => {
     if (!values.showPublicPage) {
       values.publicPageSlug = null;
     }

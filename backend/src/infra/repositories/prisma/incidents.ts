@@ -34,4 +34,8 @@ export class PrismaIncidentsRep implements IncidentsRepInterface {
     });
     return IncidentMapper.fromPrismaToEntity(record);
   }
+
+  async deleteByServiceId(serviceId: string) {
+    await this.prisma.incident.deleteMany({ where: { serviceId } });
+  }
 }

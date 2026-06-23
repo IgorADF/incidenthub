@@ -1,18 +1,20 @@
-import { Service } from "@domain/entities/service";
+import { Service, ServiceSchema } from "@domain/entities/service";
 import { UOW } from "@domain/repositories/interfaces/_uow";
 import { NotAllowedError } from "./errors/NotAllowedError";
 import { NotFoundError } from "./errors/NotFoundError";
 import z from "zod";
 
-export const UpdateServiceInputSchema = z.object({
-  name: z.string().optional(),
-  url: z.string().optional(),
-  intervalSeconds: z.number().optional(),
-  timeoutSeconds: z.number().optional(),
-  expectedResponseStatus: z.number().optional(),
-  incidentDetectionFails: z.number().optional(),
-  emailToAlert: z.string().nullable().optional(),
-});
+export const UpdateServiceInputSchema = z
+  .object({
+    name: ServiceSchema.shape.name,
+    url: ServiceSchema.shape.url,
+    intervalSeconds: ServiceSchema.shape.intervalSeconds,
+    timeoutSeconds: ServiceSchema.shape.timeoutSeconds,
+    expectedResponseStatus: ServiceSchema.shape.expectedResponseStatus,
+    incidentDetectionFails: ServiceSchema.shape.incidentDetectionFails,
+    emailToAlert: ServiceSchema.shape.emailToAlert,
+  })
+  .partial();
 
 export type UpdateServiceInput = z.infer<typeof UpdateServiceInputSchema>;
 
@@ -37,9 +39,7 @@ export class UpdateService {
     }
 
     if (service.getProps().enabled) {
-      throw new NotAllowedError(
-        "Service can only be updated when disabled",
-      );
+      throw new NotAllowedError("Service can only be updated when disabled");
     }
 
     const project = await this.uow.repositories.projects.getById(

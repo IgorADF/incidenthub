@@ -11,6 +11,7 @@ import { createTestOrganization } from "@domain/use-cases/utils/tests/organizati
 import { createTestProject } from "@domain/use-cases/utils/tests/project";
 import { createTestService } from "@domain/use-cases/utils/tests/service";
 import { Incident } from "@domain/entities/incident";
+import { HealthCheck } from "@domain/entities/health-check";
 
 let uow: IMUOW;
 let sut: DeleteService;
@@ -70,7 +71,46 @@ describe("DeleteService", () => {
     ).rejects.toBeInstanceOf(NotAllowedError);
   });
 
-  it("should resolve open incident before deleting service with currentIncidentId", async () => {
+  it("should delete all healthchecks for the service", async () => {
+    const { admin, service } = await setup();
+
+    const healthCheck = HealthCheck.create({
+      serviceId: service.getProps().id,
+      url: "https://api.example.com/health",
+      requestTime: 100,
+      isError: false,
+      timedOut: false,
+      responseStatus: 200,
+      responseJsonData: null,
+    });
+    await uow.repositories.healthChecks.create(healthCheck);
+
+    await sut.execute(admin.getProps().id, service.getProps().id);
+
+    const remaining = await uow.repositories.healthChecks.getByServiceId(
+      service.getProps().id,
+    );
+    expect(remaining).toHaveLength(0);
+  });
+
+  it("should delete all incidents for the service", async () => {
+    const { admin, service } = await setup();
+
+    const incident = Incident.create({
+      serviceId: service.getProps().id,
+      startedAt: new Date(),
+    });
+    await uow.repositories.incidents.create(incident);
+
+    await sut.execute(admin.getProps().id, service.getProps().id);
+
+    const remaining = await uow.repositories.incidents.getByServiceId(
+      service.getProps().id,
+    );
+    expect(remaining).toHaveLength(0);
+  });
+
+  it("should delete service with currentIncidentId and its incidents", async () => {
     const { admin, service } = await setup();
 
     const incident = Incident.create({
@@ -84,10 +124,14 @@ describe("DeleteService", () => {
 
     await sut.execute(admin.getProps().id, withIncident.getProps().id);
 
-    const resolvedIncident = await uow.repositories.incidents.getById(
-      incident.getProps().id,
+    const foundService = await uow.repositories.services.getById(
+      withIncident.getProps().id,
     );
-    expect(resolvedIncident).not.toBeNull();
-    expect(resolvedIncident!.getProps().resolvedAt).not.toBeNull();
+    expect(foundService).toBeNull();
+
+    const remainingIncidents = await uow.repositories.incidents.getByServiceId(
+      service.getProps().id,
+    );
+    expect(remainingIncidents).toHaveLength(0);
   });
 });

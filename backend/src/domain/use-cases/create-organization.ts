@@ -1,5 +1,8 @@
-import { Organization } from "@domain/entities/organization";
-import { User } from "@domain/entities/user";
+import {
+  Organization,
+  OrganizationSchema,
+} from "@domain/entities/organization";
+import { User, UserSchema } from "@domain/entities/user";
 import { UOW } from "@domain/repositories/interfaces/_uow";
 import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
 import { HashPasswordInterface } from "@domain/services/hash-password.interface";
@@ -7,12 +10,12 @@ import z from "zod";
 
 export const CreateOrganizationInputSchema = z.object({
   organization: z.object({
-    name: z.string(),
+    name: OrganizationSchema.shape.name,
   }),
   user: z.object({
-    email: z.string(),
-    name: z.string(),
-    password: z.string(),
+    name: UserSchema.shape.name,
+    email: UserSchema.shape.email,
+    password: UserSchema.shape.password,
   }),
 });
 
@@ -52,6 +55,7 @@ export class CreateOrganization {
     const organization = Organization.create({
       name: input.organization.name,
     });
+
     const user = User.create({
       organizationId: organization.getProps().id,
       name: input.user.name,

@@ -5,7 +5,7 @@ import { CreatedAt } from "@domain/value-objects/created-at";
 import { Url } from "@domain/value-objects/url";
 import { OmitDefaultValues } from "~types/omit-default-values";
 
-const HealthCheckSchema = z.object({
+export const HealthCheckSchema = z.object({
   id: UUIDv7,
   serviceId: UUIDv7,
   url: Url,

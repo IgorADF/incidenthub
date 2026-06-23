@@ -4,7 +4,7 @@ import { UUIDv7 } from "@domain/value-objects/uuidv7";
 import { CreatedAt } from "@domain/value-objects/created-at";
 import { OmitDefaultValues } from "~types/omit-default-values";
 
-const OrganizationSchema = z.object({
+export const OrganizationSchema = z.object({
   id: UUIDv7,
   name: z.string().min(1).max(50),
   createdAt: CreatedAt,

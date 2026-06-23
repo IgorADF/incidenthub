@@ -5,4 +5,5 @@ export interface IncidentsRepInterface {
   getByServiceId: (serviceId: string) => Promise<Incident[]>;
   create: (data: Incident) => Promise<Incident>;
   update: (data: Incident) => Promise<Incident>;
+  deleteByServiceId: (serviceId: string) => Promise<void>;
 }

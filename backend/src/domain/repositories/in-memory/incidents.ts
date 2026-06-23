@@ -30,4 +30,10 @@ export class IMIncidentsRep implements IncidentsRepInterface {
     }
     return data;
   }
+
+  async deleteByServiceId(serviceId: string) {
+    this.db.incidents = this.db.incidents.filter(
+      (i) => i.getProps().serviceId !== serviceId,
+    );
+  }
 }

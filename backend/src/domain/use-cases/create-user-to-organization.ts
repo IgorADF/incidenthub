@@ -1,4 +1,4 @@
-import { User } from "@domain/entities/user";
+import { User, UserSchema } from "@domain/entities/user";
 import { UOW } from "@domain/repositories/interfaces/_uow";
 import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
 import { NotAllowedError } from "./errors/NotAllowedError";
@@ -6,10 +6,10 @@ import { HashPasswordInterface } from "@domain/services/hash-password.interface"
 import z from "zod";
 
 export const CreateUserToOrganizationInputSchema = z.object({
-  email: z.string(),
-  password: z.string(),
-  name: z.string(),
-  type: z.enum(["ADMIN", "DEV"]),
+  email: UserSchema.shape.email,
+  password: UserSchema.shape.password,
+  name: UserSchema.shape.name,
+  type: UserSchema.shape.type,
 });
 
 export type CreateUserToOrganizationInput = z.infer<

@@ -6,10 +6,10 @@ import { Email } from "@domain/value-objects/email";
 import { Password } from "@domain/value-objects/password";
 import { OmitDefaultValues } from "~types/omit-default-values";
 
-const UserSchema = z.object({
+export const UserSchema = z.object({
   id: UUIDv7,
   organizationId: UUIDv7,
-  name: z.string().min(1).max(50),
+  name: z.string().min(3).max(50),
   email: Email,
   password: Password,
   type: z.enum(["ADMIN", "DEV"]),

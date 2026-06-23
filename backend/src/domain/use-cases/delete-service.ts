@@ -31,16 +31,14 @@ export class DeleteService {
 
     return await this.uow.transaction(async (reps) => {
       if (service.getProps().currentIncidentId) {
-        const incident = await reps.incidents.getById(
-          service.getProps().currentIncidentId!,
-        );
-        if (incident && !incident.getProps().resolvedAt) {
-          const resolved = incident.resolve(new Date());
-          await reps.incidents.update(resolved);
-        }
+        const resolved = service.resolveCurrentIncident();
+        await reps.services.update(resolved);
       }
 
+      await reps.healthChecks.deleteByServiceId(serviceId);
+      await reps.incidents.deleteByServiceId(serviceId);
       await reps.services.delete(serviceId);
+
       return { deleted: true };
     });
   }

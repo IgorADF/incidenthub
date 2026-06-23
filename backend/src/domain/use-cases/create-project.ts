@@ -1,4 +1,4 @@
-import { Project } from "@domain/entities/project";
+import { Project, ProjectSchema } from "@domain/entities/project";
 import { UOW } from "@domain/repositories/interfaces/_uow";
 import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
 import { LimitExceededError } from "./errors/LimitExceededError";
@@ -8,9 +8,9 @@ import z from "zod";
 const MAX_PROJECTS_PER_ORGANIZATION = 5;
 
 export const CreateProjectInputSchema = z.object({
-  name: z.string(),
-  showPublicPage: z.boolean().optional(),
-  publicPageSlug: z.string().nullable().optional(),
+  name: ProjectSchema.shape.name,
+  showPublicPage: ProjectSchema.shape.showPublicPage,
+  publicPageSlug: ProjectSchema.shape.publicPageSlug,
 });
 
 export type CreateProjectInput = z.infer<typeof CreateProjectInputSchema>;

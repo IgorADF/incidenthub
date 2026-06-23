@@ -7,7 +7,7 @@ const baseUser = {
   organizationId: DefaultEntity.generateUUIDv7(),
   name: "John Doe",
   email: "john@example.com",
-  password: "secret",
+  password: "thesecret",
   type: "ADMIN" as const,
 };
 
@@ -20,8 +20,8 @@ describe("User entity", () => {
     expect(user.getProps().id).toBeDefined();
   });
 
-  it("should accept a name with exactly 1 character", () => {
-    expect(() => User.create({ ...baseUser, name: "A" })).not.toThrow();
+  it("should reject a name with less than 3 character", () => {
+    expect(() => User.create({ ...baseUser, name: "ab" })).toThrow();
   });
 
   it("should accept a name with exactly 50 characters", () => {
@@ -48,8 +48,8 @@ describe("User entity", () => {
     );
   });
 
-  it("should accept a password with exactly 1 character", () => {
-    expect(() => User.create({ ...baseUser, password: "a" })).not.toThrow();
+  it("should reject a password with less than 8 character", () => {
+    expect(() => User.create({ ...baseUser, password: "1234567" })).toThrow();
   });
 
   it("should accept a password with exactly 65 characters", () => {

@@ -5,7 +5,7 @@ import { JwtInterface } from "@domain/services/jwt.interface";
 import { NotFoundError } from "./errors/NotFoundError";
 
 export const ForgotPasswordInputSchema = z.object({
-  email: z.string(),
+  email: z.email(),
 });
 
 export type ForgotPasswordInput = z.infer<typeof ForgotPasswordInputSchema>;
