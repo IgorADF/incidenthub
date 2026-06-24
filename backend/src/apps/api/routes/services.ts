@@ -1,12 +1,10 @@
-import type { FastifyInstance, FastifyPluginOptions } from "fastify";
+import type { FastifyPluginOptions } from "fastify";
+import type { FastifyZodInstance } from "~types/fastify-zod-instance";
 import z from "zod";
 import { updateServiceFactory } from "@infra/factories/update-service.usecase";
 import { toggleServiceEnabledFactory } from "@infra/factories/toggle-service-enabled.usecase";
 import { deleteServiceFactory } from "@infra/factories/delete-service.usecase";
-import {
-  UpdateServiceInputSchema,
-  UpdateServiceInput,
-} from "@domain/use-cases/update-service";
+import { UpdateServiceInputSchema } from "@domain/use-cases/update-service";
 import { authHook } from "../plugins/auth";
 import { serviceResponseSchema } from "./_schemas";
 
@@ -17,13 +15,12 @@ const paramsSchema = z.object({
 const ToggleServiceEnabledInputSchema = z.object({
   enable: z.boolean(),
 });
-type ToggleServiceEnabledInput = z.infer<typeof ToggleServiceEnabledInputSchema>;
 
 export async function serviceRoutes(
-  app: FastifyInstance,
+  app: FastifyZodInstance,
   _options: FastifyPluginOptions,
 ) {
-  app.put<{ Params: { serviceId: string }; Body: UpdateServiceInput }>(
+  app.put(
     "/services/:serviceId",
     {
       preHandler: [authHook],
@@ -59,7 +56,7 @@ export async function serviceRoutes(
     },
   );
 
-  app.patch<{ Params: { serviceId: string }; Body: ToggleServiceEnabledInput }>(
+  app.patch(
     "/services/:serviceId/enabled",
     {
       preHandler: [authHook],
@@ -95,7 +92,7 @@ export async function serviceRoutes(
     },
   );
 
-  app.delete<{ Params: { serviceId: string } }>(
+  app.delete(
     "/services/:serviceId",
     {
       preHandler: [authHook],

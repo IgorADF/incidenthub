@@ -1,11 +1,9 @@
-import type { FastifyInstance, FastifyPluginOptions } from "fastify";
+import type { FastifyPluginOptions } from "fastify";
+import type { FastifyZodInstance } from "~types/fastify-zod-instance";
 import z from "zod";
 import { createServiceFactory } from "@infra/factories/create-service.usecase";
 import { listServicesByProjectFactory } from "@infra/factories/list-services-by-project.usecase";
-import {
-  CreateServiceInputSchema,
-  CreateServiceInput,
-} from "@domain/use-cases/create-service";
+import { CreateServiceInputSchema } from "@domain/use-cases/create-service";
 import { authHook } from "../plugins/auth";
 import { serviceResponseSchema } from "./_schemas";
 
@@ -14,10 +12,10 @@ const paramsSchema = z.object({
 });
 
 export async function projectServiceRoutes(
-  app: FastifyInstance,
+  app: FastifyZodInstance,
   _options: FastifyPluginOptions,
 ) {
-  app.post<{ Params: { projectId: string }; Body: CreateServiceInput }>(
+  app.post(
     "/projects/:projectId/services",
     {
       preHandler: [authHook],
@@ -53,7 +51,7 @@ export async function projectServiceRoutes(
     },
   );
 
-  app.get<{ Params: { projectId: string } }>(
+  app.get(
     "/projects/:projectId/services",
     {
       preHandler: [authHook],

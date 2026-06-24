@@ -6,12 +6,13 @@ import {
   CreateUserToOrganizationInput,
 } from "@domain/use-cases/create-user-to-organization";
 import { authHook } from "../plugins/auth";
+import { FastifyZodInstance } from "~types/fastify-zod-instance";
 
 export async function userRoutes(
-  app: FastifyInstance,
+  app: FastifyZodInstance,
   _options: FastifyPluginOptions,
 ) {
-  app.post<{ Body: CreateUserToOrganizationInput }>(
+  app.post(
     "/users",
     {
       preHandler: [authHook],

@@ -1,13 +1,14 @@
-import type { FastifyInstance, FastifyPluginOptions } from "fastify";
+import type { FastifyPluginOptions } from "fastify";
+import type { FastifyZodInstance } from "~types/fastify-zod-instance";
 import z from "zod";
 import { createOrganizationFactory } from "@infra/factories/create-organization.usecase";
-import { CreateOrganizationInputSchema, CreateOrganizationInput } from "@domain/use-cases/create-organization";
+import { CreateOrganizationInputSchema } from "@domain/use-cases/create-organization";
 
 export async function organizationRoutes(
-  app: FastifyInstance,
+  app: FastifyZodInstance,
   _options: FastifyPluginOptions,
 ) {
-  app.post<{ Body: CreateOrganizationInput }>(
+  app.post(
     "/organizations",
     {
       schema: {

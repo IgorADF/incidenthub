@@ -1,18 +1,16 @@
-import type { FastifyInstance, FastifyPluginOptions } from "fastify";
+import type { FastifyPluginOptions } from "fastify";
+import type { FastifyZodInstance } from "~types/fastify-zod-instance";
 import z from "zod";
 import { createProjectFactory } from "@infra/factories/create-project.usecase";
 import { listProjectsByOrganizationFactory } from "@infra/factories/list-projects-by-organization.usecase";
-import {
-  CreateProjectInputSchema,
-  CreateProjectInput,
-} from "@domain/use-cases/create-project";
+import { CreateProjectInputSchema } from "@domain/use-cases/create-project";
 import { authHook } from "../plugins/auth";
 
 export async function projectRoutes(
-  app: FastifyInstance,
+  app: FastifyZodInstance,
   _options: FastifyPluginOptions,
 ) {
-  app.post<{ Body: CreateProjectInput }>(
+  app.post(
     "/projects",
     {
       preHandler: [authHook],

@@ -169,6 +169,15 @@ Use aliases for cross-layer imports. Use relative imports only within the same f
 - Production factories are in `infra/factories/<name>.usecase.ts`.
 - They create a `PrismaUOW` from the singleton `prismaClient`, instantiate the required infra services, inject them into the use-case, and return `{ useCase }`.
 
+### Route handlers
+
+- Route plugins live in `apps/api/routes/<resource>.ts`. Each exports an `async function <name>(app: FastifyZodInstance, _options)` and is registered in `apps/api/routes/_init.ts`.
+- Use `FastifyZodInstance` from `~types/fastify-zod-instance` as the `app` parameter type. It wires the `fastify-type-provider-zod` provider, so Zod schemas declared in `schema` both **validate at runtime** (via `validatorCompiler` / `serializerCompiler` set in `app.ts`) and **narrow at compile time** (`request.params`, `request.body`, `request.query`, and `reply.send(...)`).
+- Declare input/output schemas in the route's `schema: { params, body, querystring, response }`. The Zod schema in `schema` is the single source of truth for both validation and TypeScript narrowing. Never add manual route generics (`app.post<{ Body: ... }>(...)`) or `request.body as ...` casts.
+- For path params with IDs use `z.object({ serviceId: z.string().uuid() })` etc.
+- Domain errors propagate to the global handler in `apps/api/handlers/error.ts`, which maps `EntityAlreadyExists`→409, `NotAllowedError`→403, `NotFoundError`→404, `LimitExceededError`→409, `InvalidCredentialError`→401, request Zod-schema validation (`hasZodFastifySchemaValidationErrors`) and `ValidationEntitiesError`→400, and response serialization (`isResponseSerializationError`)→500. Route handlers do **not** catch domain errors, with one exception: anti-enumeration at the transport boundary (e.g. `POST /password/forgot` catches `NotFoundError` and returns 200).
+- For `request.user`, use `authHook` from `../plugins/auth` (attach as `{ preHandler: [authHook] }`). The hook populates `request.user: AuthUser | null` via JWT. Access `request.user!.userId` / `.organizationId` in handlers — the `!` is intentional since the hook 401s when unauthenticated.
+
 ### Errors
 
 - Domain errors extend `DefaultUseCasesError` and expose `code` + `message`.

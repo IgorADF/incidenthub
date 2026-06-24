@@ -1,4 +1,5 @@
-import type { FastifyInstance, FastifyPluginOptions } from "fastify";
+import type { FastifyPluginOptions } from "fastify";
+import type { FastifyZodInstance } from "~types/fastify-zod-instance";
 import { organizationRoutes } from "./organizations";
 import { authRoutes } from "./auth";
 import { projectRoutes } from "./projects";
@@ -7,7 +8,7 @@ import { serviceRoutes } from "./services";
 import { userRoutes } from "./users";
 
 export async function routes(
-  app: FastifyInstance,
+  app: FastifyZodInstance,
   _options: FastifyPluginOptions,
 ) {
   app.get("/", async () => {

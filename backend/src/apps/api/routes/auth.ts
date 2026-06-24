@@ -1,19 +1,20 @@
-import type { FastifyInstance, FastifyPluginOptions } from "fastify";
+import type { FastifyPluginOptions } from "fastify";
+import type { FastifyZodInstance } from "~types/fastify-zod-instance";
 import z from "zod";
 import { authenticateUserFactory } from "@infra/factories/authenticate-user.usecase";
 import { forgotPasswordFactory } from "@infra/factories/forgot-password.usecase";
-import { AuthenticateUserInputSchema, AuthenticateUserInput } from "@domain/use-cases/authenticate-user";
-import { ForgotPasswordInputSchema, ForgotPasswordInput } from "@domain/use-cases/forgot-password";
+import { AuthenticateUserInputSchema } from "@domain/use-cases/authenticate-user";
+import { ForgotPasswordInputSchema } from "@domain/use-cases/forgot-password";
 import { NotFoundError } from "@domain/use-cases/errors/NotFoundError";
 import { JwtService } from "@infra/services/jwt";
 
 const jwtService = new JwtService();
 
 export async function authRoutes(
-  app: FastifyInstance,
+  app: FastifyZodInstance,
   _options: FastifyPluginOptions,
 ) {
-  app.post<{ Body: AuthenticateUserInput }>(
+  app.post(
     "/auth/login",
     {
       schema: {
@@ -58,7 +59,7 @@ export async function authRoutes(
     },
   );
 
-  app.post<{ Body: ForgotPasswordInput }>(
+  app.post(
     "/password/forgot",
     {
       schema: {
