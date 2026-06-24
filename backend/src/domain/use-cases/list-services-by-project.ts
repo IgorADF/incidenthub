@@ -5,22 +5,14 @@ import { NotFoundError } from "./errors/NotFoundError";
 export class ListServicesByProject {
   constructor(private readonly uow: UOW) {}
 
-  async execute(userId: string, projectId: string) {
-    const user = await this.uow.repositories.users.getById(userId);
-
-    if (!user) {
-      throw new NotAllowedError();
-    }
-
+  async execute(userOrganizationId: string, projectId: string) {
     const project = await this.uow.repositories.projects.getById(projectId);
 
     if (!project) {
       throw new NotFoundError("Project");
     }
 
-    if (
-      project.getProps().organizationId !== user.getProps().organizationId
-    ) {
+    if (project.getProps().organizationId !== userOrganizationId) {
       throw new NotAllowedError();
     }
 

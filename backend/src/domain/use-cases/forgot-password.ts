@@ -2,6 +2,7 @@ import z from "zod";
 import { UOW } from "@domain/repositories/interfaces/_uow";
 import { EmailInterface } from "@domain/services/email.interface";
 import { JwtInterface } from "@domain/services/jwt.interface";
+import { NotFoundError } from "./errors/NotFoundError";
 
 export const ForgotPasswordInputSchema = z.object({
   email: z.email(),
@@ -20,11 +21,11 @@ export class ForgotPassword {
   async execute(input: ForgotPasswordInput) {
     const user = await this.uow.repositories.users.getByEmail(input.email);
     if (!user) {
-      return { sent: true };
+      throw new NotFoundError("user");
     }
 
     const resetToken = await this.jwtService.signForgotPassword({
-      sub: user.getProps().id,
+      userId: user.getProps().id,
     });
 
     await this.sendEmail(input.email, resetToken);

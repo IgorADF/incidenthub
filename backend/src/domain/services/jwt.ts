@@ -8,12 +8,13 @@ import {
 
 export class JwtTestService implements JwtInterface {
   private counter = 0;
-  private tokens: { [token: string]: JwtVerifyResult | JwtAuthVerifyResult } = {};
+  private tokens: { [token: string]: JwtVerifyResult | JwtAuthVerifyResult } =
+    {};
 
   async signForgotPassword(input: JwtSignInput) {
     this.counter += 1;
     const token = `test-token-${this.counter}`;
-    this.tokens[token] = { sub: input.sub };
+    this.tokens[token] = { userId: input.userId };
     return token;
   }
 

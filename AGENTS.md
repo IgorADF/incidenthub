@@ -155,6 +155,7 @@ Use aliases for cross-layer imports. Use relative imports only within the same f
 - Business rules (e.g. uniqueness checks) query `uow.repositories` directly.
 - Outward-facing concerns (hashing, external APIs, email) are handled by injected domain services, never by importing infra directly.
 - Build the entities first, then persist them inside `uow.transaction`.
+- Use-cases are pure business logic. They report truthful domain outcomes (e.g. `NotFoundError` when an entity isn't found). Security, anti-enumeration, and transport-level concerns belong at the API route boundary, never inside a use-case.
 
 ### Domain services
 
@@ -629,6 +630,7 @@ describe("Create Example", () => {
 - **Domain services:** depend on interfaces from `@domain/services/<name>.interface`; let factories inject infra adapters. Never import infra directly from a use-case.
 - **Passwords:** never store plain text; hash with the injected `HashPasswordInterface` before passing to `User.create`.
 - **Test factories:** prefer `createTestOrganization`, `createTestAdminUser`, `createTestDevUser`, and `createTestProject` over inline entity creation.
+- **Security / transport concerns:** never swallow domain errors or alter a use-case's result to hide information (e.g. anti-enumeration on password-reset). The use-case returns/throws the truthful outcome; the route handler decides what the client sees (e.g. catch `NotFoundError` and return 200).
 
 #### Verification
 

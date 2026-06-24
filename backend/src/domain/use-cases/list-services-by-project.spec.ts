@@ -47,7 +47,10 @@ describe("List Services By Project", () => {
     await uow.repositories.services.create(serviceA);
     await uow.repositories.services.create(serviceB);
 
-    const result = await sut.execute(user.getProps().id, project.getProps().id);
+    const result = await sut.execute(
+      user.getProps().organizationId,
+      project.getProps().id,
+    );
 
     expect(result.services).toHaveLength(2);
     expect(result.services.map((s) => s.getProps().url)).toEqual(
@@ -90,7 +93,10 @@ describe("List Services By Project", () => {
     await uow.repositories.services.create(serviceA);
     await uow.repositories.services.create(serviceB);
 
-    const result = await sut.execute(user.getProps().id, projectA.getProps().id);
+    const result = await sut.execute(
+      user.getProps().organizationId,
+      projectA.getProps().id,
+    );
 
     expect(result.services).toHaveLength(1);
     expect(result.services[0].getProps().url).toBe(
@@ -103,7 +109,10 @@ describe("List Services By Project", () => {
     const { user } = await createTestAdminUser(uow, organization);
     const { project } = await createTestProject(uow, organization);
 
-    const result = await sut.execute(user.getProps().id, project.getProps().id);
+    const result = await sut.execute(
+      user.getProps().organizationId,
+      project.getProps().id,
+    );
 
     expect(result.services).toEqual([]);
   });
@@ -113,17 +122,8 @@ describe("List Services By Project", () => {
     const { user } = await createTestAdminUser(uow, organization);
 
     await expect(
-      sut.execute(user.getProps().id, "non-existent-project-id"),
+      sut.execute(user.getProps().organizationId, "non-existent-project-id"),
     ).rejects.toBeInstanceOf(NotFoundError);
-  });
-
-  it("should throw NotAllowedError when user does not exist", async () => {
-    const { organization } = await createTestOrganization(uow);
-    const { project } = await createTestProject(uow, organization);
-
-    await expect(
-      sut.execute("non-existent-user-id", project.getProps().id),
-    ).rejects.toBeInstanceOf(NotAllowedError);
   });
 
   it("should throw NotAllowedError when project belongs to another organization", async () => {
@@ -133,7 +133,10 @@ describe("List Services By Project", () => {
     const { project: projectFromOrg2 } = await createTestProject(uow, org2);
 
     await expect(
-      sut.execute(user.getProps().id, projectFromOrg2.getProps().id),
+      sut.execute(
+        user.getProps().organizationId,
+        projectFromOrg2.getProps().id,
+      ),
     ).rejects.toBeInstanceOf(NotAllowedError);
   });
 });

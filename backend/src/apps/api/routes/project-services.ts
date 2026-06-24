@@ -65,7 +65,10 @@ export async function projectServiceRoutes(
     async (request, reply) => {
       const projectId = request.params.projectId;
       const { useCase } = listServicesByProjectFactory();
-      const { services } = await useCase.execute(request.user!.userId, projectId);
+      const { services } = await useCase.execute(
+        request.user!.organizationId,
+        projectId,
+      );
       return reply.status(200).send({
         services: services.map((s) => {
           const props = s.getProps();

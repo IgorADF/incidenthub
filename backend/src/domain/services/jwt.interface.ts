@@ -1,9 +1,9 @@
 export interface JwtSignInput {
-  sub: string;
+  userId: string;
 }
 
 export interface JwtVerifyResult {
-  sub: string;
+  userId: string;
 }
 
 export interface JwtAuthSignInput {

@@ -4,6 +4,7 @@ import { authenticateUserFactory } from "@infra/factories/authenticate-user.usec
 import { forgotPasswordFactory } from "@infra/factories/forgot-password.usecase";
 import { AuthenticateUserInputSchema, AuthenticateUserInput } from "@domain/use-cases/authenticate-user";
 import { ForgotPasswordInputSchema, ForgotPasswordInput } from "@domain/use-cases/forgot-password";
+import { NotFoundError } from "@domain/use-cases/errors/NotFoundError";
 import { JwtService } from "@infra/services/jwt";
 
 const jwtService = new JwtService();
@@ -69,7 +70,14 @@ export async function authRoutes(
     },
     async (request, reply) => {
       const { useCase } = forgotPasswordFactory();
-      await useCase.execute(request.body);
+      try {
+        await useCase.execute(request.body);
+      } catch (err) {
+        if (err instanceof NotFoundError) {
+          return reply.status(200).send({ sent: true });
+        }
+        throw err;
+      }
       return reply.status(200).send({ sent: true });
     },
   );
