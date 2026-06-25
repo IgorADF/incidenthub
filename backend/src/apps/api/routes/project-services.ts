@@ -57,7 +57,9 @@ export async function projectServiceRoutes(
       preHandler: [authHook],
       schema: {
         params: paramsSchema,
-        response: { 200: z.object({ services: z.array(serviceResponseSchema) }) },
+        response: {
+          200: z.object({ services: z.array(serviceResponseSchema) }),
+        },
       },
     },
     async (request, reply) => {

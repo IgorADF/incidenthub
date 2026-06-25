@@ -5,5 +5,7 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
-  test: {},
+  test: {
+    exclude: ["dist/**", "node_modules/**"],
+  },
 });

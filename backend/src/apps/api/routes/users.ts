@@ -1,12 +1,9 @@
-import type { FastifyInstance, FastifyPluginOptions } from "fastify";
+import type { FastifyPluginOptions } from "fastify";
 import z from "zod";
 import { createUserToOrganizationFactory } from "@infra/factories/create-user-to-organization.usecase";
-import {
-  CreateUserToOrganizationInputSchema,
-  CreateUserToOrganizationInput,
-} from "@domain/use-cases/create-user-to-organization";
+import { CreateUserToOrganizationInputSchema } from "@domain/use-cases/create-user-to-organization";
 import { authHook } from "../plugins/auth";
-import { FastifyZodInstance } from "~types/fastify-zod-instance";
+import type { FastifyZodInstance } from "~types/fastify-zod-instance";
 
 export async function userRoutes(
   app: FastifyZodInstance,

@@ -126,6 +126,15 @@ describe("List Services By Project", () => {
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
+  it("should throw NotAllowedError when user does not exist", async () => {
+    const { organization } = await createTestOrganization(uow);
+    const { project } = await createTestProject(uow, organization);
+
+    await expect(
+      sut.execute("non-existent-user-id", project.getProps().id),
+    ).rejects.toBeInstanceOf(NotAllowedError);
+  });
+
   it("should throw NotAllowedError when project belongs to another organization", async () => {
     const { organization: org1 } = await createTestOrganization(uow);
     const { organization: org2 } = await createTestOrganization(uow);
