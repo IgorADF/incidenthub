@@ -4,9 +4,13 @@ import z from "zod";
 import { updateServiceFactory } from "@infra/factories/update-service.usecase";
 import { toggleServiceEnabledFactory } from "@infra/factories/toggle-service-enabled.usecase";
 import { deleteServiceFactory } from "@infra/factories/delete-service.usecase";
-import { UpdateServiceInputSchema } from "@domain/use-cases/update-service";
+import {
+  UpdateServiceInputSchema,
+  UpdateServiceOutputSchema,
+} from "@domain/use-cases/update-service";
+import { ToggleServiceEnabledOutputSchema } from "@domain/use-cases/toggle-service-enabled";
+import { DeleteServiceOutputSchema } from "@domain/use-cases/delete-service";
 import { authHook } from "../plugins/auth";
-import { serviceResponseSchema } from "./_schemas";
 
 const paramsSchema = z.object({
   serviceId: z.string().uuid(),
@@ -27,32 +31,18 @@ export async function serviceRoutes(
       schema: {
         params: paramsSchema,
         body: UpdateServiceInputSchema,
-        response: { 200: serviceResponseSchema },
+        response: { 200: z.object({ data: UpdateServiceOutputSchema }) },
       },
     },
     async (request, reply) => {
       const { serviceId } = request.params;
       const { useCase } = updateServiceFactory();
-      const { service } = await useCase.execute(
+      const data = await useCase.execute(
         request.user!.userId,
         serviceId,
         request.body,
       );
-      const props = service.getProps();
-      return reply.status(200).send({
-        id: props.id,
-        projectId: props.projectId,
-        name: props.name,
-        url: props.url,
-        intervalSeconds: props.intervalSeconds,
-        timeoutSeconds: props.timeoutSeconds,
-        expectedResponseStatus: props.expectedResponseStatus,
-        incidentDetectionFails: props.incidentDetectionFails,
-        emailToAlert: props.emailToAlert,
-        enabled: props.enabled,
-        currentIncidentId: props.currentIncidentId,
-        createdAt: props.createdAt,
-      });
+      return reply.status(200).send({ data });
     },
   );
 
@@ -63,32 +53,18 @@ export async function serviceRoutes(
       schema: {
         params: paramsSchema,
         body: ToggleServiceEnabledInputSchema,
-        response: { 200: serviceResponseSchema },
+        response: { 200: z.object({ data: ToggleServiceEnabledOutputSchema }) },
       },
     },
     async (request, reply) => {
       const { serviceId } = request.params;
       const { useCase } = toggleServiceEnabledFactory();
-      const { service } = await useCase.execute(
+      const data = await useCase.execute(
         request.user!.userId,
         serviceId,
         request.body.enable,
       );
-      const props = service.getProps();
-      return reply.status(200).send({
-        id: props.id,
-        projectId: props.projectId,
-        name: props.name,
-        url: props.url,
-        intervalSeconds: props.intervalSeconds,
-        timeoutSeconds: props.timeoutSeconds,
-        expectedResponseStatus: props.expectedResponseStatus,
-        incidentDetectionFails: props.incidentDetectionFails,
-        emailToAlert: props.emailToAlert,
-        enabled: props.enabled,
-        currentIncidentId: props.currentIncidentId,
-        createdAt: props.createdAt,
-      });
+      return reply.status(200).send({ data });
     },
   );
 
@@ -98,7 +74,7 @@ export async function serviceRoutes(
       preHandler: [authHook],
       schema: {
         params: paramsSchema,
-        response: { 200: z.object({ deleted: z.boolean() }) },
+        response: { 200: DeleteServiceOutputSchema },
       },
     },
     async (request, reply) => {

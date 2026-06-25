@@ -31,10 +31,14 @@ describe("ToggleServiceEnabled", () => {
   it("should disable an enabled service when admin", async () => {
     const { admin, service } = await setup();
 
-    const result = await sut.execute(admin.getProps().id, service.getProps().id, false);
+    const result = await sut.execute(
+      admin.getProps().id,
+      service.getProps().id,
+      false,
+    );
 
-    expect(result.service.getProps().enabled).toBe(false);
-    expect(result.service.getProps().status).toBe("DISABLED");
+    expect(result.service.enabled).toBe(false);
+    expect(result.service.status).toBe("DISABLED");
   });
 
   it("should enable a disabled service when admin", async () => {
@@ -42,10 +46,14 @@ describe("ToggleServiceEnabled", () => {
     const disabled = service.disable();
     await uow.repositories.services.update(disabled);
 
-    const result = await sut.execute(admin.getProps().id, disabled.getProps().id, true);
+    const result = await sut.execute(
+      admin.getProps().id,
+      disabled.getProps().id,
+      true,
+    );
 
-    expect(result.service.getProps().enabled).toBe(true);
-    expect(result.service.getProps().status).toBe("CHECKING");
+    expect(result.service.enabled).toBe(true);
+    expect(result.service.status).toBe("CHECKING");
   });
 
   it("should throw NotAllowedError when updater is not admin", async () => {

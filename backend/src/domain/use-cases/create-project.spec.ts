@@ -37,7 +37,7 @@ describe("Create Project", () => {
 
     const result = await sut.execute(admin.getProps().id, privateProjectInput);
 
-    expect(result.project.getProps()).toEqual(
+    expect(result.project).toEqual(
       expect.objectContaining({
         name: "Incident Hub",
         organizationId: organization.getProps().id,
@@ -45,7 +45,7 @@ describe("Create Project", () => {
         publicPageSlug: null,
       }),
     );
-    expect(result.project.getProps().id).toBeDefined();
+    expect(result.project.id).toBeDefined();
   });
 
   it("should create a public project with a public page slug", async () => {
@@ -54,7 +54,7 @@ describe("Create Project", () => {
 
     const result = await sut.execute(admin.getProps().id, publicProjectInput);
 
-    expect(result.project.getProps()).toEqual(
+    expect(result.project).toEqual(
       expect.objectContaining({
         showPublicPage: true,
         publicPageSlug: "incident-hub",
@@ -72,7 +72,7 @@ describe("Create Project", () => {
       publicPageSlug: "should-be-ignored",
     });
 
-    expect(result.project.getProps()).toEqual(
+    expect(result.project).toEqual(
       expect.objectContaining({
         showPublicPage: false,
         publicPageSlug: null,
@@ -123,7 +123,7 @@ describe("Create Project", () => {
     await sut.execute(adminA.getProps().id, privateProjectInput);
     const result = await sut.execute(adminB.getProps().id, privateProjectInput);
 
-    expect(result.project.getProps().name).toBe("Incident Hub");
+    expect(result.project.name).toBe("Incident Hub");
   });
 
   it("should allow two private projects (null slug) in different organizations", async () => {
@@ -142,7 +142,7 @@ describe("Create Project", () => {
     await sut.execute(adminA.getProps().id, privateProjectInput);
     const result = await sut.execute(adminB.getProps().id, privateProjectInput);
 
-    expect(result.project.getProps().publicPageSlug).toBeNull();
+    expect(result.project.publicPageSlug).toBeNull();
   });
 
   it("should throw EntityAlreadyExists when public page slug is already used", async () => {
@@ -210,7 +210,7 @@ describe("Create Project", () => {
       publicPageSlug: "slug-b",
     });
 
-    expect(result.project.getProps().publicPageSlug).toBe("slug-b");
+    expect(result.project.publicPageSlug).toBe("slug-b");
   });
 
   it("should throw EntityAlreadyExists before LimitExceededError when duplicate name exists at the limit", async () => {

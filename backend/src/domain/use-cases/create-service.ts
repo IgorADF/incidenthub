@@ -19,6 +19,15 @@ export const CreateServiceInputSchema = z.object({
 
 export type CreateServiceInput = z.infer<typeof CreateServiceInputSchema>;
 
+export const CreateServiceOutputSchema = z.object({
+  service: z.object(ServiceSchema.shape).omit({
+    consecutivesIncidentDetectionFails: true,
+    lastCheckedAt: true,
+  }),
+});
+
+export type CreateServiceOutput = z.infer<typeof CreateServiceOutputSchema>;
+
 export class CreateService {
   constructor(private readonly uow: UOW) {}
 
@@ -26,7 +35,7 @@ export class CreateService {
     creatorUserId: string,
     projectId: string,
     input: CreateServiceInput,
-  ) {
+  ): Promise<CreateServiceOutput> {
     const creator = await this.uow.repositories.users.getById(creatorUserId);
 
     if (!creator || creator.getProps().type !== "ADMIN") {
@@ -66,8 +75,8 @@ export class CreateService {
     });
 
     return await this.uow.transaction(async (reps) => {
-      await reps.services.create(service);
-      return { service };
+      const created = await reps.services.create(service);
+      return CreateServiceOutputSchema.parse({ service: created.getProps() });
     });
   }
 }

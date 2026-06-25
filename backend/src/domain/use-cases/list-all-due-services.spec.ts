@@ -22,7 +22,11 @@ describe("ListAllDueServices", () => {
     const { services } = await sut.execute(new Date());
 
     expect(services).toHaveLength(1);
-    expect(services[0].getProps().name).toBe("Service A");
+    expect(services[0].name).toBe("Service A");
+    expect(services[0]).not.toHaveProperty("lastCheckedAt");
+    expect(services[0]).not.toHaveProperty(
+      "consecutivesIncidentDetectionFails",
+    );
   });
 
   it("should return services whose interval has elapsed since last check", async () => {

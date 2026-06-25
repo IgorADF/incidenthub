@@ -18,6 +18,15 @@ export const UpdateServiceInputSchema = z
 
 export type UpdateServiceInput = z.infer<typeof UpdateServiceInputSchema>;
 
+export const UpdateServiceOutputSchema = z.object({
+  service: z.object(ServiceSchema.shape).omit({
+    consecutivesIncidentDetectionFails: true,
+    lastCheckedAt: true,
+  }),
+});
+
+export type UpdateServiceOutput = z.infer<typeof UpdateServiceOutputSchema>;
+
 export class UpdateService {
   constructor(private readonly uow: UOW) {}
 
@@ -25,7 +34,7 @@ export class UpdateService {
     updaterUserId: string,
     serviceId: string,
     input: UpdateServiceInput,
-  ) {
+  ): Promise<UpdateServiceOutput> {
     const updater = await this.uow.repositories.users.getById(updaterUserId);
 
     if (!updater || updater.getProps().type !== "ADMIN") {
@@ -73,7 +82,7 @@ export class UpdateService {
 
     return await this.uow.transaction(async (reps) => {
       const result = await reps.services.update(updated);
-      return { service: result };
+      return UpdateServiceOutputSchema.parse({ service: result.getProps() });
     });
   }
 }

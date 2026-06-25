@@ -1,11 +1,28 @@
+import { ServiceSchema } from "@domain/entities/service";
 import { UOW } from "@domain/repositories/interfaces/_uow";
 import { NotAllowedError } from "./errors/NotAllowedError";
 import { NotFoundError } from "./errors/NotFoundError";
+import z from "zod";
+
+export const ToggleServiceEnabledOutputSchema = z.object({
+  service: z.object(ServiceSchema.shape).omit({
+    consecutivesIncidentDetectionFails: true,
+    lastCheckedAt: true,
+  }),
+});
+
+export type ToggleServiceEnabledOutput = z.infer<
+  typeof ToggleServiceEnabledOutputSchema
+>;
 
 export class ToggleServiceEnabled {
   constructor(private readonly uow: UOW) {}
 
-  async execute(updaterUserId: string, serviceId: string, enable: boolean) {
+  async execute(
+    updaterUserId: string,
+    serviceId: string,
+    enable: boolean,
+  ): Promise<ToggleServiceEnabledOutput> {
     const updater = await this.uow.repositories.users.getById(updaterUserId);
 
     if (!updater || updater.getProps().type !== "ADMIN") {
@@ -33,7 +50,9 @@ export class ToggleServiceEnabled {
 
     return await this.uow.transaction(async (reps) => {
       const result = await reps.services.update(updated);
-      return { service: result };
+      return ToggleServiceEnabledOutputSchema.parse({
+        service: result.getProps(),
+      });
     });
   }
 }

@@ -1,5 +1,5 @@
-import { HealthCheck } from "@domain/entities/health-check";
-import { Incident } from "@domain/entities/incident";
+import { HealthCheck, HealthCheckSchema } from "@domain/entities/health-check";
+import { Incident, IncidentSchema } from "@domain/entities/incident";
 import { Service, ServiceType } from "@domain/entities/service";
 import { UOW } from "@domain/repositories/interfaces/_uow";
 import { HttpPingerInterface } from "@domain/services/http-pinger.interface";
@@ -7,13 +7,18 @@ import {
   NotificationJobData,
   NotificationsProducerInterface,
 } from "@domain/services/notifications-producer.interface";
+import z from "zod";
 
-type ExecuteHealthCheckResult = {
-  skipped?: boolean;
-  reason?: string;
-  healthCheck?: HealthCheck;
-  incident?: Incident;
-};
+export const ExecuteHealthCheckOutputSchema = z.object({
+  skipped: z.boolean().optional(),
+  reason: z.string().optional(),
+  healthCheck: HealthCheckSchema.optional(),
+  incident: IncidentSchema.optional(),
+});
+
+export type ExecuteHealthCheckOutput = z.infer<
+  typeof ExecuteHealthCheckOutputSchema
+>;
 
 export class ExecuteHealthCheck {
   constructor(
@@ -22,15 +27,21 @@ export class ExecuteHealthCheck {
     private readonly notificationsProducer: NotificationsProducerInterface,
   ) {}
 
-  async execute(serviceId: string): Promise<ExecuteHealthCheckResult> {
+  async execute(serviceId: string): Promise<ExecuteHealthCheckOutput> {
     const service = await this.uow.repositories.services.getById(serviceId);
 
     if (!service) {
-      return { skipped: true, reason: "not-found" };
+      return ExecuteHealthCheckOutputSchema.parse({
+        skipped: true,
+        reason: "not-found",
+      });
     }
 
     if (!service.getProps().enabled) {
-      return { skipped: true, reason: "disabled" };
+      return ExecuteHealthCheckOutputSchema.parse({
+        skipped: true,
+        reason: "disabled",
+      });
     }
 
     const result = await this.pinger.ping({
@@ -63,10 +74,10 @@ export class ExecuteHealthCheck {
 
     await this.enqueueNotification(txResult.notification);
 
-    return {
-      healthCheck: txResult.healthCheck,
-      incident: txResult.incident ?? undefined,
-    };
+    return ExecuteHealthCheckOutputSchema.parse({
+      healthCheck: txResult.healthCheck.getProps(),
+      incident: txResult.incident?.getProps(),
+    });
   }
 
   private async handleSuccess(

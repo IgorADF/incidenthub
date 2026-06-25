@@ -3,8 +3,14 @@ import type { FastifyZodInstance } from "~types/fastify-zod-instance";
 import z from "zod";
 import { authenticateUserFactory } from "@infra/factories/authenticate-user.usecase";
 import { forgotPasswordFactory } from "@infra/factories/forgot-password.usecase";
-import { AuthenticateUserInputSchema } from "@domain/use-cases/authenticate-user";
-import { ForgotPasswordInputSchema } from "@domain/use-cases/forgot-password";
+import {
+  AuthenticateUserInputSchema,
+  AuthenticateUserOutputSchema,
+} from "@domain/use-cases/authenticate-user";
+import {
+  ForgotPasswordInputSchema,
+  ForgotPasswordOutputSchema,
+} from "@domain/use-cases/forgot-password";
 import { NotFoundError } from "@domain/use-cases/errors/NotFoundError";
 import { JwtService } from "@infra/services/jwt";
 
@@ -21,14 +27,9 @@ export async function authRoutes(
         body: AuthenticateUserInputSchema,
         response: {
           200: z.object({
-            token: z.string(),
-            user: z.object({
-              id: z.string(),
-              organizationId: z.string(),
-              name: z.string(),
-              email: z.string(),
-              type: z.enum(["ADMIN", "DEV"]),
-              createdAt: z.date(),
+            data: z.object({
+              token: z.string(),
+              user: AuthenticateUserOutputSchema.shape.user,
             }),
           }),
         },
@@ -36,24 +37,18 @@ export async function authRoutes(
     },
     async (request, reply) => {
       const { useCase } = authenticateUserFactory();
-      const { user } = await useCase.execute(request.body);
-      const userProps = user.getProps();
+      const data = await useCase.execute(request.body);
 
       const token = await jwtService.signAuth({
-        userId: userProps.id,
-        organizationId: userProps.organizationId,
-        type: userProps.type,
+        userId: data.user.id,
+        organizationId: data.user.organizationId,
+        type: data.user.type,
       });
 
       return reply.status(200).send({
-        token,
-        user: {
-          id: userProps.id,
-          organizationId: userProps.organizationId,
-          name: userProps.name,
-          email: userProps.email,
-          type: userProps.type,
-          createdAt: userProps.createdAt,
+        data: {
+          token,
+          user: data.user,
         },
       });
     },
@@ -65,21 +60,20 @@ export async function authRoutes(
       schema: {
         body: ForgotPasswordInputSchema,
         response: {
-          200: z.object({ sent: z.boolean() }),
+          200: ForgotPasswordOutputSchema,
         },
       },
     },
     async (request, reply) => {
       const { useCase } = forgotPasswordFactory();
       try {
-        await useCase.execute(request.body);
+        return reply.status(200).send(await useCase.execute(request.body));
       } catch (err) {
         if (err instanceof NotFoundError) {
           return reply.status(200).send({ sent: true });
         }
         throw err;
       }
-      return reply.status(200).send({ sent: true });
     },
   );
 }

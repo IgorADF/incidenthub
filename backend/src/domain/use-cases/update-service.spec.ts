@@ -50,9 +50,9 @@ describe("UpdateService", () => {
       updateInput,
     );
 
-    expect(result.service.getProps().name).toBe("Updated Service");
-    expect(result.service.getProps().url).toBe("https://api.updated.com/health");
-    expect(result.service.getProps().intervalSeconds).toBe(300);
+    expect(result.service.name).toBe("Updated Service");
+    expect(result.service.url).toBe("https://api.updated.com/health");
+    expect(result.service.intervalSeconds).toBe(300);
   });
 
   it("should throw NotAllowedError when service is enabled", async () => {
@@ -111,9 +111,9 @@ describe("UpdateService", () => {
       { name: "Only Name Changed" },
     );
 
-    expect(result.service.getProps().name).toBe("Only Name Changed");
-    expect(result.service.getProps().url).toBe(service.getProps().url);
-    expect(result.service.getProps().intervalSeconds).toBe(
+    expect(result.service.name).toBe("Only Name Changed");
+    expect(result.service.url).toBe(service.getProps().url);
+    expect(result.service.intervalSeconds).toBe(
       service.getProps().intervalSeconds,
     );
   });
@@ -127,7 +127,7 @@ describe("UpdateService", () => {
       { emailToAlert: null },
     );
 
-    expect(result.service.getProps().emailToAlert).toBeNull();
+    expect(result.service.emailToAlert).toBeNull();
   });
 
   it("should reject invalid update values via entity validation", async () => {

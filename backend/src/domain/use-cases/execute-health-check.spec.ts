@@ -42,8 +42,8 @@ describe("ExecuteHealthCheck", () => {
 
     expect(result.skipped).toBeUndefined();
     expect(result.healthCheck).toBeDefined();
-    expect(result.healthCheck!.getProps().isError).toBe(false);
-    expect(result.healthCheck!.getProps().responseStatus).toBe(200);
+    expect(result.healthCheck!.isError).toBe(false);
+    expect(result.healthCheck!.responseStatus).toBe(200);
 
     const updated = await uow.repositories.services.getById(
       service.getProps().id,
@@ -73,7 +73,7 @@ describe("ExecuteHealthCheck", () => {
     const result = await sut.execute(withIncident.getProps().id);
 
     expect(result.incident).toBeDefined();
-    expect(result.incident!.getProps().resolvedAt).not.toBeNull();
+    expect(result.incident!.resolvedAt).not.toBeNull();
 
     const updated = await uow.repositories.services.getById(
       withIncident.getProps().id,
@@ -97,8 +97,8 @@ describe("ExecuteHealthCheck", () => {
     const result = await sut.execute(service.getProps().id);
 
     expect(result.healthCheck).toBeDefined();
-    expect(result.healthCheck!.getProps().isError).toBe(true);
-    expect(result.healthCheck!.getProps().responseStatus).toBe(500);
+    expect(result.healthCheck!.isError).toBe(true);
+    expect(result.healthCheck!.responseStatus).toBe(500);
     expect(result.incident).toBeUndefined();
 
     const updated = await uow.repositories.services.getById(
@@ -122,15 +122,15 @@ describe("ExecuteHealthCheck", () => {
     const result = await sut.execute(service.getProps().id);
 
     expect(result.incident).toBeDefined();
-    expect(result.incident!.getProps().resolvedAt).toBeNull();
-    expect(result.incident!.getProps().emailsSent).toBe(1);
+    expect(result.incident!.resolvedAt).toBeNull();
+    expect(result.incident!.emailsSent).toBe(1);
 
     const updated = await uow.repositories.services.getById(
       service.getProps().id,
     );
     expect(updated!.getProps().status).toBe("INCIDENT");
     expect(updated!.getProps().currentIncidentId).toBe(
-      result.incident!.getProps().id,
+      result.incident!.id,
     );
 
     expect(notifications.enqueuedJobs).toHaveLength(1);
@@ -158,7 +158,7 @@ describe("ExecuteHealthCheck", () => {
     );
     expect(updated!.getProps().consecutivesIncidentDetectionFails).toBe(2);
     expect(updated!.getProps().currentIncidentId).toBe(
-      first.incident!.getProps().id,
+      first.incident!.id,
     );
     expect(updated!.getProps().status).toBe("INCIDENT");
 
@@ -218,9 +218,9 @@ describe("ExecuteHealthCheck", () => {
 
     const result = await sut.execute(service.getProps().id);
 
-    expect(result.healthCheck!.getProps().timedOut).toBe(true);
-    expect(result.healthCheck!.getProps().responseStatus).toBe(0);
-    expect(result.healthCheck!.getProps().requestTime).toBe(10000);
+    expect(result.healthCheck!.timedOut).toBe(true);
+    expect(result.healthCheck!.responseStatus).toBe(0);
+    expect(result.healthCheck!.requestTime).toBe(10000);
   });
 
   it("should not fail the healthcheck when notification enqueue fails", async () => {

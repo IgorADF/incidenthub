@@ -10,6 +10,12 @@ export const ForgotPasswordInputSchema = z.object({
 
 export type ForgotPasswordInput = z.infer<typeof ForgotPasswordInputSchema>;
 
+export const ForgotPasswordOutputSchema = z.object({
+  sent: z.boolean(),
+});
+
+export type ForgotPasswordOutput = z.infer<typeof ForgotPasswordOutputSchema>;
+
 export class ForgotPassword {
   constructor(
     private readonly uow: UOW,
@@ -18,7 +24,7 @@ export class ForgotPassword {
     private readonly uiUrl: string,
   ) {}
 
-  async execute(input: ForgotPasswordInput) {
+  async execute(input: ForgotPasswordInput): Promise<ForgotPasswordOutput> {
     const user = await this.uow.repositories.users.getByEmail(input.email);
     if (!user) {
       throw new NotFoundError("user");
@@ -30,7 +36,7 @@ export class ForgotPassword {
 
     await this.sendEmail(input.email, resetToken);
 
-    return { sent: true };
+    return ForgotPasswordOutputSchema.parse({ sent: true });
   }
 
   private async sendEmail(userEmail: string, resetToken: string) {

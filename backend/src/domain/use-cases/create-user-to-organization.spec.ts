@@ -45,18 +45,22 @@ describe("Create User To Organization", () => {
       type: "DEV",
     });
 
-    expect(result.user.getProps()).toEqual(
+    expect(result.user).toEqual(
       expect.objectContaining({
         email: newUserInput.email,
         organizationId: organization.getProps().id,
         type: "DEV",
       }),
     );
-    expect(result.user.getProps().id).toBeDefined();
+    expect(result.user.id).toBeDefined();
+    expect(result.user).not.toHaveProperty("password");
+
+    const persistedUser = await uow.repositories.users.getById(result.user.id);
+    expect(persistedUser).not.toBeNull();
     await expect(
       hashPasswordTestService.compare(
         newUserInput.password,
-        result.user.getProps().password,
+        persistedUser!.getProps().password,
       ),
     ).resolves.toBe(true);
   });
@@ -75,7 +79,7 @@ describe("Create User To Organization", () => {
       type: "ADMIN",
     });
 
-    expect(result.user.getProps().type).toBe("ADMIN");
+    expect(result.user.type).toBe("ADMIN");
   });
 
   it("should throw NotAllowedError when creator is not found", async () => {

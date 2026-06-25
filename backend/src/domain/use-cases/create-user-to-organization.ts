@@ -16,6 +16,14 @@ export type CreateUserToOrganizationInput = z.infer<
   typeof CreateUserToOrganizationInputSchema
 >;
 
+export const CreateUserToOrganizationOutputSchema = z.object({
+  user: UserSchema.omit({ password: true }),
+});
+
+export type CreateUserToOrganizationOutput = z.infer<
+  typeof CreateUserToOrganizationOutputSchema
+>;
+
 export class CreateUserToOrganization {
   constructor(
     private readonly uow: UOW,
@@ -25,7 +33,7 @@ export class CreateUserToOrganization {
   async execute(
     creatorUserId: string,
     newUserData: CreateUserToOrganizationInput,
-  ) {
+  ): Promise<CreateUserToOrganizationOutput> {
     const creator = await this.uow.repositories.users.getById(creatorUserId);
 
     if (!creator || creator.getProps().type !== "ADMIN") {
@@ -54,8 +62,10 @@ export class CreateUserToOrganization {
     });
 
     return await this.uow.transaction(async (reps) => {
-      await reps.users.create(user);
-      return { user };
+      const created = await reps.users.create(user);
+      return CreateUserToOrganizationOutputSchema.parse({
+        user: created.getProps(),
+      });
     });
   }
 }

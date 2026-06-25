@@ -25,7 +25,7 @@ describe("Authenticate User", () => {
   it("should authenticate user with valid credentials", async () => {
     const { organization } = await createTestOrganization(uow);
 
-    const { user } = await createTestAdminUser(
+    await createTestAdminUser(
       uow,
       organization,
       {
@@ -40,12 +40,13 @@ describe("Authenticate User", () => {
       password: credentials.password,
     });
 
-    expect(result.user.getProps()).toEqual(
+    expect(result.user).toEqual(
       expect.objectContaining({
         email: credentials.email,
         type: "ADMIN",
       }),
     );
+    expect(result.user).not.toHaveProperty("password");
   });
 
   it("should throw InvalidCredentialError when user is not found", async () => {

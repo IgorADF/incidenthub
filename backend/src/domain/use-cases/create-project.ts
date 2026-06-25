@@ -15,10 +15,19 @@ export const CreateProjectInputSchema = z.object({
 
 export type CreateProjectInput = z.infer<typeof CreateProjectInputSchema>;
 
+export const CreateProjectOutputSchema = z.object({
+  project: ProjectSchema,
+});
+
+export type CreateProjectOutput = z.infer<typeof CreateProjectOutputSchema>;
+
 export class CreateProject {
   constructor(private readonly uow: UOW) {}
 
-  async execute(creatorUserId: string, input: CreateProjectInput) {
+  async execute(
+    creatorUserId: string,
+    input: CreateProjectInput,
+  ): Promise<CreateProjectOutput> {
     const creator = await this.uow.repositories.users.getById(creatorUserId);
 
     if (!creator || creator.getProps().type !== "ADMIN") {
@@ -69,8 +78,8 @@ export class CreateProject {
     });
 
     return await this.uow.transaction(async (reps) => {
-      await reps.projects.create(project);
-      return { project };
+      const created = await reps.projects.create(project);
+      return CreateProjectOutputSchema.parse({ project: created.getProps() });
     });
   }
 }

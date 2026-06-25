@@ -23,13 +23,22 @@ export type CreateOrganizationInput = z.infer<
   typeof CreateOrganizationInputSchema
 >;
 
+export const CreateOrganizationOutputSchema = z.object({
+  organization: OrganizationSchema,
+  user: UserSchema.omit({ password: true }),
+});
+
+export type CreateOrganizationOutput = z.infer<
+  typeof CreateOrganizationOutputSchema
+>;
+
 export class CreateOrganization {
   constructor(
     private readonly uow: UOW,
     private readonly hashPasswordService: HashPasswordInterface,
   ) {}
 
-  async execute(input: CreateOrganizationInput) {
+  async execute(input: CreateOrganizationInput): Promise<CreateOrganizationOutput> {
     const orgWithSameName = await this.uow.repositories.organizations.getByName(
       input.organization.name,
     );
@@ -67,9 +76,12 @@ export class CreateOrganization {
     });
 
     return await this.uow.transaction(async (reps) => {
-      await reps.organizations.create(organization);
-      await reps.users.create(user);
-      return { organization, user };
+      const createdOrganization = await reps.organizations.create(organization);
+      const createdUser = await reps.users.create(user);
+      return CreateOrganizationOutputSchema.parse({
+        organization: createdOrganization.getProps(),
+        user: createdUser.getProps(),
+      });
     });
   }
 }

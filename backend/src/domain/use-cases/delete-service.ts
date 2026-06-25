@@ -1,11 +1,21 @@
 import { UOW } from "@domain/repositories/interfaces/_uow";
 import { NotAllowedError } from "./errors/NotAllowedError";
 import { NotFoundError } from "./errors/NotFoundError";
+import z from "zod";
+
+export const DeleteServiceOutputSchema = z.object({
+  deleted: z.boolean(),
+});
+
+export type DeleteServiceOutput = z.infer<typeof DeleteServiceOutputSchema>;
 
 export class DeleteService {
   constructor(private readonly uow: UOW) {}
 
-  async execute(deleterUserId: string, serviceId: string) {
+  async execute(
+    deleterUserId: string,
+    serviceId: string,
+  ): Promise<DeleteServiceOutput> {
     const deleter = await this.uow.repositories.users.getById(deleterUserId);
 
     if (!deleter || deleter.getProps().type !== "ADMIN") {
@@ -39,7 +49,7 @@ export class DeleteService {
       await reps.incidents.deleteByServiceId(serviceId);
       await reps.services.delete(serviceId);
 
-      return { deleted: true };
+      return DeleteServiceOutputSchema.parse({ deleted: true });
     });
   }
 }

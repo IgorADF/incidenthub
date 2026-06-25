@@ -26,15 +26,11 @@ describe("List Projects By Organization", () => {
     const result = await sut.execute(organization.getProps().id);
 
     expect(result.projects).toHaveLength(2);
-    expect(result.projects.map((p) => p.getProps().name)).toEqual(
+    expect(result.projects.map((p) => p.name)).toEqual(
       expect.arrayContaining(["Project A", "Project B"]),
     );
-    expect(result.projects[0].getProps().organizationId).toBe(
-      organization.getProps().id,
-    );
-    expect(result.projects[1].getProps().organizationId).toBe(
-      organization.getProps().id,
-    );
+    expect(result.projects[0].organizationId).toBe(organization.getProps().id);
+    expect(result.projects[1].organizationId).toBe(organization.getProps().id);
   });
 
   it("should return an empty array when organization has no projects", async () => {
@@ -55,6 +51,6 @@ describe("List Projects By Organization", () => {
     const result = await sut.execute(organizationA.getProps().id);
 
     expect(result.projects).toHaveLength(1);
-    expect(result.projects[0].getProps().name).toBe("Project A");
+    expect(result.projects[0].name).toBe("Project A");
   });
 });

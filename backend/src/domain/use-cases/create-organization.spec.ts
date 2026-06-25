@@ -29,22 +29,26 @@ describe("Create Organization", () => {
   it("should create a new organization and the first user", async () => {
     const result = await sut.execute(orgInput);
 
-    expect(result.organization.getProps()).toEqual(
+    expect(result.organization).toEqual(
       expect.objectContaining({ name: "Acme Corp" }),
     );
-    expect(result.organization.getProps().id).toBeDefined();
-    expect(result.user.getProps()).toEqual(
+    expect(result.organization.id).toBeDefined();
+    expect(result.user).toEqual(
       expect.objectContaining({
         email: "admin@acme.com",
-        organizationId: result.organization.getProps().id,
+        organizationId: result.organization.id,
         type: "ADMIN",
       }),
     );
-    expect(result.user.getProps().id).toBeDefined();
+    expect(result.user.id).toBeDefined();
+    expect(result.user).not.toHaveProperty("password");
+
+    const persistedUser = await uow.repositories.users.getById(result.user.id);
+    expect(persistedUser).not.toBeNull();
     await expect(
       hashPasswordTestService.compare(
         orgInput.user.password,
-        result.user.getProps().password,
+        persistedUser!.getProps().password,
       ),
     ).resolves.toBe(true);
   });
@@ -87,7 +91,7 @@ describe("Create Organization", () => {
       },
     });
 
-    expect(result.organization.getProps().name).toBe("Other Corp");
-    expect(result.user.getProps().email).toBe("admin@other.com");
+    expect(result.organization.name).toBe("Other Corp");
+    expect(result.user.email).toBe("admin@other.com");
   });
 });

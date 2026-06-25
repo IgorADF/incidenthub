@@ -41,7 +41,12 @@ describe("Create Service", () => {
       serviceInput,
     );
 
-    expect(result.service.getProps().id).toBeDefined();
+    expect(result.service.id).toBeDefined();
+    expect(result.service.status).toBe("CHECKING");
+    expect(result.service).not.toHaveProperty(
+      "consecutivesIncidentDetectionFails",
+    );
+    expect(result.service).not.toHaveProperty("lastCheckedAt");
   });
 
   it("should create a service with custom values", async () => {
@@ -63,7 +68,7 @@ describe("Create Service", () => {
       },
     );
 
-    expect(result.service.getProps()).toEqual(
+    expect(result.service).toEqual(
       expect.objectContaining({
         intervalSeconds: 120,
         timeoutSeconds: 15,

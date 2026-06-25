@@ -48,17 +48,22 @@ describe("List Services By Project", () => {
     await uow.repositories.services.create(serviceB);
 
     const result = await sut.execute(
-      user.getProps().organizationId,
+      user.getProps().id,
       project.getProps().id,
     );
 
     expect(result.services).toHaveLength(2);
-    expect(result.services.map((s) => s.getProps().url)).toEqual(
+    expect(result.services.map((s) => s.url)).toEqual(
       expect.arrayContaining([
         "https://api-a.example.com/health",
         "https://api-b.example.com/health",
       ]),
     );
+    expect(result.services[0].status).toBe("CHECKING");
+    expect(result.services[0]).not.toHaveProperty(
+      "consecutivesIncidentDetectionFails",
+    );
+    expect(result.services[0]).not.toHaveProperty("lastCheckedAt");
   });
 
   it("should not include services from other projects", async () => {
@@ -94,14 +99,12 @@ describe("List Services By Project", () => {
     await uow.repositories.services.create(serviceB);
 
     const result = await sut.execute(
-      user.getProps().organizationId,
+      user.getProps().id,
       projectA.getProps().id,
     );
 
     expect(result.services).toHaveLength(1);
-    expect(result.services[0].getProps().url).toBe(
-      "https://api-a.example.com/health",
-    );
+    expect(result.services[0].url).toBe("https://api-a.example.com/health");
   });
 
   it("should return an empty array when project has no services", async () => {
@@ -110,7 +113,7 @@ describe("List Services By Project", () => {
     const { project } = await createTestProject(uow, organization);
 
     const result = await sut.execute(
-      user.getProps().organizationId,
+      user.getProps().id,
       project.getProps().id,
     );
 
@@ -122,7 +125,7 @@ describe("List Services By Project", () => {
     const { user } = await createTestAdminUser(uow, organization);
 
     await expect(
-      sut.execute(user.getProps().organizationId, "non-existent-project-id"),
+      sut.execute(user.getProps().id, "non-existent-project-id"),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
@@ -143,7 +146,7 @@ describe("List Services By Project", () => {
 
     await expect(
       sut.execute(
-        user.getProps().organizationId,
+        user.getProps().id,
         projectFromOrg2.getProps().id,
       ),
     ).rejects.toBeInstanceOf(NotAllowedError);

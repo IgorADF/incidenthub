@@ -3,7 +3,11 @@ import type { FastifyZodInstance } from "~types/fastify-zod-instance";
 import z from "zod";
 import { createProjectFactory } from "@infra/factories/create-project.usecase";
 import { listProjectsByOrganizationFactory } from "@infra/factories/list-projects-by-organization.usecase";
-import { CreateProjectInputSchema } from "@domain/use-cases/create-project";
+import {
+  CreateProjectInputSchema,
+  CreateProjectOutputSchema,
+} from "@domain/use-cases/create-project";
+import { ListProjectsByOrganizationOutputSchema } from "@domain/use-cases/list-projects-by-organization";
 import { authHook } from "../plugins/auth";
 
 export async function projectRoutes(
@@ -17,32 +21,17 @@ export async function projectRoutes(
       schema: {
         body: CreateProjectInputSchema,
         response: {
-          201: z.object({
-            id: z.string(),
-            organizationId: z.string(),
-            name: z.string(),
-            showPublicPage: z.boolean(),
-            publicPageSlug: z.string().nullable(),
-            createdAt: z.date(),
-          }),
+          201: z.object({ data: CreateProjectOutputSchema }),
         },
       },
     },
     async (request, reply) => {
       const { useCase } = createProjectFactory();
-      const { project } = await useCase.execute(
+      const data = await useCase.execute(
         request.user!.userId,
         request.body,
       );
-      const props = project.getProps();
-      return reply.status(201).send({
-        id: props.id,
-        organizationId: props.organizationId,
-        name: props.name,
-        showPublicPage: props.showPublicPage,
-        publicPageSlug: props.publicPageSlug,
-        createdAt: props.createdAt,
-      });
+      return reply.status(201).send({ data });
     },
   );
 
@@ -52,39 +41,16 @@ export async function projectRoutes(
       preHandler: [authHook],
       schema: {
         response: {
-          200: z.object({
-            projects: z.array(
-              z.object({
-                id: z.string(),
-                organizationId: z.string(),
-                name: z.string(),
-                showPublicPage: z.boolean(),
-                publicPageSlug: z.string().nullable(),
-                createdAt: z.date(),
-              }),
-            ),
-          }),
+          200: z.object({ data: ListProjectsByOrganizationOutputSchema }),
         },
       },
     },
     async (request, reply) => {
       const { useCase } = listProjectsByOrganizationFactory();
-      const { projects } = await useCase.execute(
+      const data = await useCase.execute(
         request.user!.organizationId,
       );
-      return reply.status(200).send({
-        projects: projects.map((p) => {
-          const props = p.getProps();
-          return {
-            id: props.id,
-            organizationId: props.organizationId,
-            name: props.name,
-            showPublicPage: props.showPublicPage,
-            publicPageSlug: props.publicPageSlug,
-            createdAt: props.createdAt,
-          };
-        }),
-      });
+      return reply.status(200).send({ data });
     },
   );
 }

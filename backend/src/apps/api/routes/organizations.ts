@@ -2,7 +2,10 @@ import type { FastifyPluginOptions } from "fastify";
 import type { FastifyZodInstance } from "~types/fastify-zod-instance";
 import z from "zod";
 import { createOrganizationFactory } from "@infra/factories/create-organization.usecase";
-import { CreateOrganizationInputSchema } from "@domain/use-cases/create-organization";
+import {
+  CreateOrganizationInputSchema,
+  CreateOrganizationOutputSchema,
+} from "@domain/use-cases/create-organization";
 
 export async function organizationRoutes(
   app: FastifyZodInstance,
@@ -14,46 +17,14 @@ export async function organizationRoutes(
       schema: {
         body: CreateOrganizationInputSchema,
         response: {
-          201: z.object({
-            organization: z.object({
-              id: z.string(),
-              name: z.string(),
-              createdAt: z.date(),
-            }),
-            user: z.object({
-              id: z.string(),
-              organizationId: z.string(),
-              name: z.string(),
-              email: z.string(),
-              type: z.enum(["ADMIN", "DEV"]),
-              createdAt: z.date(),
-            }),
-          }),
+          201: z.object({ data: CreateOrganizationOutputSchema }),
         },
       },
     },
     async (request, reply) => {
       const { useCase } = createOrganizationFactory();
-      const { organization, user } = await useCase.execute(request.body);
-
-      const orgProps = organization.getProps();
-      const userProps = user.getProps();
-
-      return reply.status(201).send({
-        organization: {
-          id: orgProps.id,
-          name: orgProps.name,
-          createdAt: orgProps.createdAt,
-        },
-        user: {
-          id: userProps.id,
-          organizationId: userProps.organizationId,
-          name: userProps.name,
-          email: userProps.email,
-          type: userProps.type,
-          createdAt: userProps.createdAt,
-        },
-      });
+      const data = await useCase.execute(request.body);
+      return reply.status(201).send({ data });
     },
   );
 }

@@ -38,9 +38,9 @@ export class HealthcheckScheduler implements SchedulerInterface {
     for (const service of due) {
       await this.queue.add(
         HC_JOB_NAME,
-        { serviceId: service.getProps().id },
+        { serviceId: service.id },
         {
-          jobId: `healthcheck:${service.getProps().id}`,
+          jobId: `healthcheck:${service.id}`,
           attempts: 3,
           backoff: { type: "exponential", delay: 2000 },
           removeOnComplete: 10,
