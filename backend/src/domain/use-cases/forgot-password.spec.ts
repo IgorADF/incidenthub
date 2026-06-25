@@ -53,7 +53,7 @@ describe("Forgot Password", () => {
     const sent = emailTestService.sentEmails[0]!;
     const token = sent.body.split("token=")[1]!;
     const payload = await jwtTestService.verifyForgotPassword(token);
-    expect(payload.sub).toBe(user.getProps().id);
+    expect(payload.userId).toBe(user.getProps().id);
   });
 
   it("should throw NotFoundError when email is invalid", async () => {

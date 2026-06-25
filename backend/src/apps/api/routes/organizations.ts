@@ -1,30 +1,40 @@
-import type { FastifyInstance, FastifyPluginOptions } from "fastify";
+import type { FastifyPluginOptions } from "fastify";
+import type { FastifyZodInstance } from "~types/fastify-zod-instance";
+import z from "zod";
 import { createOrganizationFactory } from "@infra/factories/create-organization.usecase";
-import {
-  CreateOrganizationInputSchema,
-} from "@domain/use-cases/create-organization";
-import { EntityAlreadyExists } from "@domain/use-cases/errors/EntityAlreadyExists";
+import { CreateOrganizationInputSchema } from "@domain/use-cases/create-organization";
 
 export async function organizationRoutes(
-  app: FastifyInstance,
+  app: FastifyZodInstance,
   _options: FastifyPluginOptions,
 ) {
-  app.post("/organizations", async (request, reply) => {
-    const parsed = CreateOrganizationInputSchema.safeParse(request.body);
-
-    if (!parsed.success) {
-      return reply.status(400).send({
-        code: "VALIDATION_ERROR",
-        message: parsed.error.issues
-          .map((i) => `${i.path.join(".")}: ${i.message}`)
-          .join("; "),
-      });
-    }
-
-    const { useCase } = createOrganizationFactory();
-
-    try {
-      const { organization, user } = await useCase.execute(parsed.data);
+  app.post(
+    "/organizations",
+    {
+      schema: {
+        body: CreateOrganizationInputSchema,
+        response: {
+          201: z.object({
+            organization: z.object({
+              id: z.string(),
+              name: z.string(),
+              createdAt: z.date(),
+            }),
+            user: z.object({
+              id: z.string(),
+              organizationId: z.string(),
+              name: z.string(),
+              email: z.string(),
+              type: z.enum(["ADMIN", "DEV"]),
+              createdAt: z.date(),
+            }),
+          }),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { useCase } = createOrganizationFactory();
+      const { organization, user } = await useCase.execute(request.body);
 
       const orgProps = organization.getProps();
       const userProps = user.getProps();
@@ -44,16 +54,6 @@ export async function organizationRoutes(
           createdAt: userProps.createdAt,
         },
       });
-    } catch (err) {
-      if (err instanceof EntityAlreadyExists) {
-        return reply.status(409).send({
-          code: err.code,
-          message: err.message,
-          context: err.context,
-        });
-      }
-
-      throw err;
-    }
-  });
+    },
+  );
 }

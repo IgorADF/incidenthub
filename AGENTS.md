@@ -155,6 +155,7 @@ Use aliases for cross-layer imports. Use relative imports only within the same f
 - Business rules (e.g. uniqueness checks) query `uow.repositories` directly.
 - Outward-facing concerns (hashing, external APIs, email) are handled by injected domain services, never by importing infra directly.
 - Build the entities first, then persist them inside `uow.transaction`.
+- Use-cases are pure business logic. They report truthful domain outcomes (e.g. `NotFoundError` when an entity isn't found). Security, anti-enumeration, and transport-level concerns belong at the API route boundary, never inside a use-case.
 
 ### Domain services
 
@@ -167,6 +168,15 @@ Use aliases for cross-layer imports. Use relative imports only within the same f
 
 - Production factories are in `infra/factories/<name>.usecase.ts`.
 - They create a `PrismaUOW` from the singleton `prismaClient`, instantiate the required infra services, inject them into the use-case, and return `{ useCase }`.
+
+### Route handlers
+
+- Route plugins live in `apps/api/routes/<resource>.ts`. Each exports an `async function <name>(app: FastifyZodInstance, _options)` and is registered in `apps/api/routes/_init.ts`.
+- Use `FastifyZodInstance` from `~types/fastify-zod-instance` as the `app` parameter type. It wires the `fastify-type-provider-zod` provider, so Zod schemas declared in `schema` both **validate at runtime** (via `validatorCompiler` / `serializerCompiler` set in `app.ts`) and **narrow at compile time** (`request.params`, `request.body`, `request.query`, and `reply.send(...)`).
+- Declare input/output schemas in the route's `schema: { params, body, querystring, response }`. The Zod schema in `schema` is the single source of truth for both validation and TypeScript narrowing. Never add manual route generics (`app.post<{ Body: ... }>(...)`) or `request.body as ...` casts.
+- For path params with IDs use `z.object({ serviceId: z.string().uuid() })` etc.
+- Domain errors propagate to the global handler in `apps/api/handlers/error.ts`. The handler uses a `code → HTTP status` lookup table for plain domain errors (`EntityAlreadyExists`→409, `NotAllowedError`→403, `NotFoundError`→404, `LimitExceededError`→409, `InvalidCredentialError`→401, `ValidationEntitiesError`→400); unmapped codes default to 400 via a `DefaultUseCasesError` / `DefaultEntitiesError` catch-all. Adding a new plain domain error only requires one line in the map. Specific branches are kept only for errors with extra payload (`EntityAlreadyExists` → includes `context`, `ValidationEntitiesError` → includes `issues`). Vendor errors handled separately: request Zod-schema validation (`hasZodFastifySchemaValidationErrors`) → 400, response serialization (`isResponseSerializationError`) → 500. Route handlers do **not** catch domain errors, with one exception: anti-enumeration at the transport boundary (e.g. `POST /password/forgot` catches `NotFoundError` and returns 200).
+- For `request.user`, use `authHook` from `../plugins/auth` (attach as `{ preHandler: [authHook] }`). The hook populates `request.user: AuthUser | null` via JWT. Access `request.user!.userId` / `.organizationId` in handlers — the `!` is intentional since the hook 401s when unauthenticated.
 
 ### Errors
 
@@ -629,6 +639,7 @@ describe("Create Example", () => {
 - **Domain services:** depend on interfaces from `@domain/services/<name>.interface`; let factories inject infra adapters. Never import infra directly from a use-case.
 - **Passwords:** never store plain text; hash with the injected `HashPasswordInterface` before passing to `User.create`.
 - **Test factories:** prefer `createTestOrganization`, `createTestAdminUser`, `createTestDevUser`, and `createTestProject` over inline entity creation.
+- **Security / transport concerns:** never swallow domain errors or alter a use-case's result to hide information (e.g. anti-enumeration on password-reset). The use-case returns/throws the truthful outcome; the route handler decides what the client sees (e.g. catch `NotFoundError` and return 200).
 
 #### Verification
 

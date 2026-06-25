@@ -9,6 +9,7 @@ import {
 import cors from "@fastify/cors";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
+import { errorHandler } from "./handlers/error";
 
 async function createApp() {
   const app = fastify({
@@ -17,14 +18,15 @@ async function createApp() {
 
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
+  app.setErrorHandler(errorHandler);
 
   await app.register(swagger, {
     openapi: {
       openapi: "3.0.0",
       info: {
-        title: "Test swagger",
-        description: "Testing the Fastify swagger API",
-        version: "0.1.0",
+        title: "IncidentHub API",
+        description: "Operational platform API for service health monitoring",
+        version: "1.0.0",
       },
       // servers: [
       //   {

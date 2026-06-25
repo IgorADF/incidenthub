@@ -25,7 +25,7 @@ export class ForgotPassword {
     }
 
     const resetToken = await this.jwtService.signForgotPassword({
-      sub: user.getProps().id,
+      userId: user.getProps().id,
     });
 
     await this.sendEmail(input.email, resetToken);
