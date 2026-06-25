@@ -20,6 +20,7 @@
   "exclude": [
     "prisma.config.ts",
     "vitest.config.ts",
+    "vitest.e2e.config.ts",
     "dist",
     "src/infra/db/generated/"
   ]

@@ -11,6 +11,7 @@
     "dev:worker:healthcheck": "tsx ./src/apps/workers/healthcheck/main.ts",
     "dev:worker:notification": "tsx ./src/apps/workers/notification/main.ts",
     "tests": "npx vitest --config ./vitest.config.ts",
+    "tests:e2e": "vitest run --config ./vitest.e2e.config.ts",
     "type:check": "npx tsc --noEmit"
   },
   "keywords": [],

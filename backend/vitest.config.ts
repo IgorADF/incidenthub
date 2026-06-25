@@ -6,6 +6,6 @@ export default defineConfig({
     tsconfigPaths: true,
   },
   test: {
-    exclude: ["dist/**", "node_modules/**"],
+    exclude: ["dist/**", "node_modules/**", "src/apps/api/e2e/**"],
   },
 });
