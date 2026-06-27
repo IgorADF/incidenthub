@@ -1,9 +1,9 @@
 import { DeleteService } from "@domain/use-cases/delete-service";
-import { prismaClient } from "@infra/db/prisma-client";
+import { MyPrismaClient } from "@infra/db/prisma-client";
 import { PrismaUOW } from "@infra/repositories/prisma/_uow";
 
-export function deleteServiceFactory() {
-  const uow = new PrismaUOW(prismaClient);
+export function deleteServiceFactory(dbClient: MyPrismaClient) {
+  const uow = new PrismaUOW(dbClient);
   const useCase = new DeleteService(uow);
 
   return { useCase };

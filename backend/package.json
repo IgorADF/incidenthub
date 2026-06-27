@@ -12,7 +12,10 @@
     "dev:worker:notification": "tsx ./src/apps/workers/notification/main.ts",
     "tests": "npx vitest --config ./vitest.config.ts",
     "tests:e2e": "vitest run --config ./vitest.e2e.config.ts",
-    "type:check": "npx tsc --noEmit"
+    "type:check": "npx tsc --noEmit",
+    "prisma:generate": "npx prisma generate --sql",
+    "db:migrate:dev": "npm run db:generate && npx prisma migrate dev",
+    "db:migrate:deploy": "npx prisma migrate deploy"
   },
   "keywords": [],
   "author": "",
@@ -43,6 +46,7 @@
     "fastify-type-provider-zod": "6.1.0",
     "ioredis": "5.11.1",
     "jsonwebtoken": "9.0.3",
+    "node-cron": "4.5.0",
     "nodemailer": "9.0.1",
     "pg": "^8.21.0",
     "uuidv7": "1.2.1",

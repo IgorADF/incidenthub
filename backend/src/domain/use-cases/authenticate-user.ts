@@ -23,10 +23,10 @@ export class AuthenticateUser {
   constructor(
     private readonly uow: UOW,
     private readonly hashPasswordService: HashPasswordInterface,
-  ) {}
+  ) { }
 
   async execute(input: AuthenticateUserInput): Promise<AuthenticateUserOutput> {
-    const user = await this.uow.repositories.users.getByEmail(input.email);
+    const user = await this.uow.repositories.users.getByEmailWithPassword(input.email);
 
     if (!user) {
       throw new InvalidCredentialError();

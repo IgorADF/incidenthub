@@ -7,29 +7,32 @@ import {
 } from "@domain/use-cases/create-user-to-organization";
 import { authHook } from "../plugins/auth";
 import type { FastifyZodInstance } from "~types/fastify-zod-instance";
+import { MyPrismaClient } from "@infra/db/prisma-client";
 
-export async function userRoutes(
-  app: FastifyZodInstance,
-  _options: FastifyPluginOptions,
-) {
-  app.post(
-    "/users",
-    {
-      preHandler: [authHook],
-      schema: {
-        body: CreateUserToOrganizationInputSchema,
-        response: {
-          201: z.object({ data: CreateUserToOrganizationOutputSchema }),
+export function userRoutes(dbClient: MyPrismaClient) {
+  return async function (
+    app: FastifyZodInstance,
+    _options: FastifyPluginOptions,
+  ) {
+    app.post(
+      "/users",
+      {
+        preHandler: [authHook],
+        schema: {
+          body: CreateUserToOrganizationInputSchema,
+          response: {
+            201: z.object({ data: CreateUserToOrganizationOutputSchema }),
+          },
         },
       },
-    },
-    async (request, reply) => {
-      const { useCase } = createUserToOrganizationFactory();
-      const data = await useCase.execute(
-        request.user!.userId,
-        request.body,
-      );
-      return reply.status(201).send({ data });
-    },
-  );
+      async (request, reply) => {
+        const { useCase } = createUserToOrganizationFactory(dbClient);
+        const data = await useCase.execute(
+          request.user!.userId,
+          request.body,
+        );
+        return reply.status(201).send({ data });
+      },
+    );
+  }
 }

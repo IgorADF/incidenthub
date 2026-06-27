@@ -6,25 +6,29 @@ import {
   CreateOrganizationInputSchema,
   CreateOrganizationOutputSchema,
 } from "@domain/use-cases/create-organization";
+import { MyPrismaClient } from "@infra/db/prisma-client";
 
-export async function organizationRoutes(
-  app: FastifyZodInstance,
-  _options: FastifyPluginOptions,
-) {
-  app.post(
-    "/organizations",
-    {
-      schema: {
-        body: CreateOrganizationInputSchema,
-        response: {
-          201: z.object({ data: CreateOrganizationOutputSchema }),
+export function organizationRoutes(dbClient: MyPrismaClient) {
+  return async function (
+    app: FastifyZodInstance,
+    _options: FastifyPluginOptions,
+  ) {
+    app.post(
+      "/organizations",
+      {
+        schema: {
+          body: CreateOrganizationInputSchema,
+          response: {
+            201: z.object({ data: CreateOrganizationOutputSchema }),
+          },
         },
       },
-    },
-    async (request, reply) => {
-      const { useCase } = createOrganizationFactory();
-      const data = await useCase.execute(request.body);
-      return reply.status(201).send({ data });
-    },
-  );
+      async (request, reply) => {
+        const { useCase } = createOrganizationFactory(dbClient);
+        const data = await useCase.execute(request.body);
+        return reply.status(201).send({ data });
+      },
+    );
+  }
+
 }
