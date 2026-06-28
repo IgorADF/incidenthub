@@ -1,13 +1,18 @@
 import { config } from "dotenv";
 import z from "zod";
+import path from "node:path";
 
 const isTestEnv = process.env.NODE_ENV === "test";
 
+let envFilePath: string
+
 if (isTestEnv) {
-  config({ path: ".env.test" });
+  envFilePath = path.resolve(import.meta.dirname, '../../.env.test')
 } else {
-  config();
+  envFilePath = path.resolve(import.meta.dirname, '../../.env')
 }
+
+config({ path: envFilePath });
 
 const EnvsSchema = z.object({
   // General

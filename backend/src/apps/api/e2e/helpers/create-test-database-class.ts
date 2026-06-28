@@ -6,6 +6,7 @@ import {
   MyPrismaClient,
 } from "@infra/db/prisma-client.js";
 import { dropSchema } from "./drop-schema";
+import path from "node:path";
 
 export class CreateTestDatabaseHelper {
   static testSchemaPrefixName = "test-schema-";
@@ -54,9 +55,11 @@ export class CreateTestDatabaseHelper {
 
   private executeMigrationsCommansOnSchema(url: string) {
     try {
+      const pathString = path.resolve(import.meta.dirname, '../../../../../')
+
       execSync("npm run db:migrate:deploy", {
         stdio: "inherit",
-        cwd: process.cwd(),
+        cwd: pathString,
       });
     } catch (error) {
       throw new Error(

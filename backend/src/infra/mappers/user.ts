@@ -23,7 +23,7 @@ export class UserMapper {
       organizationId: UUIDv7.parse(prismaEntity.organizationId),
       name: prismaEntity.name,
       email: prismaEntity.email,
-      password: "",
+      password: "thisisaoverridepassword",
       type: prismaEntity.type,
       createdAt: CreatedAt.parse(prismaEntity.createdAt),
     });

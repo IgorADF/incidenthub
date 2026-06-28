@@ -11,10 +11,11 @@ import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
 import { errorHandler } from "./handlers/error";
 import { MyPrismaClient } from "@infra/db/prisma-client";
+import { envs } from "@infra/envs";
 
 export async function createApp(prismaClient: MyPrismaClient) {
   const app = fastify({
-    logger: true,
+    logger: !envs.isTestEnv,
   }).withTypeProvider<ZodTypeProvider>();
 
   app.setValidatorCompiler(validatorCompiler);
