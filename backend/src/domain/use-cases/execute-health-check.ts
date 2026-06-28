@@ -197,10 +197,11 @@ export class ExecuteHealthCheck {
     try {
       await this.notificationsProducer.enqueue(notification);
     } catch (error) {
-      console.error(
-        `[ExecuteHealthCheck] Failed to enqueue notification (type=${notification.type}, incidentId=${notification.incidentId}):`,
-        error,
-      );
+      return;
+      // console.error(
+      //   `[ExecuteHealthCheck] Failed to enqueue notification (type=${notification.type}, incidentId=${notification.incidentId}):`,
+      //   error,
+      // );
     }
   }
 }
