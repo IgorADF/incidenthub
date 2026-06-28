@@ -16,6 +16,7 @@ export class UserMapper {
 		return {
 			id: props.id,
 			name: props.name,
+			normalizedName: props.normalizedName,
 			organizationId: props.organizationId,
 			email: props.email,
 			password: props.password,
@@ -33,6 +34,7 @@ export class UserMapper {
 			id: UUIDv7.parse(prismaEntity.id),
 			organizationId: UUIDv7.parse(prismaEntity.organizationId),
 			name: prismaEntity.name,
+			normalizedName: prismaEntity.normalizedName,
 			email: prismaEntity.email,
 			type: prismaEntity.type,
 			createdAt: CreatedAt.parse(prismaEntity.createdAt),

@@ -10,7 +10,7 @@ export const ServiceSchema = z
 	.object({
 		id: UUIDv7,
 		projectId: UUIDv7,
-		name: z.string().min(1).max(50),
+		name: z.string().min(1).max(50).trim(),
 		status: z.enum(["CHECKING", "INCIDENT", "DISABLED"]),
 		url: Url,
 		intervalSeconds: z.number().int().positive().min(5).max(9999),

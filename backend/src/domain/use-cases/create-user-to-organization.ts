@@ -32,7 +32,7 @@ export class CreateUserToOrganization {
 	constructor(
 		private readonly uow: UOW,
 		private readonly hashPasswordService: HashPasswordInterface,
-	) {}
+	) { }
 
 	async execute(
 		creatorUserId: string,

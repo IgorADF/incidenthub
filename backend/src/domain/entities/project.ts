@@ -9,7 +9,7 @@ export const ProjectSchema = z
 	.object({
 		id: UUIDv7,
 		organizationId: UUIDv7,
-		name: z.string().min(1).max(50),
+		name: z.string().min(1).max(50).trim(),
 		showPublicPage: z.boolean(),
 		publicPageSlug: Slug.nullable(),
 		createdAt: CreatedAt,

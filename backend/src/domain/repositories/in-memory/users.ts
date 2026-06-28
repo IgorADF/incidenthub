@@ -1,9 +1,10 @@
 import { User, type UserWithPassword } from "@domain/entities/user";
 import type { UsersRepInterface } from "@domain/repositories/interfaces/users";
 import type { IMUOWdb } from "./_uow";
+import { ListUserPaginationType } from "@domain/use-cases/utils/paginations/list-user-by-organization";
 
 export class IMUsersRep implements UsersRepInterface {
-	constructor(private readonly db: IMUOWdb) {}
+	constructor(private readonly db: IMUOWdb) { }
 
 	private toUserClass(data: UserWithPassword) {
 		const { password: _password, ...props } = data.getProps();
@@ -43,6 +44,58 @@ export class IMUsersRep implements UsersRepInterface {
 		}
 
 		return record ?? null;
+	}
+
+	async listByOrganizationId(
+		organizationId: string,
+		pagination: ListUserPaginationType,
+	) {
+		const limit = pagination.limit
+		const cursor = pagination.cursor
+
+		const sortedUsers = this.db.users
+			.filter((u) => u.getProps().organizationId === organizationId)
+			.map((u) => this.toUserClass(u))
+			.sort((a, b) => {
+				const nameComparison = a
+					.getProps()
+					.normalizedName.localeCompare(b.getProps().normalizedName);
+
+				if (nameComparison !== 0) {
+					return nameComparison;
+				}
+
+				return a.getProps().id.localeCompare(b.getProps().id);
+			});
+
+		const hashCursorProps = !!cursor.normalizedName && !!cursor.id
+
+		const afterCursor = hashCursorProps
+			? sortedUsers.filter((u) => {
+				const props = u.getProps();
+
+				return (
+					props.normalizedName > cursor.normalizedName! ||
+					(props.normalizedName === cursor.normalizedName && props.id > cursor.id!)
+				);
+			})
+			: sortedUsers;
+
+		const users = afterCursor.slice(0, limit);
+		const hasNextPage = afterCursor.length > limit;
+		const lastUser = users.at(-1);
+
+		return {
+			users,
+			pagination: {
+				limit: limit,
+				hasNextPage,
+				nextCursor:
+					hasNextPage && lastUser
+						? { normalizedName: lastUser.getProps().normalizedName, id: lastUser.getProps().id }
+						: { normalizedName: null, id: null, },
+			},
+		};
 	}
 
 	async create(data: UserWithPassword) {

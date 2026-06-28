@@ -4,6 +4,7 @@ export const Slug = z
 	.string()
 	.min(1)
 	.max(50)
+	.trim()
 	.transform((val) => val.replace(/^\//, "")) // strip leading slash if present
 	.pipe(
 		z

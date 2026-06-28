@@ -14,6 +14,7 @@
     "tests:e2e": "vitest run --config ./vitest.e2e.config.ts",
     "type:check": "npx tsc --noEmit",
     "prisma:generate": "npx prisma generate --sql",
+    "db:generate": "npx prisma generate --sql",
     "db:migrate:dev": "npm run db:generate && npx prisma migrate dev",
     "db:migrate:deploy": "npx prisma migrate deploy",
     "lint": "npx @biomejs/biome lint --max-diagnostics 100",

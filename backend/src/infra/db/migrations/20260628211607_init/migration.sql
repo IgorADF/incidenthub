@@ -15,6 +15,7 @@ CREATE TABLE "users" (
     "id" TEXT NOT NULL,
     "organization_id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "normalized_name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
     "type" "user_type" NOT NULL,
@@ -40,7 +41,7 @@ CREATE TABLE "services" (
     "id" TEXT NOT NULL,
     "project_id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'unknown',
+    "status" TEXT NOT NULL,
     "url" TEXT NOT NULL,
     "interval_seconds" INTEGER NOT NULL DEFAULT 60,
     "timeout_seconds" INTEGER NOT NULL DEFAULT 30,
@@ -91,6 +92,9 @@ CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
 -- CreateIndex
 CREATE INDEX "users_organization_id_idx" ON "users"("organization_id");
+
+-- CreateIndex
+CREATE INDEX "users_normalized_name_idx" ON "users"("normalized_name");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "projects_public_page_slug_key" ON "projects"("public_page_slug");

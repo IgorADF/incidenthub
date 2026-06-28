@@ -6,7 +6,7 @@ import { DefaultEntity } from "./_default";
 
 export const OrganizationSchema = z.object({
 	id: UUIDv7,
-	name: z.string().min(1).max(50),
+	name: z.string().min(1).max(50).trim(),
 	createdAt: CreatedAt,
 });
 
