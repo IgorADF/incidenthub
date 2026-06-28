@@ -9,17 +9,18 @@ import {
 } from "@infra/queue/healthcheck-scheduler";
 import { executeHealthCheckFactory } from "@infra/factories/execute-health-check.usecase";
 import { repopulateSchedulesFactory } from "@infra/factories/repopulate-schedules.usecase";
-import { ListAllDueServices } from "@domain/use-cases/list-all-due-services";
-import { PrismaUOW } from "@infra/repositories/prisma/_uow";
-import { prismaClient } from "@infra/db/prisma-client";
+import { listAllDueServicesFactory } from "@infra/factories/list-all-due-services.usecase";
+import { createDefaultDbClient } from "@infra/db/prisma-client";
 import { acquireLock, releaseLock } from "../shared/lock";
 import { setupGracefulShutdown } from "../shared/shutdown";
 
 const LOCK_TTL_MS = 30_000;
 
+const prismaClient = createDefaultDbClient().prisma
+
 const scheduler = new HealthcheckScheduler(
   healthcheckQueue,
-  new ListAllDueServices(new PrismaUOW(prismaClient)),
+  listAllDueServicesFactory(prismaClient).useCase,
 );
 
 const worker = new Worker(
@@ -47,7 +48,7 @@ const worker = new Worker(
       }
 
       try {
-        const { useCase } = executeHealthCheckFactory();
+        const { useCase } = executeHealthCheckFactory(prismaClient);
         const result = await useCase.execute(serviceId);
         return result;
       } finally {
@@ -100,7 +101,7 @@ worker.on("error", (err) => {
 async function main() {
   console.log("[healthcheck] Starting worker...");
 
-  const { useCase } = repopulateSchedulesFactory();
+  const { useCase } = repopulateSchedulesFactory(prismaClient);
   await useCase.execute();
 
   console.log("[healthcheck] Scheduler tick ensured, worker is running");

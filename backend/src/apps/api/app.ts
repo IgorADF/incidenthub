@@ -10,10 +10,12 @@ import cors from "@fastify/cors";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
 import { errorHandler } from "./handlers/error";
+import { MyPrismaClient } from "@infra/db/prisma-client";
+import { envs } from "@infra/envs";
 
-async function createApp() {
+export async function createApp(prismaClient: MyPrismaClient) {
   const app = fastify({
-    logger: true,
+    logger: !envs.isTestEnv,
   }).withTypeProvider<ZodTypeProvider>();
 
   app.setValidatorCompiler(validatorCompiler);
@@ -65,11 +67,9 @@ async function createApp() {
     transformSpecificationClone: true,
   });
 
-  await app.register(cors, {});
+  await app.register(cors, { credentials: true });
 
-  app.register(routes);
+  app.register(routes(prismaClient));
 
   return { app };
 }
-
-export { createApp };

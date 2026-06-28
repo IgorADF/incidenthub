@@ -17,7 +17,19 @@ export class UserMapper {
     };
   }
 
-  static fromPrismaToEntity(prismaEntity: Prisma.UserGetPayload<object>): User {
+  static fromPrismaToEntity(prismaEntity: Prisma.UserGetPayload<{ omit: { password: true } }>): User {
+    return User.fromProps({
+      id: UUIDv7.parse(prismaEntity.id),
+      organizationId: UUIDv7.parse(prismaEntity.organizationId),
+      name: prismaEntity.name,
+      email: prismaEntity.email,
+      password: "thisisaoverridepassword",
+      type: prismaEntity.type,
+      createdAt: CreatedAt.parse(prismaEntity.createdAt),
+    });
+  }
+
+  static fromPrismaToEntityWithPassword(prismaEntity: Prisma.UserGetPayload<object>): User {
     return User.fromProps({
       id: UUIDv7.parse(prismaEntity.id),
       organizationId: UUIDv7.parse(prismaEntity.organizationId),

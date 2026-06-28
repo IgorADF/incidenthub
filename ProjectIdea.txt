@@ -99,3 +99,13 @@ Ideias futuras
 
 - Quantos fails para identificar incidente e em quanto tempo?
 - Quantos sucessos para identificar a volta de um incidente e em quanto tempo?
+
+--------
+
+
+TODO
+
+Create User Without Password
+Entender pq ide nao respeita e2e testes
+Remove Logs/Console inside use case
+Create Log Service

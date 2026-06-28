@@ -22,10 +22,11 @@ export class ForgotPassword {
     private readonly emailService: EmailInterface,
     private readonly jwtService: JwtInterface,
     private readonly uiUrl: string,
-  ) {}
+  ) { }
 
   async execute(input: ForgotPasswordInput): Promise<ForgotPasswordOutput> {
     const user = await this.uow.repositories.users.getByEmail(input.email);
+
     if (!user) {
       throw new NotFoundError("user");
     }

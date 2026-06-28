@@ -36,7 +36,7 @@ export class CreateOrganization {
   constructor(
     private readonly uow: UOW,
     private readonly hashPasswordService: HashPasswordInterface,
-  ) {}
+  ) { }
 
   async execute(input: CreateOrganizationInput): Promise<CreateOrganizationOutput> {
     const orgWithSameName = await this.uow.repositories.organizations.getByName(
@@ -50,7 +50,7 @@ export class CreateOrganization {
       });
     }
 
-    const userWithSameEmail = await this.uow.repositories.users.getByEmail(
+    const userWithSameEmail = await this.uow.repositories.users.hasSameByEmail(
       input.user.email,
     );
 
@@ -77,7 +77,9 @@ export class CreateOrganization {
 
     return await this.uow.transaction(async (reps) => {
       const createdOrganization = await reps.organizations.create(organization);
+
       const createdUser = await reps.users.create(user);
+
       return CreateOrganizationOutputSchema.parse({
         organization: createdOrganization.getProps(),
         user: createdUser.getProps(),
