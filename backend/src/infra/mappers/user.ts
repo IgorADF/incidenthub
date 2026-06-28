@@ -1,10 +1,12 @@
 import { Prisma } from "@infra/db/generated/client";
-import { User } from "@domain/entities/user";
+import { User, UserType, UserWithPassword, UserWithPasswordType } from "@domain/entities/user";
 import { UUIDv7 } from "@domain/value-objects/uuidv7";
 import { CreatedAt } from "@domain/value-objects/created-at";
 
+
+
 export class UserMapper {
-  static fromEntityToPrisma(entity: User): Prisma.UserGetPayload<object> {
+  static fromEntityWithPasswordToPrisma(entity: UserWithPassword): Prisma.UserGetPayload<object> {
     const props = entity.getProps();
     return {
       id: props.id,
@@ -17,27 +19,27 @@ export class UserMapper {
     };
   }
 
-  static fromPrismaToEntity(prismaEntity: Prisma.UserGetPayload<{ omit: { password: true } }>): User {
-    return User.fromProps({
+  static getPrismaToEntityProps(prismaEntity: Prisma.UserGetPayload<object> | Prisma.UserGetPayload<{ omit: { password: true } }>): UserType {
+    return {
       id: UUIDv7.parse(prismaEntity.id),
       organizationId: UUIDv7.parse(prismaEntity.organizationId),
       name: prismaEntity.name,
       email: prismaEntity.email,
-      password: "thisisaoverridepassword",
       type: prismaEntity.type,
       createdAt: CreatedAt.parse(prismaEntity.createdAt),
-    });
+    }
   }
 
-  static fromPrismaToEntityWithPassword(prismaEntity: Prisma.UserGetPayload<object>): User {
-    return User.fromProps({
-      id: UUIDv7.parse(prismaEntity.id),
-      organizationId: UUIDv7.parse(prismaEntity.organizationId),
-      name: prismaEntity.name,
-      email: prismaEntity.email,
+  static fromPrismaToEntity(prismaEntity: Prisma.UserGetPayload<{ omit: { password: true } }>): User {
+    const props = UserMapper.getPrismaToEntityProps(prismaEntity)
+    return User.fromProps(props);
+  }
+
+  static fromPrismaToEntityWithPassword(prismaEntity: Prisma.UserGetPayload<object>): UserWithPassword {
+    const props = UserMapper.getPrismaToEntityProps(prismaEntity)
+    return UserWithPassword.fromProps({
+      ...props,
       password: prismaEntity.password,
-      type: prismaEntity.type,
-      createdAt: CreatedAt.parse(prismaEntity.createdAt),
     });
   }
 }

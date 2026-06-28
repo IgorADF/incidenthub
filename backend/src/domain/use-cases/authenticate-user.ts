@@ -12,7 +12,7 @@ export const AuthenticateUserInputSchema = z.object({
 export type AuthenticateUserInput = z.infer<typeof AuthenticateUserInputSchema>;
 
 export const AuthenticateUserOutputSchema = z.object({
-  user: UserSchema.omit({ password: true }),
+  user: UserSchema,
 });
 
 export type AuthenticateUserOutput = z.infer<

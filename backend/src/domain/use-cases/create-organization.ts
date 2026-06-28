@@ -2,7 +2,7 @@ import {
   Organization,
   OrganizationSchema,
 } from "@domain/entities/organization";
-import { User, UserSchema } from "@domain/entities/user";
+import { UserSchema, UserWithPassword, UserWithPasswordSchema } from "@domain/entities/user";
 import { UOW } from "@domain/repositories/interfaces/_uow";
 import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
 import { HashPasswordInterface } from "@domain/services/hash-password.interface";
@@ -15,7 +15,7 @@ export const CreateOrganizationInputSchema = z.object({
   user: z.object({
     name: UserSchema.shape.name,
     email: UserSchema.shape.email,
-    password: UserSchema.shape.password,
+    password: UserWithPasswordSchema.shape.password,
   }),
 });
 
@@ -25,7 +25,7 @@ export type CreateOrganizationInput = z.infer<
 
 export const CreateOrganizationOutputSchema = z.object({
   organization: OrganizationSchema,
-  user: UserSchema.omit({ password: true }),
+  user: UserSchema,
 });
 
 export type CreateOrganizationOutput = z.infer<
@@ -65,7 +65,7 @@ export class CreateOrganization {
       name: input.organization.name,
     });
 
-    const user = User.create({
+    const user = UserWithPassword.create({
       organizationId: organization.getProps().id,
       name: input.user.name,
       email: input.user.email,

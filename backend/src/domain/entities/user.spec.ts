@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { User } from "./user";
+import { User, UserWithPassword } from "./user";
 import { ValidationEntitiesError } from "./errors/ValidationEntitiesError";
 import { DefaultEntity } from "./_default";
 
@@ -7,17 +7,22 @@ const baseUser = {
   organizationId: DefaultEntity.generateUUIDv7(),
   name: "John Doe",
   email: "john@example.com",
-  password: "thesecret",
   type: "ADMIN" as const,
 };
 
+const baseUserWithPassword = {
+  ...baseUser,
+  password: "thesecret",
+};
+
 describe("User entity", () => {
-  it("should create a user with valid props", () => {
+  it("should create a passwordless user with valid props", () => {
     const user = User.create(baseUser);
 
     expect(user.getProps().email).toBe("john@example.com");
     expect(user.getProps().type).toBe("ADMIN");
     expect(user.getProps().id).toBeDefined();
+    expect(user.getProps()).not.toHaveProperty("password");
   });
 
   it("should reject a name with less than 3 character", () => {
@@ -47,26 +52,47 @@ describe("User entity", () => {
       ValidationEntitiesError,
     );
   });
+});
+
+describe("UserWithPassword entity", () => {
+  it("should create a user with password", () => {
+    const user = UserWithPassword.create(baseUserWithPassword);
+
+    expect(user.getProps()).toEqual(
+      expect.objectContaining({
+        email: "john@example.com",
+        password: "thesecret",
+      }),
+    );
+  });
 
   it("should reject a password with less than 8 character", () => {
-    expect(() => User.create({ ...baseUser, password: "1234567" })).toThrow();
+    expect(() =>
+      UserWithPassword.create({ ...baseUserWithPassword, password: "1234567" }),
+    ).toThrow();
   });
 
   it("should accept a password with exactly 65 characters", () => {
     expect(() =>
-      User.create({ ...baseUser, password: "a".repeat(65) }),
+      UserWithPassword.create({
+        ...baseUserWithPassword,
+        password: "a".repeat(65),
+      }),
     ).not.toThrow();
   });
 
   it("should reject an empty password", () => {
-    expect(() => User.create({ ...baseUser, password: "" })).toThrow(
-      ValidationEntitiesError,
-    );
+    expect(() =>
+      UserWithPassword.create({ ...baseUserWithPassword, password: "" }),
+    ).toThrow(ValidationEntitiesError);
   });
 
   it("should reject a password longer than 65 characters", () => {
     expect(() =>
-      User.create({ ...baseUser, password: "a".repeat(66) }),
+      UserWithPassword.create({
+        ...baseUserWithPassword,
+        password: "a".repeat(66),
+      }),
     ).toThrow(ValidationEntitiesError);
   });
 });
