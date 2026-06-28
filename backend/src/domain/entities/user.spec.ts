@@ -6,6 +6,7 @@ import { User, UserWithPassword } from "./user";
 const baseUser = {
 	organizationId: DefaultEntity.generateUUIDv7(),
 	name: "John Doe",
+	normalizedName: "john doe",
 	email: "john@example.com",
 	type: "ADMIN" as const,
 };

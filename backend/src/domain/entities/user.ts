@@ -5,11 +5,13 @@ import { UUIDv7 } from "@domain/value-objects/uuidv7";
 import z from "zod";
 import type { OmitDefaultValues } from "~types/omit-default-values";
 import { DefaultEntity } from "./_default";
+import { NormalizedString } from "@domain/value-objects/normalized-string";
 
 export const UserSchema = z.object({
 	id: UUIDv7,
 	organizationId: UUIDv7,
-	name: z.string().min(3).max(50),
+	normalizedName: NormalizedString,
+	name: z.string().min(3).max(50).trim(),
 	email: Email,
 	type: z.enum(["ADMIN", "DEV"]),
 	createdAt: CreatedAt,
@@ -22,14 +24,15 @@ export const UserWithPasswordSchema = UserSchema.extend({
 export type UserType = z.infer<typeof UserSchema>;
 export type UserWithPasswordType = z.infer<typeof UserWithPasswordSchema>;
 
-export type CreateUserType = OmitDefaultValues<UserType>;
+export type CreateUserType = OmitDefaultValues<UserType, 'normalizedName'>;
 export type CreateUserWithPasswordType =
-	OmitDefaultValues<UserWithPasswordType>;
+	OmitDefaultValues<UserWithPasswordType, 'normalizedName'>;
 
 export class User extends DefaultEntity<UserType> {
 	static create(props: CreateUserType) {
 		return User.fromProps({
 			...props,
+			normalizedName: props.name,
 			...DefaultEntity.generateEntityDefaultValues(),
 		});
 	}
@@ -43,6 +46,7 @@ export class UserWithPassword extends DefaultEntity<UserWithPasswordType> {
 	static create(props: CreateUserWithPasswordType) {
 		return UserWithPassword.fromProps({
 			...props,
+			normalizedName: props.name,
 			...DefaultEntity.generateEntityDefaultValues(),
 		});
 	}
