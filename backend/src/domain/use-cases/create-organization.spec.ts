@@ -43,7 +43,9 @@ describe("Create Organization", () => {
     expect(result.user.id).toBeDefined();
     expect(result.user).not.toHaveProperty("password");
 
-    const persistedUser = await uow.repositories.users.getById(result.user.id);
+    const persistedUser = await uow.repositories.users.getByEmailWithPassword(
+      result.user.email,
+    );
     expect(persistedUser).not.toBeNull();
     await expect(
       hashPasswordTestService.compare(

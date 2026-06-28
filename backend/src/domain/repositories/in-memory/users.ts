@@ -1,13 +1,18 @@
-import { User } from "@domain/entities/user";
+import { User, UserWithPassword } from "@domain/entities/user";
 import { UsersRepInterface } from "@domain/repositories/interfaces/users";
 import { IMUOWdb } from "./_uow";
 
 export class IMUsersRep implements UsersRepInterface {
   constructor(private readonly db: IMUOWdb) { }
 
+  private toUserClass(data: UserWithPassword) {
+    const { password: _password, ...props } = data.getProps();
+    return User.fromProps(props);
+  }
+
   async getById(id: string) {
     const record = this.db.users.find((u) => u.getProps().id === id);
-    return record ?? null;
+    return record ? this.toUserClass(record) : null;
   }
 
   async hasSameByEmail(email: string) {
@@ -27,7 +32,7 @@ export class IMUsersRep implements UsersRepInterface {
       return null;
     }
 
-    return record
+    return this.toUserClass(record)
   }
 
   async getByEmailWithPassword(email: string) {
@@ -40,8 +45,8 @@ export class IMUsersRep implements UsersRepInterface {
     return record ?? null;
   }
 
-  async create(data: User) {
+  async create(data: UserWithPassword) {
     this.db.users.push(data);
-    return data;
+    return this.toUserClass(data);
   }
 }

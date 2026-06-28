@@ -1,4 +1,4 @@
-import { User, UserSchema } from "@domain/entities/user";
+import { UserSchema, UserWithPassword, UserWithPasswordSchema } from "@domain/entities/user";
 import { UOW } from "@domain/repositories/interfaces/_uow";
 import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
 import { NotAllowedError } from "./errors/NotAllowedError";
@@ -7,7 +7,7 @@ import z from "zod";
 
 export const CreateUserToOrganizationInputSchema = z.object({
   email: UserSchema.shape.email,
-  password: UserSchema.shape.password,
+  password: UserWithPasswordSchema.shape.password,
   name: UserSchema.shape.name,
   type: UserSchema.shape.type,
 });
@@ -17,7 +17,7 @@ export type CreateUserToOrganizationInput = z.infer<
 >;
 
 export const CreateUserToOrganizationOutputSchema = z.object({
-  user: UserSchema.omit({ password: true }),
+  user: UserSchema,
 });
 
 export type CreateUserToOrganizationOutput = z.infer<
@@ -51,7 +51,7 @@ export class CreateUserToOrganization {
       });
     }
 
-    const user = User.create({
+    const user = UserWithPassword.create({
       organizationId: creator.getProps().organizationId,
       email: newUserData.email,
       password: await this.hashPasswordService.hashPassword(

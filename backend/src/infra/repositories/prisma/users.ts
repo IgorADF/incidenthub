@@ -1,4 +1,4 @@
-import { User } from "@domain/entities/user";
+import { UserWithPassword } from "@domain/entities/user";
 import { UsersRepInterface } from "@domain/repositories/interfaces/users";
 import { TPrismaClient } from "@infra/db/prisma-client";
 import { UserMapper } from "@infra/mappers/user";
@@ -30,9 +30,9 @@ export class PrismaUsersRep implements UsersRepInterface {
     return record ? UserMapper.fromPrismaToEntityWithPassword(record) : null;
   }
 
-  async create(data: User) {
+  async create(data: UserWithPassword) {
     const record = await this.prisma.user.create({
-      data: UserMapper.fromEntityToPrisma(data),
+      data: UserMapper.fromEntityWithPasswordToPrisma(data),
     });
     return UserMapper.fromPrismaToEntity(record);
   }

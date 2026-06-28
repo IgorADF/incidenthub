@@ -3,7 +3,7 @@ import { Incident } from "@domain/entities/incident";
 import { Organization } from "@domain/entities/organization";
 import { Project } from "@domain/entities/project";
 import { Service } from "@domain/entities/service";
-import { User } from "@domain/entities/user";
+import { UserWithPassword } from "@domain/entities/user";
 import { UOW } from "@domain/repositories/interfaces/_uow";
 import { IMHealthChecksRep } from "./health-checks";
 import { IMIncidentsRep } from "./incidents";
@@ -18,7 +18,7 @@ export type IMUOWdb = {
   organizations: Organization[];
   projects: Project[];
   services: Service[];
-  users: User[];
+  users: UserWithPassword[];
 };
 
 export class IMUOW implements UOW {
