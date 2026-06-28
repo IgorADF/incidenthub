@@ -1,207 +1,207 @@
 import { HealthCheck, HealthCheckSchema } from "@domain/entities/health-check";
 import { Incident, IncidentSchema } from "@domain/entities/incident";
-import { Service, ServiceType } from "@domain/entities/service";
-import { UOW } from "@domain/repositories/interfaces/_uow";
-import { HttpPingerInterface } from "@domain/services/http-pinger.interface";
-import {
-  NotificationJobData,
-  NotificationsProducerInterface,
+import type { Service, ServiceType } from "@domain/entities/service";
+import type { UOW } from "@domain/repositories/interfaces/_uow";
+import type { HttpPingerInterface } from "@domain/services/http-pinger.interface";
+import type {
+	NotificationJobData,
+	NotificationsProducerInterface,
 } from "@domain/services/notifications-producer.interface";
 import z from "zod";
 
 export const ExecuteHealthCheckOutputSchema = z.object({
-  skipped: z.boolean().optional(),
-  reason: z.string().optional(),
-  healthCheck: HealthCheckSchema.optional(),
-  incident: IncidentSchema.optional(),
+	skipped: z.boolean().optional(),
+	reason: z.string().optional(),
+	healthCheck: HealthCheckSchema.optional(),
+	incident: IncidentSchema.optional(),
 });
 
 export type ExecuteHealthCheckOutput = z.infer<
-  typeof ExecuteHealthCheckOutputSchema
+	typeof ExecuteHealthCheckOutputSchema
 >;
 
 export class ExecuteHealthCheck {
-  constructor(
-    private readonly uow: UOW,
-    private readonly pinger: HttpPingerInterface,
-    private readonly notificationsProducer: NotificationsProducerInterface,
-  ) {}
+	constructor(
+		private readonly uow: UOW,
+		private readonly pinger: HttpPingerInterface,
+		private readonly notificationsProducer: NotificationsProducerInterface,
+	) {}
 
-  async execute(serviceId: string): Promise<ExecuteHealthCheckOutput> {
-    const service = await this.uow.repositories.services.getById(serviceId);
+	async execute(serviceId: string): Promise<ExecuteHealthCheckOutput> {
+		const service = await this.uow.repositories.services.getById(serviceId);
 
-    if (!service) {
-      return ExecuteHealthCheckOutputSchema.parse({
-        skipped: true,
-        reason: "not-found",
-      });
-    }
+		if (!service) {
+			return ExecuteHealthCheckOutputSchema.parse({
+				skipped: true,
+				reason: "not-found",
+			});
+		}
 
-    if (!service.getProps().enabled) {
-      return ExecuteHealthCheckOutputSchema.parse({
-        skipped: true,
-        reason: "disabled",
-      });
-    }
+		if (!service.getProps().enabled) {
+			return ExecuteHealthCheckOutputSchema.parse({
+				skipped: true,
+				reason: "disabled",
+			});
+		}
 
-    const result = await this.pinger.ping({
-      url: service.getProps().url,
-      timeoutSeconds: service.getProps().timeoutSeconds,
-      expectedResponseStatus: service.getProps().expectedResponseStatus,
-    });
+		const result = await this.pinger.ping({
+			url: service.getProps().url,
+			timeoutSeconds: service.getProps().timeoutSeconds,
+			expectedResponseStatus: service.getProps().expectedResponseStatus,
+		});
 
-    const txResult = await this.uow.transaction(async (repositories) => {
-      const healthCheck = HealthCheck.create({
-        serviceId: service.getProps().id,
-        url: service.getProps().url,
-        requestTime: result.requestTimeMs,
-        isError: result.isError,
-        timedOut: result.timedOut,
-        responseStatus: result.responseStatus,
-        responseJsonData: result.responseBody,
-      });
+		const txResult = await this.uow.transaction(async (repositories) => {
+			const healthCheck = HealthCheck.create({
+				serviceId: service.getProps().id,
+				url: service.getProps().url,
+				requestTime: result.requestTimeMs,
+				isError: result.isError,
+				timedOut: result.timedOut,
+				responseStatus: result.responseStatus,
+				responseJsonData: result.responseBody,
+			});
 
-      await repositories.healthChecks.create(healthCheck);
+			await repositories.healthChecks.create(healthCheck);
 
-      const { updatedService, incident, notification } = result.ok
-        ? await this.handleSuccess(repositories, service)
-        : await this.handleFailure(repositories, service);
+			const { updatedService, incident, notification } = result.ok
+				? await this.handleSuccess(repositories, service)
+				: await this.handleFailure(repositories, service);
 
-      await repositories.services.update(updatedService);
+			await repositories.services.update(updatedService);
 
-      return { healthCheck, incident, notification };
-    });
+			return { healthCheck, incident, notification };
+		});
 
-    await this.enqueueNotification(txResult.notification);
+		await this.enqueueNotification(txResult.notification);
 
-    return ExecuteHealthCheckOutputSchema.parse({
-      healthCheck: txResult.healthCheck.getProps(),
-      incident: txResult.incident?.getProps(),
-    });
-  }
+		return ExecuteHealthCheckOutputSchema.parse({
+			healthCheck: txResult.healthCheck.getProps(),
+			incident: txResult.incident?.getProps(),
+		});
+	}
 
-  private async handleSuccess(
-    repositories: UOW["repositories"],
-    service: Service,
-  ): Promise<{
-    updatedService: Service;
-    incident: Incident | null;
-    notification: NotificationJobData | null;
-  }> {
-    const now = new Date();
-    const props = service.getProps();
+	private async handleSuccess(
+		repositories: UOW["repositories"],
+		service: Service,
+	): Promise<{
+		updatedService: Service;
+		incident: Incident | null;
+		notification: NotificationJobData | null;
+	}> {
+		const now = new Date();
+		const props = service.getProps();
 
-    let updatedService = service
-      .recordSuccess()
-      .markCheckedAt(now)
-      .markChecking();
-    let incident: Incident | null = null;
-    let notification: NotificationJobData | null = null;
+		let updatedService = service
+			.recordSuccess()
+			.markCheckedAt(now)
+			.markChecking();
+		let incident: Incident | null = null;
+		let notification: NotificationJobData | null = null;
 
-    if (props.currentIncidentId) {
-      const openIncident = await repositories.incidents.getById(
-        props.currentIncidentId,
-      );
+		if (props.currentIncidentId) {
+			const openIncident = await repositories.incidents.getById(
+				props.currentIncidentId,
+			);
 
-      updatedService = updatedService.resolveCurrentIncident();
+			updatedService = updatedService.resolveCurrentIncident();
 
-      if (openIncident) {
-        const resolved = openIncident.resolve(now).incrementEmailsSent();
-        await repositories.incidents.update(resolved);
-        incident = resolved;
+			if (openIncident) {
+				const resolved = openIncident.resolve(now).incrementEmailsSent();
+				await repositories.incidents.update(resolved);
+				incident = resolved;
 
-        notification = this.buildNotification(
-          "incident-resolved",
-          props,
-          resolved.getProps().id,
-          `[Resolved] Service "${props.name}" has recovered`,
-          `Service "${props.name}" (${props.url}) has recovered from the incident.`,
-        );
-      }
-    }
+				notification = this.buildNotification(
+					"incident-resolved",
+					props,
+					resolved.getProps().id,
+					`[Resolved] Service "${props.name}" has recovered`,
+					`Service "${props.name}" (${props.url}) has recovered from the incident.`,
+				);
+			}
+		}
 
-    return { updatedService, incident, notification };
-  }
+		return { updatedService, incident, notification };
+	}
 
-  private async handleFailure(
-    repositories: UOW["repositories"],
-    service: Service,
-  ): Promise<{
-    updatedService: Service;
-    incident: Incident | null;
-    notification: NotificationJobData | null;
-  }> {
-    const now = new Date();
-    const props = service.getProps();
+	private async handleFailure(
+		repositories: UOW["repositories"],
+		service: Service,
+	): Promise<{
+		updatedService: Service;
+		incident: Incident | null;
+		notification: NotificationJobData | null;
+	}> {
+		const now = new Date();
+		const props = service.getProps();
 
-    let updatedService = service.recordFailure().markCheckedAt(now);
-    let incident: Incident | null = null;
-    let notification: NotificationJobData | null = null;
+		let updatedService = service.recordFailure().markCheckedAt(now);
+		let incident: Incident | null = null;
+		let notification: NotificationJobData | null = null;
 
-    const thresholdMet =
-      updatedService.getProps().consecutivesIncidentDetectionFails >=
-      props.incidentDetectionFails;
+		const thresholdMet =
+			updatedService.getProps().consecutivesIncidentDetectionFails >=
+			props.incidentDetectionFails;
 
-    if (thresholdMet && !props.currentIncidentId) {
-      const newIncident = Incident.create({
-        serviceId: props.id,
-        startedAt: now,
-      }).incrementEmailsSent();
+		if (thresholdMet && !props.currentIncidentId) {
+			const newIncident = Incident.create({
+				serviceId: props.id,
+				startedAt: now,
+			}).incrementEmailsSent();
 
-      await repositories.incidents.create(newIncident);
+			await repositories.incidents.create(newIncident);
 
-      updatedService = updatedService
-        .markIncident()
-        .setCurrentIncident(newIncident.getProps().id);
+			updatedService = updatedService
+				.markIncident()
+				.setCurrentIncident(newIncident.getProps().id);
 
-      incident = newIncident;
+			incident = newIncident;
 
-      notification = this.buildNotification(
-        "incident-started",
-        props,
-        newIncident.getProps().id,
-        `[Incident] Service "${props.name}" is down`,
-        `Service "${props.name}" (${props.url}) has been marked as incident after ${updatedService.getProps().consecutivesIncidentDetectionFails} consecutive failures.`,
-      );
-    } else if (!props.currentIncidentId) {
-      updatedService = updatedService.markChecking();
-    }
+			notification = this.buildNotification(
+				"incident-started",
+				props,
+				newIncident.getProps().id,
+				`[Incident] Service "${props.name}" is down`,
+				`Service "${props.name}" (${props.url}) has been marked as incident after ${updatedService.getProps().consecutivesIncidentDetectionFails} consecutive failures.`,
+			);
+		} else if (!props.currentIncidentId) {
+			updatedService = updatedService.markChecking();
+		}
 
-    return { updatedService, incident, notification };
-  }
+		return { updatedService, incident, notification };
+	}
 
-  private buildNotification(
-    type: NotificationJobData["type"],
-    serviceProps: ServiceType,
-    incidentId: string,
-    subject: string,
-    body: string,
-  ): NotificationJobData | null {
-    if (!serviceProps.emailToAlert) return null;
+	private buildNotification(
+		type: NotificationJobData["type"],
+		serviceProps: ServiceType,
+		incidentId: string,
+		subject: string,
+		body: string,
+	): NotificationJobData | null {
+		if (!serviceProps.emailToAlert) return null;
 
-    return {
-      type,
-      to: serviceProps.emailToAlert,
-      subject,
-      body,
-      incidentId,
-      serviceId: serviceProps.id,
-    };
-  }
+		return {
+			type,
+			to: serviceProps.emailToAlert,
+			subject,
+			body,
+			incidentId,
+			serviceId: serviceProps.id,
+		};
+	}
 
-  private async enqueueNotification(
-    notification: NotificationJobData | null,
-  ): Promise<void> {
-    if (!notification) return;
+	private async enqueueNotification(
+		notification: NotificationJobData | null,
+	): Promise<void> {
+		if (!notification) return;
 
-    try {
-      await this.notificationsProducer.enqueue(notification);
-    } catch (error) {
-      return;
-      // console.error(
-      //   `[ExecuteHealthCheck] Failed to enqueue notification (type=${notification.type}, incidentId=${notification.incidentId}):`,
-      //   error,
-      // );
-    }
-  }
+		try {
+			await this.notificationsProducer.enqueue(notification);
+		} catch (error) {
+			return;
+			// console.error(
+			//   `[ExecuteHealthCheck] Failed to enqueue notification (type=${notification.type}, incidentId=${notification.incidentId}):`,
+			//   error,
+			// );
+		}
+	}
 }

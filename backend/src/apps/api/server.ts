@@ -1,32 +1,35 @@
+import {
+	authenticateDbConnection,
+	createDefaultDbClient,
+} from "@infra/db/prisma-client";
 import { envs } from "@infra/envs";
+import type { FastifyZodInstance } from "~types/fastify-zod-instance";
 import { createApp } from "./app";
-import { authenticateDbConnection, createDefaultDbClient } from "@infra/db/prisma-client";
-import { FastifyZodInstance } from "~types/fastify-zod-instance";
 
 const start = async () => {
-  let app: FastifyZodInstance | undefined;
+	let app: FastifyZodInstance | undefined;
 
-  try {
-    const dbClient = createDefaultDbClient().prisma
+	try {
+		const dbClient = createDefaultDbClient().prisma;
 
-    const { app: _app } = await createApp(dbClient);
-    app = _app;
+		const { app: _app } = await createApp(dbClient);
+		app = _app;
 
-    const logInfoOnServer = (message: string) => {
-      app?.log?.info?.(message);
-    };
+		const logInfoOnServer = (message: string) => {
+			app?.log?.info?.(message);
+		};
 
-    await authenticateDbConnection(dbClient, logInfoOnServer)
-    await app.listen({ port: envs.PORT, host: "0.0.0.0" });
+		await authenticateDbConnection(dbClient, logInfoOnServer);
+		await app.listen({ port: envs.PORT, host: "0.0.0.0" });
 
-    logInfoOnServer(`Server is running on port ${envs.PORT}`);
-  } catch (err) {
-    if (app) {
-      app.log.error(err);
-    }
+		logInfoOnServer(`Server is running on port ${envs.PORT}`);
+	} catch (err) {
+		if (app) {
+			app.log.error(err);
+		}
 
-    process.exit(1);
-  }
+		process.exit(1);
+	}
 };
 
 start();

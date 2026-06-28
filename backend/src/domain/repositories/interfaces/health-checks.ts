@@ -1,8 +1,8 @@
-import { HealthCheck } from "@domain/entities/health-check";
+import type { HealthCheck } from "@domain/entities/health-check";
 
 export interface HealthChecksRepInterface {
-  getById: (id: string) => Promise<HealthCheck | null>;
-  getByServiceId: (serviceId: string) => Promise<HealthCheck[]>;
-  create: (data: HealthCheck) => Promise<HealthCheck>;
-  deleteByServiceId: (serviceId: string) => Promise<void>;
+	getById: (id: string) => Promise<HealthCheck | null>;
+	getByServiceId: (serviceId: string) => Promise<HealthCheck[]>;
+	create: (data: HealthCheck) => Promise<HealthCheck>;
+	deleteByServiceId: (serviceId: string) => Promise<void>;
 }

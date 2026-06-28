@@ -1,9 +1,9 @@
 export class DefaultUseCasesError {
-  code: string;
-  message: string;
+	code: string;
+	message: string;
 
-  constructor(code: string, message: string) {
-    this.code = code;
-    this.message = message;
-  }
+	constructor(code: string, message: string) {
+		this.code = code;
+		this.message = message;
+	}
 }

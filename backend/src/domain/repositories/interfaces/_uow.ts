@@ -1,21 +1,21 @@
-import { HealthChecksRepInterface } from "./health-checks";
-import { IncidentsRepInterface } from "./incidents";
-import { OrganizationsRepInterface } from "./organizations";
-import { ProjectsRepInterface } from "./projects";
-import { ServicesRepInterface } from "./services";
-import { UsersRepInterface } from "./users";
+import type { HealthChecksRepInterface } from "./health-checks";
+import type { IncidentsRepInterface } from "./incidents";
+import type { OrganizationsRepInterface } from "./organizations";
+import type { ProjectsRepInterface } from "./projects";
+import type { ServicesRepInterface } from "./services";
+import type { UsersRepInterface } from "./users";
 
 export interface UOW {
-  repositories: {
-    healthChecks: HealthChecksRepInterface;
-    incidents: IncidentsRepInterface;
-    organizations: OrganizationsRepInterface;
-    projects: ProjectsRepInterface;
-    services: ServicesRepInterface;
-    users: UsersRepInterface;
-  };
+	repositories: {
+		healthChecks: HealthChecksRepInterface;
+		incidents: IncidentsRepInterface;
+		organizations: OrganizationsRepInterface;
+		projects: ProjectsRepInterface;
+		services: ServicesRepInterface;
+		users: UsersRepInterface;
+	};
 
-  transaction<T>(
-    callback: (repositories: UOW["repositories"]) => Promise<T>,
-  ): Promise<T>;
+	transaction<T>(
+		callback: (repositories: UOW["repositories"]) => Promise<T>,
+	): Promise<T>;
 }

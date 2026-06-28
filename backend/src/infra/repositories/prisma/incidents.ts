@@ -1,41 +1,41 @@
-import { Incident } from "@domain/entities/incident";
-import { IncidentsRepInterface } from "@domain/repositories/interfaces/incidents";
-import { TPrismaClient } from "@infra/db/prisma-client";
+import type { Incident } from "@domain/entities/incident";
+import type { IncidentsRepInterface } from "@domain/repositories/interfaces/incidents";
+import type { TPrismaClient } from "@infra/db/prisma-client";
 import { IncidentMapper } from "@infra/mappers/incident";
 
 export class PrismaIncidentsRep implements IncidentsRepInterface {
-  constructor(private readonly prisma: TPrismaClient) {}
+	constructor(private readonly prisma: TPrismaClient) {}
 
-  async getById(id: string) {
-    const record = await this.prisma.incident.findUnique({
-      where: { id },
-    });
-    return record ? IncidentMapper.fromPrismaToEntity(record) : null;
-  }
+	async getById(id: string) {
+		const record = await this.prisma.incident.findUnique({
+			where: { id },
+		});
+		return record ? IncidentMapper.fromPrismaToEntity(record) : null;
+	}
 
-  async getByServiceId(serviceId: string) {
-    const records = await this.prisma.incident.findMany({
-      where: { serviceId },
-    });
-    return records.map(IncidentMapper.fromPrismaToEntity);
-  }
+	async getByServiceId(serviceId: string) {
+		const records = await this.prisma.incident.findMany({
+			where: { serviceId },
+		});
+		return records.map(IncidentMapper.fromPrismaToEntity);
+	}
 
-  async create(data: Incident) {
-    const record = await this.prisma.incident.create({
-      data: IncidentMapper.fromEntityToPrisma(data),
-    });
-    return IncidentMapper.fromPrismaToEntity(record);
-  }
+	async create(data: Incident) {
+		const record = await this.prisma.incident.create({
+			data: IncidentMapper.fromEntityToPrisma(data),
+		});
+		return IncidentMapper.fromPrismaToEntity(record);
+	}
 
-  async update(data: Incident) {
-    const record = await this.prisma.incident.update({
-      where: { id: data.getProps().id },
-      data: IncidentMapper.fromEntityToPrisma(data),
-    });
-    return IncidentMapper.fromPrismaToEntity(record);
-  }
+	async update(data: Incident) {
+		const record = await this.prisma.incident.update({
+			where: { id: data.getProps().id },
+			data: IncidentMapper.fromEntityToPrisma(data),
+		});
+		return IncidentMapper.fromPrismaToEntity(record);
+	}
 
-  async deleteByServiceId(serviceId: string) {
-    await this.prisma.incident.deleteMany({ where: { serviceId } });
-  }
+	async deleteByServiceId(serviceId: string) {
+		await this.prisma.incident.deleteMany({ where: { serviceId } });
+	}
 }

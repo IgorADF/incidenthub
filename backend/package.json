@@ -15,7 +15,10 @@
     "type:check": "npx tsc --noEmit",
     "prisma:generate": "npx prisma generate --sql",
     "db:migrate:dev": "npm run db:generate && npx prisma migrate dev",
-    "db:migrate:deploy": "npx prisma migrate deploy"
+    "db:migrate:deploy": "npx prisma migrate deploy",
+    "lint": "npx @biomejs/biome lint --max-diagnostics 100",
+    "format": "npx @biomejs/biome format --write ./src",
+    "organize:all": "npx @biomejs/biome check --write ./src"
   },
   "keywords": [],
   "author": "",
@@ -30,7 +33,8 @@
     "prisma": "^7.8.0",
     "tsx": "^4.22.4",
     "typescript": "^6.0.3",
-    "vitest": "4.1.8"
+    "vitest": "4.1.8",
+    "@biomejs/biome": "2.5.1"
   },
   "dependencies": {
     "@fastify/cors": "11.2.0",

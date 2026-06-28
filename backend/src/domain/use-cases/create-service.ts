@@ -1,82 +1,82 @@
 import { Service, ServiceSchema } from "@domain/entities/service";
-import { UOW } from "@domain/repositories/interfaces/_uow";
+import type { UOW } from "@domain/repositories/interfaces/_uow";
+import z from "zod";
 import { LimitExceededError } from "./errors/LimitExceededError";
 import { NotAllowedError } from "./errors/NotAllowedError";
 import { NotFoundError } from "./errors/NotFoundError";
-import z from "zod";
 
 const MAX_SERVICES_PER_PROJECT = 10;
 
 export const CreateServiceInputSchema = z.object({
-  url: ServiceSchema.shape.url,
-  name: ServiceSchema.shape.name,
-  intervalSeconds: ServiceSchema.shape.intervalSeconds,
-  timeoutSeconds: ServiceSchema.shape.timeoutSeconds,
-  expectedResponseStatus: ServiceSchema.shape.expectedResponseStatus,
-  incidentDetectionFails: ServiceSchema.shape.incidentDetectionFails,
-  emailToAlert: ServiceSchema.shape.emailToAlert,
+	url: ServiceSchema.shape.url,
+	name: ServiceSchema.shape.name,
+	intervalSeconds: ServiceSchema.shape.intervalSeconds,
+	timeoutSeconds: ServiceSchema.shape.timeoutSeconds,
+	expectedResponseStatus: ServiceSchema.shape.expectedResponseStatus,
+	incidentDetectionFails: ServiceSchema.shape.incidentDetectionFails,
+	emailToAlert: ServiceSchema.shape.emailToAlert,
 });
 
 export type CreateServiceInput = z.infer<typeof CreateServiceInputSchema>;
 
 export const CreateServiceOutputSchema = z.object({
-  service: z.object(ServiceSchema.shape).omit({
-    consecutivesIncidentDetectionFails: true,
-    lastCheckedAt: true,
-  }),
+	service: z.object(ServiceSchema.shape).omit({
+		consecutivesIncidentDetectionFails: true,
+		lastCheckedAt: true,
+	}),
 });
 
 export type CreateServiceOutput = z.infer<typeof CreateServiceOutputSchema>;
 
 export class CreateService {
-  constructor(private readonly uow: UOW) {}
+	constructor(private readonly uow: UOW) {}
 
-  async execute(
-    creatorUserId: string,
-    projectId: string,
-    input: CreateServiceInput,
-  ): Promise<CreateServiceOutput> {
-    const creator = await this.uow.repositories.users.getById(creatorUserId);
+	async execute(
+		creatorUserId: string,
+		projectId: string,
+		input: CreateServiceInput,
+	): Promise<CreateServiceOutput> {
+		const creator = await this.uow.repositories.users.getById(creatorUserId);
 
-    if (!creator || creator.getProps().type !== "ADMIN") {
-      throw new NotAllowedError();
-    }
+		if (!creator || creator.getProps().type !== "ADMIN") {
+			throw new NotAllowedError();
+		}
 
-    const project = await this.uow.repositories.projects.getById(projectId);
+		const project = await this.uow.repositories.projects.getById(projectId);
 
-    if (!project) {
-      throw new NotFoundError("Project");
-    }
+		if (!project) {
+			throw new NotFoundError("Project");
+		}
 
-    if (
-      project.getProps().organizationId !== creator.getProps().organizationId
-    ) {
-      throw new NotAllowedError();
-    }
+		if (
+			project.getProps().organizationId !== creator.getProps().organizationId
+		) {
+			throw new NotAllowedError();
+		}
 
-    const projectServices =
-      await this.uow.repositories.services.getByProjectId(projectId);
+		const projectServices =
+			await this.uow.repositories.services.getByProjectId(projectId);
 
-    if (projectServices.length >= MAX_SERVICES_PER_PROJECT) {
-      throw new LimitExceededError(
-        `Project cannot have more than ${MAX_SERVICES_PER_PROJECT} services`,
-      );
-    }
+		if (projectServices.length >= MAX_SERVICES_PER_PROJECT) {
+			throw new LimitExceededError(
+				`Project cannot have more than ${MAX_SERVICES_PER_PROJECT} services`,
+			);
+		}
 
-    const service = Service.create({
-      projectId: project.getProps().id,
-      name: input.name,
-      url: input.url,
-      intervalSeconds: input.intervalSeconds,
-      timeoutSeconds: input.timeoutSeconds,
-      expectedResponseStatus: input.expectedResponseStatus,
-      incidentDetectionFails: input.incidentDetectionFails,
-      emailToAlert: input.emailToAlert,
-    });
+		const service = Service.create({
+			projectId: project.getProps().id,
+			name: input.name,
+			url: input.url,
+			intervalSeconds: input.intervalSeconds,
+			timeoutSeconds: input.timeoutSeconds,
+			expectedResponseStatus: input.expectedResponseStatus,
+			incidentDetectionFails: input.incidentDetectionFails,
+			emailToAlert: input.emailToAlert,
+		});
 
-    return await this.uow.transaction(async (reps) => {
-      const created = await reps.services.create(service);
-      return CreateServiceOutputSchema.parse({ service: created.getProps() });
-    });
-  }
+		return await this.uow.transaction(async (reps) => {
+			const created = await reps.services.create(service);
+			return CreateServiceOutputSchema.parse({ service: created.getProps() });
+		});
+	}
 }

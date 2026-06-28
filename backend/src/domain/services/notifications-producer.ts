@@ -1,14 +1,14 @@
-import {
-  NotificationJobData,
-  NotificationsProducerInterface,
+import type {
+	NotificationJobData,
+	NotificationsProducerInterface,
 } from "./notifications-producer.interface";
 
 export class NotificationsProducerTestService
-  implements NotificationsProducerInterface
+	implements NotificationsProducerInterface
 {
-  enqueuedJobs: NotificationJobData[] = [];
+	enqueuedJobs: NotificationJobData[] = [];
 
-  async enqueue(data: NotificationJobData) {
-    this.enqueuedJobs.push(data);
-  }
+	async enqueue(data: NotificationJobData) {
+		this.enqueuedJobs.push(data);
+	}
 }

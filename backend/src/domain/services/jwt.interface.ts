@@ -1,26 +1,26 @@
 export interface JwtSignInput {
-  userId: string;
+	userId: string;
 }
 
 export interface JwtVerifyResult {
-  userId: string;
+	userId: string;
 }
 
 export interface JwtAuthSignInput {
-  userId: string;
-  organizationId: string;
-  type: "ADMIN" | "DEV";
+	userId: string;
+	organizationId: string;
+	type: "ADMIN" | "DEV";
 }
 
 export interface JwtAuthVerifyResult {
-  userId: string;
-  organizationId: string;
-  type: "ADMIN" | "DEV";
+	userId: string;
+	organizationId: string;
+	type: "ADMIN" | "DEV";
 }
 
 export interface JwtInterface {
-  signForgotPassword: (input: JwtSignInput) => Promise<string>;
-  verifyForgotPassword: (token: string) => Promise<JwtVerifyResult>;
-  signAuth: (input: JwtAuthSignInput) => Promise<string>;
-  verifyAuth: (token: string) => Promise<JwtAuthVerifyResult>;
+	signForgotPassword: (input: JwtSignInput) => Promise<string>;
+	verifyForgotPassword: (token: string) => Promise<JwtVerifyResult>;
+	signAuth: (input: JwtAuthSignInput) => Promise<string>;
+	verifyAuth: (token: string) => Promise<JwtAuthVerifyResult>;
 }
