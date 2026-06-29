@@ -6,8 +6,8 @@ import type {
 import { envs } from "@infra/envs";
 import jwt from "jsonwebtoken";
 
-const FORGOT_PASSWORD_EXPIRES_IN_SECONDS = 60 * 10;
-const AUTH_EXPIRES_IN_SECONDS = 60 * 60 * 24;
+export const FORGOT_PASSWORD_EXPIRES_IN_SECONDS = 60 * 10;
+export const AUTH_EXPIRES_IN_SECONDS = 60 * 60 * 24;
 
 export class JwtService implements JwtInterface {
 	async signForgotPassword(input: JwtSignInput) {

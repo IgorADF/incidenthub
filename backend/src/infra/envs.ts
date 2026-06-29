@@ -24,6 +24,13 @@ const EnvsSchema = z.object({
 	AUTH_JWT_SECRET: z.string().min(16),
 	FORGOT_PASSWORD_JWT_SECRET: z.string().min(16),
 
+	// Cookie
+	COOKIE_NAME: z.string().default("ih_session"),
+	COOKIE_DOMAIN: z.string().optional(),
+	COOKIE_SECURE: z.coerce.boolean().default(false),
+	COOKIE_SAMESITE: z.enum(["lax", "strict", "none"]).default("lax"),
+	COOKIE_PATH: z.string().default("/"),
+
 	// DB
 	DATABASE_URL: z.url(),
 

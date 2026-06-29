@@ -1,10 +1,26 @@
 import { randomUUID } from "node:crypto";
+import { envs } from "@infra/envs";
 import type { FastifyZodInstance } from "~types/fastify-zod-instance";
 
 const DEFAULT_PASSWORD = "password123";
 
-export function authHeader(token: string): Record<string, string> {
-	return { authorization: `Bearer ${token}` };
+export function authCookies(token: string): {
+	cookies: Record<string, string>;
+} {
+	return { cookies: { [envs.COOKIE_NAME]: token } };
+}
+
+function extractTokenFromSetCookie(setCookie: string | string[]): string {
+	const raw = Array.isArray(setCookie) ? setCookie[0] : setCookie;
+	if (!raw) {
+		throw new Error("login response missing Set-Cookie header");
+	}
+	const pair = raw.split(";")[0];
+	const eq = pair.indexOf("=");
+	if (eq === -1) {
+		throw new Error("malformed Set-Cookie header");
+	}
+	return pair.slice(eq + 1);
 }
 
 export function uniqueEmail(): string {
@@ -48,7 +64,10 @@ export async function seedOrganizationAndAdmin(app: FastifyZodInstance) {
 		);
 	}
 
-	const { token, user } = loginResponse.json().data;
+	const user = loginResponse.json().data.user;
+	const token = extractTokenFromSetCookie(
+		loginResponse.headers["set-cookie"] ?? "",
+	);
 
 	return {
 		token,
@@ -71,7 +90,7 @@ export async function seedDevUserAndLogin(
 	const createResponse = await app.inject({
 		method: "POST",
 		url: "/users",
-		headers: authHeader(adminToken),
+		...authCookies(adminToken),
 		payload: { name: "Dev User", email, password, type: "DEV" },
 	});
 
@@ -93,7 +112,10 @@ export async function seedDevUserAndLogin(
 		);
 	}
 
-	const { token, user } = loginResponse.json().data;
+	const user = loginResponse.json().data.user;
+	const token = extractTokenFromSetCookie(
+		loginResponse.headers["set-cookie"] ?? "",
+	);
 
 	return {
 		token,
@@ -118,7 +140,7 @@ export async function seedProject(
 	const response = await app.inject({
 		method: "POST",
 		url: "/projects",
-		headers: authHeader(token),
+		...authCookies(token),
 		payload: {
 			name: overrides?.name ?? uniqueName("Project"),
 			showPublicPage,
@@ -144,7 +166,7 @@ export async function seedService(
 	const response = await app.inject({
 		method: "POST",
 		url: `/projects/${projectId}/services`,
-		headers: authHeader(token),
+		...authCookies(token),
 		payload: {
 			name: uniqueName("Service"),
 			url: "https://api.example.com/health",

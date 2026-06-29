@@ -33,7 +33,7 @@ describe("auth routes (e2e)", () => {
 	});
 
 	describe("POST /auth/login", () => {
-		it("should return a token and the user with valid credentials", async () => {
+		it("should set a session cookie and return the user with valid credentials", async () => {
 			const response = await app.inject({
 				method: "POST",
 				url: "/auth/login",
@@ -42,8 +42,16 @@ describe("auth routes (e2e)", () => {
 
 			expect(response.statusCode).toBe(200);
 
+			const setCookie = response.headers["set-cookie"];
+			expect(setCookie).toBeDefined();
+			const cookieStr = Array.isArray(setCookie) ? setCookie[0] : setCookie;
+			expect(cookieStr).toMatch(
+				new RegExp(`${"ih_session"}=`, "i"),
+			);
+			expect(cookieStr?.toLowerCase()).toContain("httponly");
+
 			const body = response.json().data;
-			expect(body.token).toEqual(expect.any(String));
+			expect(body).not.toHaveProperty("token");
 			expect(body.user).toEqual(
 				expect.objectContaining({ email: admin.email, type: "ADMIN" }),
 			);

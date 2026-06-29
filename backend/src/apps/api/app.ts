@@ -1,3 +1,4 @@
+import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
@@ -79,7 +80,12 @@ export async function createApp(prismaClient: MyPrismaClient) {
 		transformSpecificationClone: true,
 	});
 
-	await app.register(cors, { credentials: true });
+	await app.register(cookie, { secret: envs.AUTH_JWT_SECRET });
+
+	await app.register(cors, {
+		credentials: true,
+		origin: [envs.UI_URL],
+	});
 
 	app.register(routes(prismaClient));
 

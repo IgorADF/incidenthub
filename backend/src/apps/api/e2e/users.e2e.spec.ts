@@ -5,7 +5,7 @@ import {
 	runInitTestConfigs,
 } from "./helpers/run-test-config";
 import {
-	authHeader,
+	authCookies,
 	seedDevUserAndLogin,
 	seedOrganizationAndAdmin,
 	uniqueEmail,
@@ -31,7 +31,7 @@ describe("user routes (e2e)", () => {
 			const response = await app.inject({
 				method: "POST",
 				url: "/users",
-				headers: authHeader(admin.token),
+				...authCookies(admin.token),
 				payload: {
 					name: "Dev User",
 					email,
@@ -55,7 +55,7 @@ describe("user routes (e2e)", () => {
 			expect(user).not.toHaveProperty("password");
 		});
 
-		it("should return 401 without an Authorization header", async () => {
+		it("should return 401 without a session cookie", async () => {
 			const response = await app.inject({
 				method: "POST",
 				url: "/users",
@@ -77,7 +77,7 @@ describe("user routes (e2e)", () => {
 			const first = await app.inject({
 				method: "POST",
 				url: "/users",
-				headers: authHeader(admin.token),
+				...authCookies(admin.token),
 				payload: {
 					name: "First User",
 					email,
@@ -91,7 +91,7 @@ describe("user routes (e2e)", () => {
 			const response = await app.inject({
 				method: "POST",
 				url: "/users",
-				headers: authHeader(admin.token),
+				...authCookies(admin.token),
 				payload: {
 					name: "Second User",
 					email,
@@ -113,7 +113,7 @@ describe("user routes (e2e)", () => {
 			const response = await app.inject({
 				method: "POST",
 				url: "/users",
-				headers: authHeader(admin.token),
+				...authCookies(admin.token),
 				payload: {
 					name: "Dev User",
 					email: uniqueEmail(),
@@ -132,7 +132,7 @@ describe("user routes (e2e)", () => {
 			const response = await app.inject({
 				method: "POST",
 				url: "/users",
-				headers: authHeader(dev.token),
+				...authCookies(dev.token),
 				payload: {
 					name: "Another User",
 					email: uniqueEmail(),
@@ -151,7 +151,7 @@ describe("user routes (e2e)", () => {
 			const response = await app.inject({
 				method: "POST",
 				url: "/users",
-				headers: authHeader(token),
+				...authCookies(token),
 				payload: {
 					name,
 					email: uniqueEmail(),
@@ -178,7 +178,7 @@ describe("user routes (e2e)", () => {
 			const response = await app.inject({
 				method: "GET",
 				url: "/users",
-				headers: authHeader(localAdmin.token),
+				...authCookies(localAdmin.token),
 			});
 
 			expect(response.statusCode).toBe(200);
@@ -202,7 +202,7 @@ describe("user routes (e2e)", () => {
 			const firstPage = await app.inject({
 				method: "GET",
 				url: "/users?limit=2",
-				headers: authHeader(localAdmin.token),
+				...authCookies(localAdmin.token),
 			});
 
 			expect(firstPage.statusCode).toBe(200);
@@ -225,7 +225,7 @@ describe("user routes (e2e)", () => {
 			const secondPage = await app.inject({
 				method: "GET",
 				url: `/users?${nextPageQuery.toString()}`,
-				headers: authHeader(localAdmin.token),
+				...authCookies(localAdmin.token),
 			});
 
 			expect(secondPage.statusCode).toBe(200);
@@ -237,7 +237,7 @@ describe("user routes (e2e)", () => {
 			});
 		});
 
-		it("should return 401 without an Authorization header", async () => {
+		it("should return 401 without a session cookie", async () => {
 			const response = await app.inject({
 				method: "GET",
 				url: "/users",
@@ -254,7 +254,7 @@ describe("user routes (e2e)", () => {
 			const response = await app.inject({
 				method: "GET",
 				url: "/users",
-				headers: authHeader(dev.token),
+				...authCookies(dev.token),
 			});
 
 			expect(response.statusCode).toBe(403);

@@ -6,7 +6,7 @@ import {
 	runInitTestConfigs,
 } from "./helpers/run-test-config";
 import {
-	authHeader,
+	authCookies,
 	seedOrganizationAndAdmin,
 	seedProject,
 	seedService,
@@ -35,7 +35,7 @@ describe("service routes (e2e)", () => {
 			const response = await app.inject({
 				method: "PATCH",
 				url: `/services/${serviceId}/enabled`,
-				headers: authHeader(admin.token),
+				...authCookies(admin.token),
 				payload: { enable: false },
 			});
 
@@ -55,14 +55,14 @@ describe("service routes (e2e)", () => {
 			await app.inject({
 				method: "PATCH",
 				url: `/services/${serviceId}/enabled`,
-				headers: authHeader(admin.token),
+				...authCookies(admin.token),
 				payload: { enable: false },
 			});
 
 			const response = await app.inject({
 				method: "PATCH",
 				url: `/services/${serviceId}/enabled`,
-				headers: authHeader(admin.token),
+				...authCookies(admin.token),
 				payload: { enable: true },
 			});
 
@@ -80,7 +80,7 @@ describe("service routes (e2e)", () => {
 			const response = await app.inject({
 				method: "PATCH",
 				url: `/services/${randomUUID()}/enabled`,
-				headers: authHeader(admin.token),
+				...authCookies(admin.token),
 				payload: { enable: false },
 			});
 
@@ -88,7 +88,7 @@ describe("service routes (e2e)", () => {
 			expect(response.json().code).toBe("NotFoundError");
 		});
 
-		it("should return 401 without an Authorization header", async () => {
+		it("should return 401 without a session cookie", async () => {
 			const { serviceId } = await seedService(app, admin.token, projectId);
 
 			const response = await app.inject({
@@ -109,7 +109,7 @@ describe("service routes (e2e)", () => {
 			await app.inject({
 				method: "PATCH",
 				url: `/services/${serviceId}/enabled`,
-				headers: authHeader(admin.token),
+				...authCookies(admin.token),
 				payload: { enable: false },
 			});
 
@@ -117,7 +117,7 @@ describe("service routes (e2e)", () => {
 			const response = await app.inject({
 				method: "PUT",
 				url: `/services/${serviceId}`,
-				headers: authHeader(admin.token),
+				...authCookies(admin.token),
 				payload: { name: newName },
 			});
 
@@ -131,7 +131,7 @@ describe("service routes (e2e)", () => {
 			const response = await app.inject({
 				method: "PUT",
 				url: `/services/${serviceId}`,
-				headers: authHeader(admin.token),
+				...authCookies(admin.token),
 				payload: { name: uniqueName("Should Fail") },
 			});
 
@@ -139,7 +139,7 @@ describe("service routes (e2e)", () => {
 			expect(response.json().code).toBe("NotAllowedError");
 		});
 
-		it("should return 401 without an Authorization header", async () => {
+		it("should return 401 without a session cookie", async () => {
 			const { serviceId } = await seedService(app, admin.token, projectId);
 
 			const response = await app.inject({
@@ -160,7 +160,7 @@ describe("service routes (e2e)", () => {
 			const response = await app.inject({
 				method: "DELETE",
 				url: `/services/${serviceId}`,
-				headers: authHeader(admin.token),
+				...authCookies(admin.token),
 			});
 
 			expect(response.statusCode).toBe(200);
@@ -171,14 +171,14 @@ describe("service routes (e2e)", () => {
 			const response = await app.inject({
 				method: "DELETE",
 				url: `/services/${randomUUID()}`,
-				headers: authHeader(admin.token),
+				...authCookies(admin.token),
 			});
 
 			expect(response.statusCode).toBe(404);
 			expect(response.json().code).toBe("NotFoundError");
 		});
 
-		it("should return 401 without an Authorization header", async () => {
+		it("should return 401 without a session cookie", async () => {
 			const { serviceId } = await seedService(app, admin.token, projectId);
 
 			const response = await app.inject({
