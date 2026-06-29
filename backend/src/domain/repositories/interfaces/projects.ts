@@ -6,4 +6,5 @@ export interface ProjectsRepInterface {
 	getByPublicPageSlug: (slug: string) => Promise<Project | null>;
 	create: (data: Project) => Promise<Project>;
 	update: (data: Project) => Promise<Project | null>;
+	delete: (id: string) => Promise<void>;
 }
