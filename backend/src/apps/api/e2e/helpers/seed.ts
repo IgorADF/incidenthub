@@ -164,7 +164,7 @@ export async function seedProject(
 	overrides?: {
 		name?: string;
 		showPublicPage?: boolean;
-		publicPageSlug?: string;
+		publicPageSlug?: string | null;
 	},
 ) {
 	const showPublicPage = overrides?.showPublicPage ?? false;
