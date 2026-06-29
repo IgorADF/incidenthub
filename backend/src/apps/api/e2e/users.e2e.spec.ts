@@ -8,6 +8,7 @@ import {
 	authCookies,
 	seedDevUserAndLogin,
 	seedOrganizationAndAdmin,
+	seedSecondAdmin,
 	uniqueEmail,
 } from "./helpers/seed";
 
@@ -259,6 +260,188 @@ describe("user routes (e2e)", () => {
 
 			expect(response.statusCode).toBe(403);
 			expect(response.json().code).toBe("NotAllowedError");
+		});
+	});
+
+	describe("DELETE /users/:userId", () => {
+		async function createDev(
+			token: string,
+			name = "Dev To Delete",
+		): Promise<{ id: string }> {
+			const response = await app.inject({
+				method: "POST",
+				url: "/users",
+				...authCookies(token),
+				payload: {
+					name,
+					email: uniqueEmail(),
+					password: "password123",
+					type: "DEV",
+				},
+			});
+
+			if (response.statusCode !== 201) {
+				throw new Error(
+					`createDev helper failed: ${response.statusCode} ${response.body}`,
+				);
+			}
+
+			return { id: response.json().data.user.id };
+		}
+
+		it("should delete a DEV user when actor is admin", async () => {
+			const localAdmin = await seedOrganizationAndAdmin(app);
+			const dev = await createDev(localAdmin.token);
+
+			const response = await app.inject({
+				method: "DELETE",
+				url: `/users/${dev.id}`,
+				...authCookies(localAdmin.token),
+			});
+
+			expect(response.statusCode).toBe(200);
+			expect(response.json().data).toEqual({ deleted: true });
+
+			const list = await app.inject({
+				method: "GET",
+				url: "/users",
+				...authCookies(localAdmin.token),
+			});
+			const ids = (list.json().data.users as Array<{ id: string }>).map(
+				(u) => u.id,
+			);
+			expect(ids).not.toContain(dev.id);
+		});
+
+		it("should delete another ADMIN when the org has more than one admin", async () => {
+			const localAdmin = await seedOrganizationAndAdmin(app);
+			const secondAdmin = await seedSecondAdmin(app, localAdmin.token);
+
+			const response = await app.inject({
+				method: "DELETE",
+				url: `/users/${secondAdmin.userId}`,
+				...authCookies(localAdmin.token),
+			});
+
+			expect(response.statusCode).toBe(200);
+			expect(response.json().data).toEqual({ deleted: true });
+		});
+
+		it("should return 401 without a session cookie", async () => {
+			const localAdmin = await seedOrganizationAndAdmin(app);
+			const dev = await createDev(localAdmin.token);
+
+			const response = await app.inject({
+				method: "DELETE",
+				url: `/users/${dev.id}`,
+			});
+
+			expect(response.statusCode).toBe(401);
+			expect(response.json().code).toBe("UNAUTHORIZED");
+		});
+
+		it("should return 403 when the caller is not an admin", async () => {
+			const localAdmin = await seedOrganizationAndAdmin(app);
+			const dev = await createDev(localAdmin.token);
+			const devUser = await seedDevUserAndLogin(app, localAdmin.token);
+
+			const response = await app.inject({
+				method: "DELETE",
+				url: `/users/${dev.id}`,
+				...authCookies(devUser.token),
+			});
+
+			expect(response.statusCode).toBe(403);
+			expect(response.json().code).toBe("NotAllowedError");
+		});
+
+		it("should return 403 when admin tries to delete themselves", async () => {
+			const localAdmin = await seedOrganizationAndAdmin(app);
+
+			const response = await app.inject({
+				method: "DELETE",
+				url: `/users/${localAdmin.userId}`,
+				...authCookies(localAdmin.token),
+			});
+
+			expect(response.statusCode).toBe(403);
+			expect(response.json().code).toBe("NotAllowedError");
+		});
+
+		it("should return 403 when deleting the last admin of the organization", async () => {
+			const localAdmin = await seedOrganizationAndAdmin(app);
+
+			const response = await app.inject({
+				method: "DELETE",
+				url: `/users/${localAdmin.userId}`,
+				...authCookies(localAdmin.token),
+			});
+
+			expect(response.statusCode).toBe(403);
+			expect(response.json().code).toBe("NotAllowedError");
+		});
+
+		it("should return 404 when the target user does not exist", async () => {
+			const localAdmin = await seedOrganizationAndAdmin(app);
+
+			const response = await app.inject({
+				method: "DELETE",
+				url: "/users/01940f8e-1f30-7c30-9a6f-1234567890ab",
+				...authCookies(localAdmin.token),
+			});
+
+			expect(response.statusCode).toBe(404);
+			expect(response.json().code).toBe("NotFoundError");
+		});
+
+		it("should return 403 when target belongs to another organization", async () => {
+			const localAdmin = await seedOrganizationAndAdmin(app);
+			const otherOrg = await seedOrganizationAndAdmin(app);
+
+			const response = await app.inject({
+				method: "DELETE",
+				url: `/users/${otherOrg.userId}`,
+				...authCookies(localAdmin.token),
+			});
+
+			expect(response.statusCode).toBe(403);
+			expect(response.json().code).toBe("NotAllowedError");
+		});
+
+		it("should return 400 when the userId param is not a uuid", async () => {
+			const localAdmin = await seedOrganizationAndAdmin(app);
+
+			const response = await app.inject({
+				method: "DELETE",
+				url: "/users/not-a-uuid",
+				...authCookies(localAdmin.token),
+			});
+
+			expect(response.statusCode).toBe(400);
+			expect(response.json().code).toBe("VALIDATION_ERROR");
+		});
+
+		it("should still allow listing users from the other organization after a cross-org delete attempt", async () => {
+			const localAdmin = await seedOrganizationAndAdmin(app);
+			const otherOrg = await seedOrganizationAndAdmin(app);
+
+			await app.inject({
+				method: "DELETE",
+				url: `/users/${otherOrg.userId}`,
+				...authCookies(localAdmin.token),
+			});
+
+			const list = await app.inject({
+				method: "GET",
+				url: "/users",
+				...authCookies(otherOrg.token),
+			});
+
+			expect(list.statusCode).toBe(200);
+			const ids = (list.json().data.users as Array<{ id: string }>).map(
+				(u) => u.id,
+			);
+			expect(ids).toContain(otherOrg.userId);
 		});
 	});
 });

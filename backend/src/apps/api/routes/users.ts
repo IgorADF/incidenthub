@@ -2,11 +2,15 @@ import {
 	CreateUserToOrganizationInputSchema,
 	CreateUserToOrganizationOutputSchema,
 } from "@domain/use-cases/create-user-to-organization";
+import {
+	DeleteUserOutputSchema,
+} from "@domain/use-cases/delete-user";
 import { ListUsersByOrganizationOutputSchema } from "@domain/use-cases/list-users-by-organization";
 import { ListUserCursor } from "@domain/use-cases/utils/paginations/list-user-by-organization";
 import { LimitPagination } from "@domain/use-cases/utils/paginations/pagination";
 import type { MyPrismaClient } from "@infra/db/prisma-client";
 import { createUserToOrganizationFactory } from "@infra/factories/create-user-to-organization.usecase";
+import { deleteUserFactory } from "@infra/factories/delete-user.usecase";
 import { listUsersByOrganizationFactory } from "@infra/factories/list-users-by-organization.usecase";
 import type { FastifyPluginOptions } from "fastify";
 import z from "zod";
@@ -53,15 +57,36 @@ export function userRoutes(dbClient: MyPrismaClient) {
 					},
 				},
 			},
-			async (request, reply) => {
-				const { useCase } = listUsersByOrganizationFactory(dbClient);
-				const data = await useCase.execute(request.user!.userId, {
-					limit: request.query.limit,
-					cursor: {
-						normalizedName: request.query.normalizedName,
-						id: request.query.id,
+async (request, reply) => {
+			const { useCase } = listUsersByOrganizationFactory(dbClient);
+			const data = await useCase.execute(request.user!.userId, {
+				limit: request.query.limit,
+				cursor: {
+					normalizedName: request.query.normalizedName,
+					id: request.query.id,
+				},
+			});
+			return reply.status(200).send({ data });
+		},
+		);
+
+		app.delete(
+			"/users/:userId",
+			{
+				preHandler: [authHook],
+				schema: {
+					params: z.object({ userId: z.string().uuid() }),
+					response: {
+						200: z.object({ data: DeleteUserOutputSchema }),
 					},
-				});
+				},
+			},
+			async (request, reply) => {
+				const { useCase } = deleteUserFactory(dbClient);
+				const data = await useCase.execute(
+					request.user!.userId,
+					request.params.userId,
+				);
 				return reply.status(200).send({ data });
 			},
 		);

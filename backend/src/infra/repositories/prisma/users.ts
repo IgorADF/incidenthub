@@ -101,4 +101,17 @@ export class PrismaUsersRep implements UsersRepInterface {
 		});
 		return UserMapper.fromPrismaToEntity(record);
 	}
+
+	async countByOrganizationIdAndType(
+		organizationId: string,
+		type: "ADMIN" | "DEV",
+	) {
+		return this.prisma.user.count({
+			where: { organizationId, type },
+		});
+	}
+
+	async delete(id: string) {
+		await this.prisma.user.delete({ where: { id } });
+	}
 }
