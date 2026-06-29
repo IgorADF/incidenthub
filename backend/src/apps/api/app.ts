@@ -18,17 +18,17 @@ export async function createApp(prismaClient: MyPrismaClient) {
 	const app = fastify({
 		logger: envs.isDevEnv
 			? {
-					level: "info",
-					transport: {
-						target: "pino-pretty",
-						options: {
-							colorize: true,
-							translateTime: "SYS:standard",
-							ignore: "pid,hostname",
-						},
+				level: "info",
+				transport: {
+					target: "pino-pretty",
+					options: {
+						colorize: true,
+						translateTime: "SYS:standard",
+						ignore: "pid,hostname",
 					},
-				}
-			: undefined,
+				},
+			}
+			: false,
 	}).withTypeProvider<ZodTypeProvider>();
 
 	app.setValidatorCompiler(validatorCompiler);
