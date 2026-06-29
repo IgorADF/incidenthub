@@ -5,19 +5,19 @@ import { LimitPagination } from "./pagination";
 
 export const ListUserCursor = z.object({
 	normalizedName: NormalizedString.nullable(),
-	id: UUIDv7.nullable()
-})
+	id: UUIDv7.nullable(),
+});
 
 export const ListUserPagination = z.object({
 	limit: LimitPagination,
-	cursor: ListUserCursor
-})
+	cursor: ListUserCursor,
+});
 
 export const NextPaginationListUser = z.object({
 	limit: LimitPagination,
 	hasNextPage: z.boolean(),
-	nextCursor: ListUserCursor
-})
+	nextCursor: ListUserCursor,
+});
 
 export type ListUserCursorType = z.infer<typeof ListUserCursor>;
 

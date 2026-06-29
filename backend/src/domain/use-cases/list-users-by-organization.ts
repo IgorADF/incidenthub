@@ -2,7 +2,10 @@ import { UserSchema } from "@domain/entities/user";
 import type { UOW } from "@domain/repositories/interfaces/_uow";
 import z from "zod";
 import { NotAllowedError } from "./errors/NotAllowedError";
-import { ListUserPaginationType, NextPaginationListUser } from "./utils/paginations/list-user-by-organization";
+import {
+	type ListUserPaginationType,
+	NextPaginationListUser,
+} from "./utils/paginations/list-user-by-organization";
 
 export const ListUsersByOrganizationOutputSchema = z.object({
 	users: z.array(UserSchema),
@@ -14,7 +17,7 @@ export type ListUsersByOrganizationOutput = z.infer<
 >;
 
 export class ListUsersByOrganization {
-	constructor(private readonly uow: UOW) { }
+	constructor(private readonly uow: UOW) {}
 
 	async execute(
 		requesterUserId: string,
@@ -27,10 +30,11 @@ export class ListUsersByOrganization {
 			throw new NotAllowedError();
 		}
 
-		const { users, pagination: nextPagination } = await this.uow.repositories.users.listByOrganizationId(
-			requester.getProps().organizationId,
-			pagination,
-		);
+		const { users, pagination: nextPagination } =
+			await this.uow.repositories.users.listByOrganizationId(
+				requester.getProps().organizationId,
+				pagination,
+			);
 
 		return ListUsersByOrganizationOutputSchema.parse({
 			users: users.map((user) => user.getProps()),

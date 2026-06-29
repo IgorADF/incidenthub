@@ -40,7 +40,7 @@ export class CreateOrganization {
 	constructor(
 		private readonly uow: UOW,
 		private readonly hashPasswordService: HashPasswordInterface,
-	) { }
+	) {}
 
 	async execute(
 		input: CreateOrganizationInput,

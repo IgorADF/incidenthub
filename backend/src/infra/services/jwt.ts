@@ -1,7 +1,7 @@
-import {
-	type JwtAuthSignInput,
-	type JwtInterface,
-	type JwtSignInput,
+import type {
+	JwtAuthSignInput,
+	JwtInterface,
+	JwtSignInput,
 } from "@domain/services/jwt.interface";
 import { envs } from "@infra/envs";
 import jwt from "jsonwebtoken";

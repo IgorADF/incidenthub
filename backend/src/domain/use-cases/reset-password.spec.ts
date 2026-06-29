@@ -41,9 +41,8 @@ describe("Reset Password", () => {
 
 		expect(result).toEqual({ reset: true });
 
-		const updated = await uow.repositories.users.getByEmailWithPassword(
-			"user@acme.com",
-		);
+		const updated =
+			await uow.repositories.users.getByEmailWithPassword("user@acme.com");
 		const newPasswordHash = updated!.getProps().password as string;
 		expect(newPasswordHash).not.toBe("new-password");
 		expect(hashPasswordTestService.passwordCache[newPasswordHash]).toBe(

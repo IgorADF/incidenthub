@@ -3,6 +3,7 @@ import { Incident, IncidentSchema } from "@domain/entities/incident";
 import type { Service, ServiceType } from "@domain/entities/service";
 import type { UOW } from "@domain/repositories/interfaces/_uow";
 import type { HttpPingerInterface } from "@domain/services/http-pinger.interface";
+import type { LoggerServiceInterface } from "@domain/services/logger.interface";
 import type {
 	NotificationJobData,
 	NotificationsProducerInterface,
@@ -25,6 +26,7 @@ export class ExecuteHealthCheck {
 		private readonly uow: UOW,
 		private readonly pinger: HttpPingerInterface,
 		private readonly notificationsProducer: NotificationsProducerInterface,
+		private readonly logger: LoggerServiceInterface,
 	) {}
 
 	async execute(serviceId: string): Promise<ExecuteHealthCheckOutput> {
@@ -196,12 +198,8 @@ export class ExecuteHealthCheck {
 
 		try {
 			await this.notificationsProducer.enqueue(notification);
-		} catch (error) {
-			return;
-			// console.error(
-			//   `[ExecuteHealthCheck] Failed to enqueue notification (type=${notification.type}, incidentId=${notification.incidentId}):`,
-			//   error,
-			// );
+		} catch (error: any) {
+			this.logger.error(error?.message ?? "");
 		}
 	}
 }

@@ -2,6 +2,7 @@ import { DefaultEntity } from "@domain/entities/_default";
 import { Incident } from "@domain/entities/incident";
 import { IMUOW } from "@domain/repositories/in-memory/_uow";
 import { HttpPingerTestService } from "@domain/services/http-pinger";
+import { LoggerTestService } from "@domain/services/logger";
 import { NotificationsProducerTestService } from "@domain/services/notifications-producer";
 import { createTestOrganization } from "@domain/use-cases/utils/tests/organization";
 import { createTestProject } from "@domain/use-cases/utils/tests/project";
@@ -12,6 +13,7 @@ import { ExecuteHealthCheck } from "./execute-health-check";
 let uow: IMUOW;
 let pinger: HttpPingerTestService;
 let notifications: NotificationsProducerTestService;
+let logger: LoggerTestService;
 let sut: ExecuteHealthCheck;
 
 describe("ExecuteHealthCheck", () => {
@@ -19,7 +21,8 @@ describe("ExecuteHealthCheck", () => {
 		uow = new IMUOW();
 		pinger = new HttpPingerTestService();
 		notifications = new NotificationsProducerTestService();
-		sut = new ExecuteHealthCheck(uow, pinger, notifications);
+		logger = new LoggerTestService();
+		sut = new ExecuteHealthCheck(uow, pinger, notifications, logger);
 	});
 
 	async function setupService(
