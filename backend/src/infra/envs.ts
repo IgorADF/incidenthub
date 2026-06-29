@@ -52,8 +52,8 @@ export const envs = {
 	...data,
 
 	isTestEnv: data.NODE_ENV === "test",
-	isProdEnv: data.NODE_ENV === "development",
-	isDevEnv: data.NODE_ENV === "test",
+	isProdEnv: data.NODE_ENV === "production",
+	isDevEnv: data.NODE_ENV === "development",
 };
 
 export type EnvsType = z.infer<typeof EnvsSchema>;
