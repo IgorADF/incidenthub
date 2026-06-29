@@ -107,6 +107,21 @@ export class IMUsersRep implements UsersRepInterface {
 		return this.toUserClass(data);
 	}
 
+	async update(data: User) {
+		const index = this.db.users.findIndex(
+			(u) => u.getProps().id === data.getProps().id,
+		);
+		if (index === -1) {
+			return null;
+		}
+		const updated = UserWithPassword.fromProps({
+			...this.db.users[index]!.getProps(),
+			...data.getProps(),
+		});
+		this.db.users[index] = updated;
+		return this.toUserClass(updated);
+	}
+
 	async updatePassword(id: string, password: string) {
 		const index = this.db.users.findIndex((u) => u.getProps().id === id);
 		if (index === -1) {

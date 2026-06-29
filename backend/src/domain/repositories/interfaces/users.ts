@@ -23,6 +23,7 @@ export interface UsersRepInterface {
 		type: "ADMIN" | "DEV",
 	) => Promise<number>;
 	create: (data: UserWithPassword) => Promise<User>;
+	update: (data: User) => Promise<User | null>;
 	updatePassword: (id: string, password: string) => Promise<User | null>;
 	delete: (id: string) => Promise<void>;
 }

@@ -45,9 +45,7 @@ describe("auth routes (e2e)", () => {
 			const setCookie = response.headers["set-cookie"];
 			expect(setCookie).toBeDefined();
 			const cookieStr = Array.isArray(setCookie) ? setCookie[0] : setCookie;
-			expect(cookieStr).toMatch(
-				new RegExp(`${"ih_session"}=`, "i"),
-			);
+			expect(cookieStr).toMatch(new RegExp(`${"ih_session"}=`, "i"));
 			expect(cookieStr?.toLowerCase()).toContain("httponly");
 
 			const body = response.json().data;

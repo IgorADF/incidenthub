@@ -1,4 +1,4 @@
-import type { UserWithPassword } from "@domain/entities/user";
+import type { User, UserWithPassword } from "@domain/entities/user";
 import type { UsersRepInterface } from "@domain/repositories/interfaces/users";
 import type {
 	ListUserCursorType,
@@ -91,6 +91,20 @@ export class PrismaUsersRep implements UsersRepInterface {
 			data: UserMapper.fromEntityWithPasswordToPrisma(data),
 		});
 
+		return UserMapper.fromPrismaToEntity(record);
+	}
+
+	async update(data: User) {
+		const props = data.getProps();
+		const record = await this.prisma.user.update({
+			where: { id: props.id },
+			data: {
+				name: props.name,
+				normalizedName: props.normalizedName,
+				email: props.email,
+				type: props.type,
+			},
+		});
 		return UserMapper.fromPrismaToEntity(record);
 	}
 

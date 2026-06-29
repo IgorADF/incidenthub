@@ -2,16 +2,19 @@ import {
 	CreateUserToOrganizationInputSchema,
 	CreateUserToOrganizationOutputSchema,
 } from "@domain/use-cases/create-user-to-organization";
-import {
-	DeleteUserOutputSchema,
-} from "@domain/use-cases/delete-user";
+import { DeleteUserOutputSchema } from "@domain/use-cases/delete-user";
 import { ListUsersByOrganizationOutputSchema } from "@domain/use-cases/list-users-by-organization";
+import {
+	UpdateUserInputSchema,
+	UpdateUserOutputSchema,
+} from "@domain/use-cases/update-user";
 import { ListUserCursor } from "@domain/use-cases/utils/paginations/list-user-by-organization";
 import { LimitPagination } from "@domain/use-cases/utils/paginations/pagination";
 import type { MyPrismaClient } from "@infra/db/prisma-client";
 import { createUserToOrganizationFactory } from "@infra/factories/create-user-to-organization.usecase";
 import { deleteUserFactory } from "@infra/factories/delete-user.usecase";
 import { listUsersByOrganizationFactory } from "@infra/factories/list-users-by-organization.usecase";
+import { updateUserFactory } from "@infra/factories/update-user.usecase";
 import type { FastifyPluginOptions } from "fastify";
 import z from "zod";
 import type { FastifyZodInstance } from "~types/fastify-zod-instance";
@@ -57,17 +60,17 @@ export function userRoutes(dbClient: MyPrismaClient) {
 					},
 				},
 			},
-async (request, reply) => {
-			const { useCase } = listUsersByOrganizationFactory(dbClient);
-			const data = await useCase.execute(request.user!.userId, {
-				limit: request.query.limit,
-				cursor: {
-					normalizedName: request.query.normalizedName,
-					id: request.query.id,
-				},
-			});
-			return reply.status(200).send({ data });
-		},
+			async (request, reply) => {
+				const { useCase } = listUsersByOrganizationFactory(dbClient);
+				const data = await useCase.execute(request.user!.userId, {
+					limit: request.query.limit,
+					cursor: {
+						normalizedName: request.query.normalizedName,
+						id: request.query.id,
+					},
+				});
+				return reply.status(200).send({ data });
+			},
 		);
 
 		app.delete(
@@ -86,6 +89,29 @@ async (request, reply) => {
 				const data = await useCase.execute(
 					request.user!.userId,
 					request.params.userId,
+				);
+				return reply.status(200).send({ data });
+			},
+		);
+
+		app.patch(
+			"/users/:userId",
+			{
+				preHandler: [authHook],
+				schema: {
+					params: z.object({ userId: z.string().uuid() }),
+					body: UpdateUserInputSchema,
+					response: {
+						200: z.object({ data: UpdateUserOutputSchema }),
+					},
+				},
+			},
+			async (request, reply) => {
+				const { useCase } = updateUserFactory(dbClient);
+				const data = await useCase.execute(
+					request.user!.userId,
+					request.params.userId,
+					request.body,
 				);
 				return reply.status(200).send({ data });
 			},
