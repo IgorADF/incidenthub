@@ -3,9 +3,14 @@ import {
 	CreateProjectOutputSchema,
 } from "@domain/use-cases/create-project";
 import { ListProjectsByOrganizationOutputSchema } from "@domain/use-cases/list-projects-by-organization";
+import {
+	UpdateProjectInputSchema,
+	UpdateProjectOutputSchema,
+} from "@domain/use-cases/update-project";
 import type { MyPrismaClient } from "@infra/db/prisma-client";
 import { createProjectFactory } from "@infra/factories/create-project.usecase";
 import { listProjectsByOrganizationFactory } from "@infra/factories/list-projects-by-organization.usecase";
+import { updateProjectFactory } from "@infra/factories/update-project.usecase";
 import type { FastifyPluginOptions } from "fastify";
 import z from "zod";
 import type { FastifyZodInstance } from "~types/fastify-zod-instance";
@@ -41,9 +46,32 @@ export function projectRoutes(dbClient: MyPrismaClient) {
 					},
 				},
 			},
+async (request, reply) => {
+			const { useCase } = listProjectsByOrganizationFactory(dbClient);
+			const data = await useCase.execute(request.user!.organizationId);
+			return reply.status(200).send({ data });
+		},
+		);
+
+		app.patch(
+			"/projects/:projectId",
+			{
+				preHandler: [authHook],
+				schema: {
+					params: z.object({ projectId: z.string().uuid() }),
+					body: UpdateProjectInputSchema,
+					response: {
+						200: z.object({ data: UpdateProjectOutputSchema }),
+					},
+				},
+			},
 			async (request, reply) => {
-				const { useCase } = listProjectsByOrganizationFactory(dbClient);
-				const data = await useCase.execute(request.user!.organizationId);
+				const { useCase } = updateProjectFactory(dbClient);
+				const data = await useCase.execute(
+					request.user!.userId,
+					request.params.projectId,
+					request.body,
+				);
 				return reply.status(200).send({ data });
 			},
 		);

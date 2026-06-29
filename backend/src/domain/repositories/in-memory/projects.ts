@@ -27,4 +27,15 @@ export class IMProjectsRep implements ProjectsRepInterface {
 		this.db.projects.push(data);
 		return data;
 	}
+
+	async update(data: Project) {
+		const index = this.db.projects.findIndex(
+			(p) => p.getProps().id === data.getProps().id,
+		);
+		if (index === -1) {
+			return null;
+		}
+		this.db.projects[index] = data;
+		return data;
+	}
 }

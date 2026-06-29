@@ -5,4 +5,5 @@ export interface ProjectsRepInterface {
 	getByOrganizationId: (organizationId: string) => Promise<Project[]>;
 	getByPublicPageSlug: (slug: string) => Promise<Project | null>;
 	create: (data: Project) => Promise<Project>;
+	update: (data: Project) => Promise<Project | null>;
 }

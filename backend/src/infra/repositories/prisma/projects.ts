@@ -31,4 +31,13 @@ export class PrismaProjectsRep implements ProjectsRepInterface {
 		});
 		return ProjectMapper.fromPrismaToEntity(record);
 	}
+
+	async update(data: Project) {
+		const props = data.getProps();
+		const record = await this.prisma.project.update({
+			where: { id: props.id },
+			data: ProjectMapper.fromEntityToPrisma(data),
+		});
+		return ProjectMapper.fromPrismaToEntity(record);
+	}
 }
