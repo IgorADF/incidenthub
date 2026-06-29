@@ -1,3 +1,4 @@
+import { envs } from "@infra/envs";
 import { JwtService } from "@infra/services/jwt";
 import type { FastifyReply, FastifyRequest } from "fastify";
 
@@ -16,24 +17,14 @@ declare module "fastify" {
 }
 
 export async function authHook(request: FastifyRequest, reply: FastifyReply) {
-	const header = request.headers.authorization;
+	const token = request.cookies[envs.COOKIE_NAME];
 
-	if (!header) {
+	if (!token) {
 		return reply.status(401).send({
 			code: "UNAUTHORIZED",
-			message: "Missing or invalid Authorization header",
+			message: "Missing session cookie",
 		});
 	}
-
-	const match = /^(\S+)\s+(.+)$/i.exec(header);
-	if (match?.[1].toLowerCase() !== "bearer") {
-		return reply.status(401).send({
-			code: "UNAUTHORIZED",
-			message: "Missing or invalid Authorization header",
-		});
-	}
-
-	const token = match[2].trim();
 
 	try {
 		const payload = await jwtService.verifyAuth(token);

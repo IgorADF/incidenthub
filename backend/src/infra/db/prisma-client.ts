@@ -43,6 +43,7 @@ export function createDbClient(connectionString: string) {
 	);
 
 	const prisma = new PrismaClient({
+		log: envs.isDevEnv ? ["error", "warn", "info", "query"] : ["error", "warn"],
 		adapter,
 		omit: {
 			user: {

@@ -6,7 +6,7 @@ import {
 	runInitTestConfigs,
 } from "./helpers/run-test-config";
 import {
-	authHeader,
+	authCookies,
 	seedOrganizationAndAdmin,
 	seedProject,
 	seedService,
@@ -33,7 +33,7 @@ describe("project-service routes (e2e)", () => {
 			const response = await app.inject({
 				method: "POST",
 				url: `/projects/${projectId}/services`,
-				headers: authHeader(admin.token),
+				...authCookies(admin.token),
 				payload: {
 					name: uniqueName("Service"),
 					url: "https://api.example.com/health",
@@ -63,7 +63,7 @@ describe("project-service routes (e2e)", () => {
 			const response = await app.inject({
 				method: "POST",
 				url: `/projects/${randomUUID()}/services`,
-				headers: authHeader(admin.token),
+				...authCookies(admin.token),
 				payload: {
 					name: uniqueName("Service"),
 					url: "https://api.example.com/health",
@@ -83,7 +83,7 @@ describe("project-service routes (e2e)", () => {
 			const response = await app.inject({
 				method: "POST",
 				url: `/projects/${projectId}/services`,
-				headers: authHeader(admin.token),
+				...authCookies(admin.token),
 				payload: {
 					name: uniqueName("Service"),
 					url: "https://api.example.com/health",
@@ -99,7 +99,7 @@ describe("project-service routes (e2e)", () => {
 			expect(response.json().code).toBe("ValidationEntitiesError");
 		});
 
-		it("should return 401 without an Authorization header", async () => {
+		it("should return 401 without a session cookie", async () => {
 			const response = await app.inject({
 				method: "POST",
 				url: `/projects/${projectId}/services`,
@@ -126,7 +126,7 @@ describe("project-service routes (e2e)", () => {
 			const response = await app.inject({
 				method: "GET",
 				url: `/projects/${projectId}/services`,
-				headers: authHeader(admin.token),
+				...authCookies(admin.token),
 			});
 
 			expect(response.statusCode).toBe(200);
@@ -138,14 +138,14 @@ describe("project-service routes (e2e)", () => {
 			const response = await app.inject({
 				method: "GET",
 				url: `/projects/${randomUUID()}/services`,
-				headers: authHeader(admin.token),
+				...authCookies(admin.token),
 			});
 
 			expect(response.statusCode).toBe(404);
 			expect(response.json().code).toBe("NotFoundError");
 		});
 
-		it("should return 401 without an Authorization header", async () => {
+		it("should return 401 without a session cookie", async () => {
 			const response = await app.inject({
 				method: "GET",
 				url: `/projects/${projectId}/services`,
