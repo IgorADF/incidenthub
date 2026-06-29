@@ -7,9 +7,14 @@ import {
 	ForgotPasswordInputSchema,
 	ForgotPasswordOutputSchema,
 } from "@domain/use-cases/forgot-password";
+import {
+	ResetPasswordInputSchema,
+	ResetPasswordOutputSchema,
+} from "@domain/use-cases/reset-password";
 import type { MyPrismaClient } from "@infra/db/prisma-client";
 import { authenticateUserFactory } from "@infra/factories/authenticate-user.usecase";
 import { forgotPasswordFactory } from "@infra/factories/forgot-password.usecase";
+import { resetPasswordFactory } from "@infra/factories/reset-password.usecase";
 import { JwtService } from "@infra/services/jwt";
 import type { FastifyPluginOptions } from "fastify";
 import z from "zod";
@@ -73,6 +78,24 @@ export function authRoutes(dbClient: MyPrismaClient) {
 					}
 					throw err;
 				}
+			},
+		);
+
+		app.post(
+			"/password/reset",
+			{
+				schema: {
+					body: ResetPasswordInputSchema,
+					response: {
+						200: ResetPasswordOutputSchema,
+					},
+				},
+			},
+			async (request, reply) => {
+				const { useCase } = resetPasswordFactory(dbClient);
+				return reply
+					.status(200)
+					.send(await useCase.execute(request.body));
 			},
 		);
 	};

@@ -19,4 +19,5 @@ export interface UsersRepInterface {
 		pagination: ListUserPaginationType,
 	) => Promise<ListUsersByOrganizationResult>;
 	create: (data: UserWithPassword) => Promise<User>;
+	updatePassword: (id: string, password: string) => Promise<User | null>;
 }

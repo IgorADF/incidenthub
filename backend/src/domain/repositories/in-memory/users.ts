@@ -1,4 +1,4 @@
-import { User, type UserWithPassword } from "@domain/entities/user";
+import { User, UserWithPassword } from "@domain/entities/user";
 import type { UsersRepInterface } from "@domain/repositories/interfaces/users";
 import type { IMUOWdb } from "./_uow";
 import { ListUserPaginationType } from "@domain/use-cases/utils/paginations/list-user-by-organization";
@@ -101,5 +101,17 @@ export class IMUsersRep implements UsersRepInterface {
 	async create(data: UserWithPassword) {
 		this.db.users.push(data);
 		return this.toUserClass(data);
+	}
+
+	async updatePassword(id: string, password: string) {
+		const index = this.db.users.findIndex((u) => u.getProps().id === id);
+		if (index === -1) {
+			return null;
+		}
+
+		const { password: _password, ...props } = this.db.users[index]!.getProps();
+		const updated = UserWithPassword.fromProps({ ...props, password });
+		this.db.users[index] = updated;
+		return this.toUserClass(updated);
 	}
 }

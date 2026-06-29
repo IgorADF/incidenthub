@@ -87,6 +87,15 @@ export class PrismaUsersRep implements UsersRepInterface {
 		const record = await this.prisma.user.create({
 			data: UserMapper.fromEntityWithPasswordToPrisma(data),
 		});
+
+		return UserMapper.fromPrismaToEntity(record);
+	}
+
+	async updatePassword(id: string, password: string) {
+		const record = await this.prisma.user.update({
+			where: { id },
+			data: { password },
+		});
 		return UserMapper.fromPrismaToEntity(record);
 	}
 }
