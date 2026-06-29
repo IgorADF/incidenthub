@@ -118,4 +118,22 @@ export class IMUsersRep implements UsersRepInterface {
 		this.db.users[index] = updated;
 		return this.toUserClass(updated);
 	}
+
+	async countByOrganizationIdAndType(
+		organizationId: string,
+		type: "ADMIN" | "DEV",
+	) {
+		return this.db.users.filter(
+			(u) =>
+				u.getProps().organizationId === organizationId &&
+				u.getProps().type === type,
+		).length;
+	}
+
+	async delete(id: string) {
+		const index = this.db.users.findIndex((u) => u.getProps().id === id);
+		if (index !== -1) {
+			this.db.users.splice(index, 1);
+		}
+	}
 }

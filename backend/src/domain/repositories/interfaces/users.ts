@@ -18,6 +18,11 @@ export interface UsersRepInterface {
 		organizationId: string,
 		pagination: ListUserPaginationType,
 	) => Promise<ListUsersByOrganizationResult>;
+	countByOrganizationIdAndType: (
+		organizationId: string,
+		type: "ADMIN" | "DEV",
+	) => Promise<number>;
 	create: (data: UserWithPassword) => Promise<User>;
 	updatePassword: (id: string, password: string) => Promise<User | null>;
+	delete: (id: string) => Promise<void>;
 }

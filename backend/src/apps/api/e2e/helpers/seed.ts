@@ -126,6 +126,37 @@ export async function seedDevUserAndLogin(
 	};
 }
 
+/** POST /users (type ADMIN) within the caller's org. Returns created user (no login). */
+export async function seedSecondAdmin(
+	app: FastifyZodInstance,
+	adminToken: string,
+) {
+	const email = uniqueEmail();
+	const password = DEFAULT_PASSWORD;
+
+	const createResponse = await app.inject({
+		method: "POST",
+		url: "/users",
+		...authCookies(adminToken),
+		payload: { name: "Second Admin", email, password, type: "ADMIN" },
+	});
+
+	if (createResponse.statusCode !== 201) {
+		throw new Error(
+			`seedSecondAdmin failed: ${createResponse.statusCode} ${createResponse.body}`,
+		);
+	}
+
+	const user = createResponse.json().data.user;
+
+	return {
+		userId: user.id,
+		organizationId: user.organizationId,
+		email,
+		password,
+	};
+}
+
 /** POST /projects within the caller's organization. */
 export async function seedProject(
 	app: FastifyZodInstance,
