@@ -30,9 +30,13 @@ describe("UpdateProject", () => {
 	it("should update the name", async () => {
 		const { admin, project } = await setup();
 
-		const result = await sut.execute(admin.getProps().id, project.getProps().id, {
-			name: "Brand New Name",
-		});
+		const result = await sut.execute(
+			admin.getProps().id,
+			project.getProps().id,
+			{
+				name: "Brand New Name",
+			},
+		);
 
 		expect(result.project.name).toBe("Brand New Name");
 		expect(result.project.id).toBe(project.getProps().id);
@@ -59,9 +63,13 @@ describe("UpdateProject", () => {
 	it("should allow reassigning the same name (no-op)", async () => {
 		const { admin, project } = await setup();
 
-		const result = await sut.execute(admin.getProps().id, project.getProps().id, {
-			name: project.getProps().name,
-		});
+		const result = await sut.execute(
+			admin.getProps().id,
+			project.getProps().id,
+			{
+				name: project.getProps().name,
+			},
+		);
 
 		expect(result.project.name).toBe(project.getProps().name);
 	});
@@ -69,9 +77,13 @@ describe("UpdateProject", () => {
 	it("should update the publicPageSlug when it is globally unique", async () => {
 		const { admin, project } = await setup();
 
-		const result = await sut.execute(admin.getProps().id, project.getProps().id, {
-			publicPageSlug: "brand-new-slug",
-		});
+		const result = await sut.execute(
+			admin.getProps().id,
+			project.getProps().id,
+			{
+				publicPageSlug: "brand-new-slug",
+			},
+		);
 
 		expect(result.project.publicPageSlug).toBe("brand-new-slug");
 	});
@@ -118,9 +130,13 @@ describe("UpdateProject", () => {
 	it("should allow reassigning the same slug (no-op)", async () => {
 		const { admin, project } = await setup();
 
-		const result = await sut.execute(admin.getProps().id, project.getProps().id, {
-			publicPageSlug: project.getProps().publicPageSlug,
-		});
+		const result = await sut.execute(
+			admin.getProps().id,
+			project.getProps().id,
+			{
+				publicPageSlug: project.getProps().publicPageSlug,
+			},
+		);
 
 		expect(result.project.publicPageSlug).toBe(
 			project.getProps().publicPageSlug,
@@ -135,9 +151,13 @@ describe("UpdateProject", () => {
 			publicPageSlug: null,
 		});
 
-		const result = await sut.execute(admin.getProps().id, project.getProps().id, {
-			publicPageSlug: null,
-		});
+		const result = await sut.execute(
+			admin.getProps().id,
+			project.getProps().id,
+			{
+				publicPageSlug: null,
+			},
+		);
 
 		expect(result.project.publicPageSlug).toBeNull();
 		expect(result.project.showPublicPage).toBe(false);
@@ -149,9 +169,13 @@ describe("UpdateProject", () => {
 		expect(project.getProps().showPublicPage).toBe(true);
 		expect(project.getProps().publicPageSlug).not.toBeNull();
 
-		const result = await sut.execute(admin.getProps().id, project.getProps().id, {
-			showPublicPage: false,
-		});
+		const result = await sut.execute(
+			admin.getProps().id,
+			project.getProps().id,
+			{
+				showPublicPage: false,
+			},
+		);
 
 		expect(result.project.showPublicPage).toBe(false);
 		expect(result.project.publicPageSlug).toBeNull();
@@ -160,9 +184,13 @@ describe("UpdateProject", () => {
 	it("should preserve the existing slug when showPublicPage stays true", async () => {
 		const { admin, project } = await setup();
 
-		const result = await sut.execute(admin.getProps().id, project.getProps().id, {
-			showPublicPage: true,
-		});
+		const result = await sut.execute(
+			admin.getProps().id,
+			project.getProps().id,
+			{
+				showPublicPage: true,
+			},
+		);
 
 		expect(result.project.showPublicPage).toBe(true);
 		expect(result.project.publicPageSlug).toBe(
@@ -204,10 +232,14 @@ describe("UpdateProject", () => {
 			publicPageSlug: null,
 		});
 
-		const result = await sut.execute(admin.getProps().id, project.getProps().id, {
-			showPublicPage: true,
-			publicPageSlug: "new-public-slug",
-		});
+		const result = await sut.execute(
+			admin.getProps().id,
+			project.getProps().id,
+			{
+				showPublicPage: true,
+				publicPageSlug: "new-public-slug",
+			},
+		);
 
 		expect(result.project.showPublicPage).toBe(true);
 		expect(result.project.publicPageSlug).toBe("new-public-slug");
@@ -216,11 +248,15 @@ describe("UpdateProject", () => {
 	it("should update all three fields at once", async () => {
 		const { admin, project } = await setup();
 
-		const result = await sut.execute(admin.getProps().id, project.getProps().id, {
-			name: "Full Update",
-			showPublicPage: true,
-			publicPageSlug: "full-update-slug",
-		});
+		const result = await sut.execute(
+			admin.getProps().id,
+			project.getProps().id,
+			{
+				name: "Full Update",
+				showPublicPage: true,
+				publicPageSlug: "full-update-slug",
+			},
+		);
 
 		expect(result.project).toEqual(
 			expect.objectContaining({
@@ -237,9 +273,13 @@ describe("UpdateProject", () => {
 		const originalOrgId = project.getProps().organizationId;
 		const originalCreatedAt = project.getProps().createdAt;
 
-		const result = await sut.execute(admin.getProps().id, project.getProps().id, {
-			name: "Renamed",
-		});
+		const result = await sut.execute(
+			admin.getProps().id,
+			project.getProps().id,
+			{
+				name: "Renamed",
+			},
+		);
 
 		expect(result.project.id).toBe(originalId);
 		expect(result.project.organizationId).toBe(originalOrgId);

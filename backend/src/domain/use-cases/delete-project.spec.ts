@@ -9,8 +9,8 @@ import {
 	createTestDevUser,
 } from "@domain/use-cases/utils/tests/user";
 import { beforeEach, describe, expect, it } from "vitest";
-import { DeleteService } from "./delete-service";
 import { DeleteProject } from "./delete-project";
+import { DeleteService } from "./delete-service";
 import { NotAllowedError } from "./errors/NotAllowedError";
 import { NotFoundError } from "./errors/NotFoundError";
 
@@ -35,7 +35,10 @@ describe("DeleteProject", () => {
 	it("should delete a project with no services when deleter is admin", async () => {
 		const { admin, project } = await setup();
 
-		const result = await sut.execute(admin.getProps().id, project.getProps().id);
+		const result = await sut.execute(
+			admin.getProps().id,
+			project.getProps().id,
+		);
 
 		expect(result.deleted).toBe(true);
 
@@ -54,7 +57,10 @@ describe("DeleteProject", () => {
 			name: "Service B",
 		});
 
-		const result = await sut.execute(admin.getProps().id, project.getProps().id);
+		const result = await sut.execute(
+			admin.getProps().id,
+			project.getProps().id,
+		);
 
 		expect(result.deleted).toBe(true);
 
@@ -125,10 +131,14 @@ describe("DeleteProject", () => {
 
 	it("should delete only the targeted project, leaving other projects untouched", async () => {
 		const { organization, admin, project } = await setup();
-		const { project: otherProject } = await createTestProject(uow, organization, {
-			name: "Other Project",
-			publicPageSlug: "other-project-slug",
-		});
+		const { project: otherProject } = await createTestProject(
+			uow,
+			organization,
+			{
+				name: "Other Project",
+				publicPageSlug: "other-project-slug",
+			},
+		);
 		await createTestService(uow, otherProject, { name: "Other Service" });
 
 		await sut.execute(admin.getProps().id, project.getProps().id);

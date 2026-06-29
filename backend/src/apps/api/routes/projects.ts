@@ -48,11 +48,11 @@ export function projectRoutes(dbClient: MyPrismaClient) {
 					},
 				},
 			},
-async (request, reply) => {
-			const { useCase } = listProjectsByOrganizationFactory(dbClient);
-			const data = await useCase.execute(request.user!.organizationId);
-			return reply.status(200).send({ data });
-		},
+			async (request, reply) => {
+				const { useCase } = listProjectsByOrganizationFactory(dbClient);
+				const data = await useCase.execute(request.user!.organizationId);
+				return reply.status(200).send({ data });
+			},
 		);
 
 		app.patch(
