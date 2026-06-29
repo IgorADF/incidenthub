@@ -38,4 +38,11 @@ export class IMProjectsRep implements ProjectsRepInterface {
 		this.db.projects[index] = data;
 		return data;
 	}
+
+	async delete(id: string) {
+		const index = this.db.projects.findIndex((p) => p.getProps().id === id);
+		if (index !== -1) {
+			this.db.projects.splice(index, 1);
+		}
+	}
 }

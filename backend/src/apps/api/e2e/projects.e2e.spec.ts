@@ -9,6 +9,7 @@ import {
 	seedDevUserAndLogin,
 	seedOrganizationAndAdmin,
 	seedProject,
+	seedService,
 	uniqueName,
 } from "./helpers/seed";
 
@@ -418,6 +419,159 @@ describe("project routes (e2e)", () => {
 
 			expect(response.statusCode).toBe(400);
 			expect(response.json().code).toBe("VALIDATION_ERROR");
+		});
+	});
+
+	describe("DELETE /projects/:projectId", () => {
+		it("should delete a project with no services when actor is admin", async () => {
+			const localAdmin = await seedOrganizationAndAdmin(app);
+			const { projectId } = await seedProject(app, localAdmin.token, {
+				name: uniqueName("ToDelete"),
+			});
+
+			const response = await app.inject({
+				method: "DELETE",
+				url: `/projects/${projectId}`,
+				...authCookies(localAdmin.token),
+			});
+
+			expect(response.statusCode).toBe(200);
+			expect(response.json().data).toEqual({ deleted: true });
+
+			const list = await app.inject({
+				method: "GET",
+				url: "/projects",
+				...authCookies(localAdmin.token),
+			});
+			const ids = (
+				list.json().data.projects as Array<{ id: string }>
+			).map((p) => p.id);
+			expect(ids).not.toContain(projectId);
+		});
+
+		it("should delete a project and cascade-delete its services", async () => {
+			const localAdmin = await seedOrganizationAndAdmin(app);
+			const { projectId } = await seedProject(app, localAdmin.token);
+			const { serviceId } = await seedService(app, localAdmin.token, projectId);
+
+			const response = await app.inject({
+				method: "DELETE",
+				url: `/projects/${projectId}`,
+				...authCookies(localAdmin.token),
+			});
+
+			expect(response.statusCode).toBe(200);
+			expect(response.json().data).toEqual({ deleted: true });
+
+			const serviceList = await app.inject({
+				method: "GET",
+				url: `/projects/${projectId}/services`,
+				...authCookies(localAdmin.token),
+			});
+			expect(serviceList.statusCode).toBe(404);
+			expect(serviceList.json().code).toBe("NotFoundError");
+		});
+
+		it("should return 401 without a session cookie", async () => {
+			const localAdmin = await seedOrganizationAndAdmin(app);
+			const { projectId } = await seedProject(app, localAdmin.token);
+
+			const response = await app.inject({
+				method: "DELETE",
+				url: `/projects/${projectId}`,
+			});
+
+			expect(response.statusCode).toBe(401);
+			expect(response.json().code).toBe("UNAUTHORIZED");
+		});
+
+		it("should return 403 when the caller is not an admin", async () => {
+			const localAdmin = await seedOrganizationAndAdmin(app);
+			const dev = await seedDevUserAndLogin(app, localAdmin.token);
+			const { projectId } = await seedProject(app, localAdmin.token);
+
+			const response = await app.inject({
+				method: "DELETE",
+				url: `/projects/${projectId}`,
+				...authCookies(dev.token),
+			});
+
+			expect(response.statusCode).toBe(403);
+			expect(response.json().code).toBe("NotAllowedError");
+		});
+
+		it("should return 404 when the project does not exist", async () => {
+			const localAdmin = await seedOrganizationAndAdmin(app);
+
+			const response = await app.inject({
+				method: "DELETE",
+				url: "/projects/01940f8e-1f30-7c30-9a6f-1234567890ab",
+				...authCookies(localAdmin.token),
+			});
+
+			expect(response.statusCode).toBe(404);
+			expect(response.json().code).toBe("NotFoundError");
+		});
+
+		it("should return 403 when the project belongs to another organization", async () => {
+			const localAdmin = await seedOrganizationAndAdmin(app);
+			const other = await seedOrganizationAndAdmin(app);
+			const { projectId } = await seedProject(app, other.token);
+
+			const response = await app.inject({
+				method: "DELETE",
+				url: `/projects/${projectId}`,
+				...authCookies(localAdmin.token),
+			});
+
+			expect(response.statusCode).toBe(403);
+			expect(response.json().code).toBe("NotAllowedError");
+		});
+
+		it("should return 400 when the projectId param is not a uuid", async () => {
+			const localAdmin = await seedOrganizationAndAdmin(app);
+
+			const response = await app.inject({
+				method: "DELETE",
+				url: "/projects/not-a-uuid",
+				...authCookies(localAdmin.token),
+			});
+
+			expect(response.statusCode).toBe(400);
+			expect(response.json().code).toBe("VALIDATION_ERROR");
+		});
+
+		it("should not delete another org's project when targeted by cross-org admin", async () => {
+			const localAdmin = await seedOrganizationAndAdmin(app);
+			const other = await seedOrganizationAndAdmin(app);
+			const { projectId } = await seedProject(app, other.token);
+			const { serviceId } = await seedService(app, other.token, projectId);
+
+			await app.inject({
+				method: "DELETE",
+				url: `/projects/${projectId}`,
+				...authCookies(localAdmin.token),
+			});
+
+			const otherList = await app.inject({
+				method: "GET",
+				url: "/projects",
+				...authCookies(other.token),
+			});
+			const ids = (
+				otherList.json().data.projects as Array<{ id: string }>
+			).map((p) => p.id);
+			expect(ids).toContain(projectId);
+
+			const servicesOfProject = await app.inject({
+				method: "GET",
+				url: `/projects/${projectId}/services`,
+				...authCookies(other.token),
+			});
+			const serviceIds = (
+				servicesOfProject.json().data.services as Array<{ id: string }>
+			).map((s) => s.id);
+			expect(serviceIds).toContain(serviceId);
 		});
 	});
 });

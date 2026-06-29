@@ -1,3 +1,4 @@
+import type { Service } from "@domain/entities/service";
 import type { UOW } from "@domain/repositories/interfaces/_uow";
 import z from "zod";
 import { NotAllowedError } from "./errors/NotAllowedError";
@@ -11,6 +12,19 @@ export type DeleteServiceOutput = z.infer<typeof DeleteServiceOutputSchema>;
 
 export class DeleteService {
 	constructor(private readonly uow: UOW) {}
+
+	async cascadeDelete(reps: UOW["repositories"], service: Service) {
+		const serviceId = service.getProps().id;
+
+		if (service.getProps().currentIncidentId) {
+			const resolved = service.resolveCurrentIncident();
+			await reps.services.update(resolved);
+		}
+
+		await reps.healthChecks.deleteByServiceId(serviceId);
+		await reps.incidents.deleteByServiceId(serviceId);
+		await reps.services.delete(serviceId);
+	}
 
 	async execute(
 		deleterUserId: string,
@@ -40,15 +54,7 @@ export class DeleteService {
 		}
 
 		return await this.uow.transaction(async (reps) => {
-			if (service.getProps().currentIncidentId) {
-				const resolved = service.resolveCurrentIncident();
-				await reps.services.update(resolved);
-			}
-
-			await reps.healthChecks.deleteByServiceId(serviceId);
-			await reps.incidents.deleteByServiceId(serviceId);
-			await reps.services.delete(serviceId);
-
+			await this.cascadeDelete(reps, service);
 			return DeleteServiceOutputSchema.parse({ deleted: true });
 		});
 	}

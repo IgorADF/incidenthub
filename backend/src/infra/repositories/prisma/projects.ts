@@ -40,4 +40,8 @@ export class PrismaProjectsRep implements ProjectsRepInterface {
 		});
 		return ProjectMapper.fromPrismaToEntity(record);
 	}
+
+	async delete(id: string) {
+		await this.prisma.project.delete({ where: { id } });
+	}
 }
