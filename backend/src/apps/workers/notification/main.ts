@@ -1,5 +1,5 @@
 import type { NotificationJobData } from "@domain/services/notifications-producer.interface";
-import { notificationsDlqQueue, notificationsQueue } from "@infra/queue/queues";
+import { notificationsDlqQueue } from "@infra/queue/queues";
 import { redisConnection } from "@infra/redis/connection";
 import { EmailService } from "@infra/services/email";
 import { type Job, Worker } from "bullmq";

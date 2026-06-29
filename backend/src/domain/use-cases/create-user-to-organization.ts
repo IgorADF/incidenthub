@@ -32,7 +32,7 @@ export class CreateUserToOrganization {
 	constructor(
 		private readonly uow: UOW,
 		private readonly hashPasswordService: HashPasswordInterface,
-	) { }
+	) {}
 
 	async execute(
 		creatorUserId: string,
@@ -40,7 +40,7 @@ export class CreateUserToOrganization {
 	): Promise<CreateUserToOrganizationOutput> {
 		const creator = await this.uow.repositories.users.getById(creatorUserId);
 
-		if (!creator || creator.getProps().type !== "ADMIN") {
+		if (creator?.getProps()?.type !== "ADMIN") {
 			throw new NotAllowedError();
 		}
 

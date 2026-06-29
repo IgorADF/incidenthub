@@ -18,7 +18,7 @@ export class DeleteService {
 	): Promise<DeleteServiceOutput> {
 		const deleter = await this.uow.repositories.users.getById(deleterUserId);
 
-		if (!deleter || deleter.getProps().type !== "ADMIN") {
+		if (deleter?.getProps()?.type !== "ADMIN") {
 			throw new NotAllowedError();
 		}
 

@@ -26,7 +26,7 @@ export async function authHook(request: FastifyRequest, reply: FastifyReply) {
 	}
 
 	const match = /^(\S+)\s+(.+)$/i.exec(header);
-	if (!match || match[1].toLowerCase() !== "bearer") {
+	if (match?.[1].toLowerCase() !== "bearer") {
 		return reply.status(401).send({
 			code: "UNAUTHORIZED",
 			message: "Missing or invalid Authorization header",

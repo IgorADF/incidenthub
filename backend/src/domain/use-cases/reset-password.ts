@@ -24,7 +24,7 @@ export class ResetPassword {
 		private readonly uow: UOW,
 		private readonly jwtService: JwtInterface,
 		private readonly hashPasswordService: HashPasswordInterface,
-	) { }
+	) {}
 
 	async execute(input: ResetPasswordInput): Promise<ResetPasswordOutput> {
 		const userId = await this.verifyResetToken(input.token);
@@ -39,8 +39,7 @@ export class ResetPassword {
 				input.password,
 			);
 
-
-			return reps.users.updatePassword(userId, hashedPassword)
+			return reps.users.updatePassword(userId, hashedPassword);
 		});
 
 		return ResetPasswordOutputSchema.parse({ reset: true });

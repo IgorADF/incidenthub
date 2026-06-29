@@ -43,7 +43,9 @@ export function userRoutes(dbClient: MyPrismaClient) {
 							(value) => (value === undefined ? undefined : Number(value)),
 							LimitPagination,
 						),
-						normalizedName: ListUserCursor.shape.normalizedName.optional().default(null),
+						normalizedName: ListUserCursor.shape.normalizedName
+							.optional()
+							.default(null),
 						id: ListUserCursor.shape.id.optional().default(null),
 					}),
 					response: {

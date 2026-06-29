@@ -93,9 +93,7 @@ export function authRoutes(dbClient: MyPrismaClient) {
 			},
 			async (request, reply) => {
 				const { useCase } = resetPasswordFactory(dbClient);
-				return reply
-					.status(200)
-					.send(await useCase.execute(request.body));
+				return reply.status(200).send(await useCase.execute(request.body));
 			},
 		);
 	};

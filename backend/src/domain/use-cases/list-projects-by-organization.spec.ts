@@ -15,10 +15,10 @@ describe("List Projects By Organization", () => {
 
 	it("should list all projects for the organization", async () => {
 		const { organization } = await createTestOrganization(uow);
-		const { project: projectA } = await createTestProject(uow, organization, {
+		await createTestProject(uow, organization, {
 			name: "Project A",
 		});
-		const { project: projectB } = await createTestProject(uow, organization, {
+		await createTestProject(uow, organization, {
 			name: "Project B",
 			showPublicPage: false,
 		});

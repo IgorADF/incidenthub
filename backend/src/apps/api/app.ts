@@ -15,7 +15,19 @@ import { routes } from "./routes/_init";
 
 export async function createApp(prismaClient: MyPrismaClient) {
 	const app = fastify({
-		logger: !envs.isTestEnv,
+		logger: envs.isDevEnv
+			? {
+					level: "info",
+					transport: {
+						target: "pino-pretty",
+						options: {
+							colorize: true,
+							translateTime: "SYS:standard",
+							ignore: "pid,hostname",
+						},
+					},
+				}
+			: undefined,
 	}).withTypeProvider<ZodTypeProvider>();
 
 	app.setValidatorCompiler(validatorCompiler);

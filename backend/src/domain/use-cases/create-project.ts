@@ -30,7 +30,7 @@ export class CreateProject {
 	): Promise<CreateProjectOutput> {
 		const creator = await this.uow.repositories.users.getById(creatorUserId);
 
-		if (!creator || creator.getProps().type !== "ADMIN") {
+		if (creator?.getProps()?.type !== "ADMIN") {
 			throw new NotAllowedError();
 		}
 
