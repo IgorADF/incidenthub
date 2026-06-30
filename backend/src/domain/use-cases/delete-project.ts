@@ -1,6 +1,6 @@
 import type { UOW } from "@domain/repositories/interfaces/_uow";
 import z from "zod";
-import { DeleteService } from "./delete-service";
+import type { DeleteService } from "./delete-service";
 import { NotAllowedError } from "./errors/NotAllowedError";
 import { NotFoundError } from "./errors/NotFoundError";
 

@@ -7,6 +7,7 @@ import {
 } from "./helpers/run-test-config";
 import {
 	authCookies,
+	seedDevUserAndLogin,
 	seedOrganizationAndAdmin,
 	seedProject,
 	seedService,
@@ -188,6 +189,117 @@ describe("service routes (e2e)", () => {
 
 			expect(response.statusCode).toBe(401);
 			expect(response.json().code).toBe("UNAUTHORIZED");
+		});
+	});
+
+	describe("GET /services/:serviceId/health-checks", () => {
+		it("should return 200 with an empty list and pagination structure when no health-checks exist", async () => {
+			const localAdmin = await seedOrganizationAndAdmin(app);
+			const { projectId: pid } = await seedProject(app, localAdmin.token);
+			const { serviceId } = await seedService(app, localAdmin.token, pid);
+
+			const response = await app.inject({
+				method: "GET",
+				url: `/services/${serviceId}/health-checks`,
+				...authCookies(localAdmin.token),
+			});
+
+			expect(response.statusCode).toBe(200);
+			expect(response.json().data).toEqual({
+				healthChecks: [],
+				pagination: {
+					limit: 20,
+					hasNextPage: false,
+					nextCursor: { id: null },
+				},
+			});
+		});
+
+		it("should return 401 without a session cookie", async () => {
+			const localAdmin = await seedOrganizationAndAdmin(app);
+			const { projectId: pid } = await seedProject(app, localAdmin.token);
+			const { serviceId } = await seedService(app, localAdmin.token, pid);
+
+			const response = await app.inject({
+				method: "GET",
+				url: `/services/${serviceId}/health-checks`,
+			});
+
+			expect(response.statusCode).toBe(401);
+			expect(response.json().code).toBe("UNAUTHORIZED");
+		});
+
+		it("should return 403 when the caller is not an admin", async () => {
+			const localAdmin = await seedOrganizationAndAdmin(app);
+			const dev = await seedDevUserAndLogin(app, localAdmin.token);
+			const { projectId: pid } = await seedProject(app, localAdmin.token);
+			const { serviceId } = await seedService(app, localAdmin.token, pid);
+
+			const response = await app.inject({
+				method: "GET",
+				url: `/services/${serviceId}/health-checks`,
+				...authCookies(dev.token),
+			});
+
+			expect(response.statusCode).toBe(403);
+			expect(response.json().code).toBe("NotAllowedError");
+		});
+
+		it("should return 404 when the service does not exist", async () => {
+			const localAdmin = await seedOrganizationAndAdmin(app);
+
+			const response = await app.inject({
+				method: "GET",
+				url: "/services/01940f8e-1f30-7c30-9a6f-1234567890ab/health-checks",
+				...authCookies(localAdmin.token),
+			});
+
+			expect(response.statusCode).toBe(404);
+			expect(response.json().code).toBe("NotFoundError");
+		});
+
+		it("should return 403 when the service belongs to another organization", async () => {
+			const localAdmin = await seedOrganizationAndAdmin(app);
+			const other = await seedOrganizationAndAdmin(app);
+			const { projectId: pid } = await seedProject(app, other.token);
+			const { serviceId } = await seedService(app, other.token, pid);
+
+			const response = await app.inject({
+				method: "GET",
+				url: `/services/${serviceId}/health-checks`,
+				...authCookies(localAdmin.token),
+			});
+
+			expect(response.statusCode).toBe(403);
+			expect(response.json().code).toBe("NotAllowedError");
+		});
+
+		it("should accept limit and id cursor query params", async () => {
+			const localAdmin = await seedOrganizationAndAdmin(app);
+			const { projectId: pid } = await seedProject(app, localAdmin.token);
+			const { serviceId } = await seedService(app, localAdmin.token, pid);
+
+			const response = await app.inject({
+				method: "GET",
+				url: `/services/${serviceId}/health-checks?limit=5`,
+				...authCookies(localAdmin.token),
+			});
+
+			expect(response.statusCode).toBe(200);
+			expect(response.json().data.pagination.limit).toBe(5);
+		});
+
+		it("should return 400 when the serviceId param is not a uuid", async () => {
+			const localAdmin = await seedOrganizationAndAdmin(app);
+
+			const response = await app.inject({
+				method: "GET",
+				url: "/services/not-a-uuid/health-checks",
+				...authCookies(localAdmin.token),
+			});
+
+			expect(response.statusCode).toBe(400);
+			expect(response.json().code).toBe("VALIDATION_ERROR");
 		});
 	});
 });

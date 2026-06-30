@@ -28,7 +28,7 @@ export const UpdateUserOutputSchema = z.object({
 export type UpdateUserOutput = z.infer<typeof UpdateUserOutputSchema>;
 
 export class UpdateUser {
-	constructor(private readonly uow: UOW) { }
+	constructor(private readonly uow: UOW) {}
 
 	async execute(
 		actorUserId: string,
@@ -97,7 +97,7 @@ export class UpdateUser {
 				throw new NotFoundError("User");
 			}
 
-			return result
+			return result;
 		});
 
 		return UpdateUserOutputSchema.parse({ user: updatedUser.getProps() });

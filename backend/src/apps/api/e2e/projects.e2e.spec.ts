@@ -443,9 +443,9 @@ describe("project routes (e2e)", () => {
 				url: "/projects",
 				...authCookies(localAdmin.token),
 			});
-			const ids = (
-				list.json().data.projects as Array<{ id: string }>
-			).map((p) => p.id);
+			const ids = (list.json().data.projects as Array<{ id: string }>).map(
+				(p) => p.id,
+			);
 			expect(ids).not.toContain(projectId);
 		});
 
@@ -558,9 +558,9 @@ describe("project routes (e2e)", () => {
 				url: "/projects",
 				...authCookies(other.token),
 			});
-			const ids = (
-				otherList.json().data.projects as Array<{ id: string }>
-			).map((p) => p.id);
+			const ids = (otherList.json().data.projects as Array<{ id: string }>).map(
+				(p) => p.id,
+			);
 			expect(ids).toContain(projectId);
 
 			const servicesOfProject = await app.inject({

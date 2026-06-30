@@ -28,7 +28,7 @@ export const UpdateProjectOutputSchema = z.object({
 export type UpdateProjectOutput = z.infer<typeof UpdateProjectOutputSchema>;
 
 export class UpdateProject {
-	constructor(private readonly uow: UOW) { }
+	constructor(private readonly uow: UOW) {}
 
 	async execute(
 		actorUserId: string,
@@ -66,9 +66,7 @@ export class UpdateProject {
 				);
 
 			const conflict = orgProjects.find(
-				(p) =>
-					p.getProps().name === newName &&
-					p.getProps().id !== projectId,
+				(p) => p.getProps().name === newName && p.getProps().id !== projectId,
 			);
 
 			if (conflict) {
@@ -81,10 +79,9 @@ export class UpdateProject {
 			input.publicPageSlug !== null &&
 			input.publicPageSlug !== props.publicPageSlug
 		) {
-			const conflict =
-				await this.uow.repositories.projects.getByPublicPageSlug(
-					input.publicPageSlug,
-				);
+			const conflict = await this.uow.repositories.projects.getByPublicPageSlug(
+				input.publicPageSlug,
+			);
 
 			if (conflict && conflict.getProps().id !== projectId) {
 				throw new EntityAlreadyExists({
@@ -107,9 +104,11 @@ export class UpdateProject {
 				throw new NotFoundError("Project");
 			}
 
-			return result
+			return result;
 		});
 
-		return UpdateProjectOutputSchema.parse({ project: updatedProject.getProps() });
+		return UpdateProjectOutputSchema.parse({
+			project: updatedProject.getProps(),
+		});
 	}
 }

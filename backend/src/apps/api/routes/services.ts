@@ -1,11 +1,17 @@
 import { DeleteServiceOutputSchema } from "@domain/use-cases/delete-service";
+import { ListHealthChecksByServiceOutputSchema } from "@domain/use-cases/list-health-checks-by-service";
 import { ToggleServiceEnabledOutputSchema } from "@domain/use-cases/toggle-service-enabled";
 import {
 	UpdateServiceInputSchema,
 	UpdateServiceOutputSchema,
 } from "@domain/use-cases/update-service";
+import {
+	LimitPagination,
+	ListCursor,
+} from "@domain/use-cases/utils/paginations/pagination";
 import type { MyPrismaClient } from "@infra/db/prisma-client";
 import { deleteServiceFactory } from "@infra/factories/delete-service.usecase";
+import { listHealthChecksByServiceFactory } from "@infra/factories/list-health-checks-by-service.usecase";
 import { toggleServiceEnabledFactory } from "@infra/factories/toggle-service-enabled.usecase";
 import { updateServiceFactory } from "@infra/factories/update-service.usecase";
 import type { FastifyPluginOptions } from "fastify";
@@ -86,6 +92,37 @@ export function serviceRoutes(dbClient: MyPrismaClient) {
 					serviceId,
 				);
 				return reply.status(200).send({ deleted });
+			},
+		);
+
+		app.get(
+			"/services/:serviceId/health-checks",
+			{
+				preHandler: [authHook],
+				schema: {
+					params: paramsSchema,
+					querystring: z.object({
+						limit: z.preprocess(
+							(value) => (value === undefined ? undefined : Number(value)),
+							LimitPagination,
+						),
+						id: ListCursor.shape.id.optional().default(null),
+					}),
+					response: {
+						200: z.object({
+							data: ListHealthChecksByServiceOutputSchema,
+						}),
+					},
+				},
+			},
+			async (request, reply) => {
+				const { serviceId } = request.params;
+				const { useCase } = listHealthChecksByServiceFactory(dbClient);
+				const data = await useCase.execute(request.user!.userId, serviceId, {
+					limit: request.query.limit,
+					cursor: { id: request.query.id },
+				});
+				return reply.status(200).send({ data });
 			},
 		);
 	};
