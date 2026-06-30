@@ -182,7 +182,6 @@ describe("ListIncidentsByService", () => {
 		const { organization: orgB } = await createTestOrganization(uow, {
 			name: "Other Corp",
 		});
-		await createTestAdminUser(uow, orgB);
 		const { project: projectB } = await createTestProject(uow, orgB, {
 			name: "Cross Org Project",
 			publicPageSlug: "cross-org-project-slug",

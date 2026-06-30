@@ -164,6 +164,21 @@ describe("project routes (e2e)", () => {
 			expect(response.statusCode).toBe(401);
 			expect(response.json().code).toBe("UNAUTHORIZED");
 		});
+
+		it("should return 403 when the caller is not an admin", async () => {
+			const localAdmin = await seedOrganizationAndAdmin(app);
+			await seedProject(app, localAdmin.token);
+			const dev = await seedDevUserAndLogin(app, localAdmin.token);
+
+			const response = await app.inject({
+				method: "GET",
+				url: "/projects",
+				...authCookies(dev.token),
+			});
+
+			expect(response.statusCode).toBe(403);
+			expect(response.json().code).toBe("NotAllowedError");
+		});
 	});
 
 	describe("PATCH /projects/:projectId", () => {

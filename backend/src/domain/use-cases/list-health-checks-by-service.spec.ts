@@ -30,7 +30,7 @@ describe("ListHealthChecksByService", () => {
 		return { organization, admin, project, service };
 	}
 
-	async function createHealthCheck(serviceId: string, idSuffix: string) {
+	async function createHealthCheck(serviceId: string) {
 		const hc = HealthCheck.create({
 			serviceId,
 			url: "https://api.example.com/health",
@@ -46,9 +46,9 @@ describe("ListHealthChecksByService", () => {
 
 	it("should list health-checks scoped to the service ordered by id descending (newest first)", async () => {
 		const { admin, service } = await setup();
-		const hcA = await createHealthCheck(service.getProps().id, "a");
-		const hcB = await createHealthCheck(service.getProps().id, "b");
-		const hcC = await createHealthCheck(service.getProps().id, "c");
+		const hcA = await createHealthCheck(service.getProps().id);
+		const hcB = await createHealthCheck(service.getProps().id);
+		const hcC = await createHealthCheck(service.getProps().id);
 
 		const result = await sut.execute(
 			admin.getProps().id,
@@ -70,7 +70,7 @@ describe("ListHealthChecksByService", () => {
 	it("should paginate with limit and return hasNextPage + nextCursor", async () => {
 		const { admin, service } = await setup();
 		for (let i = 0; i < 3; i++) {
-			await createHealthCheck(service.getProps().id, `hc-${i}`);
+			await createHealthCheck(service.getProps().id);
 		}
 
 		const firstPage = await sut.execute(
@@ -130,8 +130,8 @@ describe("ListHealthChecksByService", () => {
 			name: "Other Service",
 		});
 
-		await createHealthCheck(service.getProps().id, "target");
-		await createHealthCheck(otherService.getProps().id, "other");
+		await createHealthCheck(service.getProps().id);
+		await createHealthCheck(otherService.getProps().id);
 
 		const result = await sut.execute(
 			admin.getProps().id,
@@ -187,7 +187,6 @@ describe("ListHealthChecksByService", () => {
 		const { organization: orgB } = await createTestOrganization(uow, {
 			name: "Other Corp",
 		});
-		await createTestAdminUser(uow, orgB);
 		const { project: projectB } = await createTestProject(uow, orgB, {
 			name: "Cross Org Project",
 			publicPageSlug: "cross-org-project-slug",

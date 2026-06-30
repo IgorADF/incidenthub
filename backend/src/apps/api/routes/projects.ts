@@ -50,7 +50,7 @@ export function projectRoutes(dbClient: MyPrismaClient) {
 			},
 			async (request, reply) => {
 				const { useCase } = listProjectsByOrganizationFactory(dbClient);
-				const data = await useCase.execute(request.user!.organizationId);
+				const data = await useCase.execute(request.user!.userId);
 				return reply.status(200).send({ data });
 			},
 		);

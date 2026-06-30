@@ -6,13 +6,34 @@ IncidentHub — operational platform for small SaaS companies to monitor service
 
 Independent TypeScript packages, no root `package.json` or monorepo tooling.
 
-- `backend/` — Single package that contains the domain layer, infrastructure, and two separate entrypoints:
+- `backend/` — Single package containing domain layer, infrastructure, and three separate entrypoints:
   - `apps/api/` — Fastify v5 HTTP API.
-  - `apps/workers/` — Background job processors (queue consumers).
-- `ui/` — React/Vite frontend.
-- `ProjectIdea.txt` — business requirements (Portuguese).
+  - `apps/workers/` — Background job processors (queue consumers): `healthcheck/`, `notification/`, `shared/`.
+  - `apps/crons/` — Cron-scheduled jobs (e.g. `clear-test-schemas.ts`).
+- `ui/` — React/Vite frontend (separate package, scaffold only — see "UI vs Backend" below).
+- `ProjectIdea.txt` — business notes (Portuguese, sparse).
 
-The API and workers are separate processes. They share `domain/` and `infra/` but never import each other.
+API, workers, and crons are separate processes. They share `domain/` and `infra/` but never import each other.
+
+## UI vs Backend
+
+**All implemented features live in `backend/`.** The `ui/` package is the default Vite + React template (counter demo, no auth/API integration, no routing, no state management). Do not assume any frontend feature exists because its backend route does.
+
+| Aspect | `backend/` | `ui/` |
+|---|---|---|
+| Stack | Fastify v5, Prisma 7, BullMQ, Zod 4, TS 6 | Vite + React 19, TS 6 |
+| Entry | `apps/api/server.ts` (API), `apps/workers/*/main.ts` (workers), `apps/crons/*.ts` | `src/main.tsx` (Vite dev) |
+| Build | `npm run build` → `dist/` | `npm run build` → `dist/` |
+| Test | Vitest unit (`vitest.config.ts`) + e2e (`vitest.e2e.config.ts`, real PostgreSQL) | None configured |
+| Lint | Biome (`lint`, `format`, `organize:all`) | ESLint flat config (`eslint.config.js`) |
+| Implemented | Domain layer, all use-cases, full REST API, cookie auth, workers, crons | Default template only (`App.tsx` is the Vite counter) |
+| API client | n/a | None — no fetch/axios wrapper, no auth cookie helper, no endpoint module |
+| Auth | Cookie-based (`@fastify/cookie`, `authHook`) | No login form, no cookie handling, no `AuthUser` type |
+| Routes | `POST /organizations`, `POST/GET/PATCH/DELETE /users`, `POST/GET/PATCH/DELETE /projects`, `POST/GET/PUT/PATCH/DELETE /projects/:projectId/services`, `GET /services/:id/health-checks`, `GET /services/:id/incidents`, `POST /auth/login`, `POST /auth/logout`, `POST /password/forgot`, `POST /password/reset` | None — no router installed |
+
+**When working on `ui/`:** treat it as a greenfield frontend that will consume the backend HTTP API over cookies (`credentials: "include"` on fetch, same-origin or CORS to `UI_URL`). No existing patterns to mirror — establish them. The backend API contract is the source of truth (see "API routes implemented" in Current State).
+
+**When working on `backend/`:** ignore `ui/`. Backend has no dependency on frontend. API responses are JSON (`{ data: ... }`), error shapes are `{ code, message, context? }` / `{ code, issues }` — frontend-friendly but backend does not tailor responses for any specific UI.
 
 ## Commands
 
@@ -23,22 +44,32 @@ cd backend
 npm install
 
 npx prisma generate        # generate client → src/infra/db/generated/ (not in repo)
-npx prisma migrate dev     # create & apply migration
+npm run db:generate        # alias: prisma generate --sql (always use --sql)
+npm run db:migrate:dev     # db:generate && prisma migrate dev (composite — use this for dev)
+npm run db:migrate:deploy  # prisma migrate deploy (CI/test)
 npx prisma migrate reset   # reset DB
 npx prisma studio          # open DB GUI
 
-npm run dev:api            # tsx watch src/apps/api/server.ts, port 3000
-npm run dev:worker:healthcheck  # tsx watch src/apps/workers/healthcheck/main.ts
-npm run dev:worker:notification # tsx watch src/apps/workers/notification/main.ts
-npm run build              # tsc
-npm run start:api          # node dist/apps/api/server.js
-npm run start:worker:healthcheck  # node dist/apps/workers/healthcheck/main.js
-npm run start:worker:notification # node dist/apps/workers/notification/main.js
+npm run dev:api                  # tsx src/apps/api/server.ts, port 3000
+npm run dev:worker:healthcheck   # tsx src/apps/workers/healthcheck/main.ts
+npm run dev:worker:notification  # tsx src/apps/workers/notification/main.ts
+npm run build                    # tsc
+npm run start:api                # node dist/apps/api/server.js
+npm run start:worker:healthcheck # node dist/apps/workers/healthcheck/main.js
+npm run start:worker:notification# node dist/apps/workers/notification/main.js
 
-npm run tests              # vitest run (one-shot)
-npx vitest run
-npx vitest run src/domain/use-cases/create-organization.spec.ts
+npm run tests              # vitest run --config vitest.config.ts (unit only, excludes e2e)
+npm run tests:e2e          # vitest run --config vitest.e2e.config.ts (serial, real PostgreSQL)
+npm run type:check         # npx tsc --noEmit
+npm run lint               # biome lint
+npm run format             # biome format --write ./src
+npm run organize:all       # biome check --write ./src (lint + format + organize imports)
+
+npx vitest run src/domain/use-cases/create-organization.spec.ts   # single unit spec
+NODE_ENV=test npx vitest run --config ./vitest.e2e.config.ts src/apps/api/e2e/auth.e2e.spec.ts  # single e2e
 ```
+
+**Required verification order after any backend change:** `npm run type:check` → `npm run tests` → `npm run tests:e2e` (e2e needs PostgreSQL + `.env.test`).
 
 ## TypeScript
 
@@ -46,6 +77,7 @@ npx vitest run src/domain/use-cases/create-organization.spec.ts
 - `moduleResolution: "bundler"` — `.js` extensions in relative imports are not required.
 - `strict: true`; `noUncheckedIndexedAccess` not set.
 - `verbatimModuleSyntax` not enabled — regular `import` works for types.
+- TypeScript 6.x, Zod 4.x.
 
 ## backend — Architecture
 
@@ -55,14 +87,15 @@ Clean Architecture with Unit-of-Work.
 backend/src/
   domain/
     entities/              ← domain entities extending DefaultEntity<T>
-    value-objects/         ← Zod schemas: UUIDv7, CreatedAt
-    errors/                ← domain-wide errors (e.g. ValidationEntitiesError)
+    value-objects/         ← Zod schemas: UUIDv7, CreatedAt, Email, URL, Slug, Password, NormalizedString
+    errors/                ← domain-wide errors (ValidationEntitiesError)
     repositories/
       interfaces/          ← repository contracts + UOW interface
       in-memory/           ← fakes for testing
-    services/              ← domain service interfaces (ports)
+    services/              ← domain service interfaces (ports) + test doubles
     use-cases/             ← business-logic classes
       errors/              ← use-case errors extending DefaultUseCasesError
+      utils/paginations/   ← pagination schemas + types (base + per-entity cursor)
       utils/tests/         ← use-case test helpers (createTestOrganization, etc.)
   infra/
     db/                    ← Prisma schema + generated client
@@ -70,13 +103,14 @@ backend/src/
     factories/             ← production wiring of use-cases + services
     mappers/               ← entity ↔ Prisma conversion
     queue/                 ← BullMQ queues
-    redis:                 ← Redis connection
+    redis/                 ← Redis connection
     repositories/prisma/   ← Prisma implementations
     services/              ← infra implementations of domain service interfaces (adapters)
   apps/
-    api/                   ← Fastify server, routes, controllers
-    worker/                ← background job processors
-  types/                   ← shared types (TPrismaClient)
+    api/                   ← Fastify server, routes, plugins, handlers, e2e/
+    workers/               ← healthcheck/ + notification/ + shared/
+    crons/                 ← cron-scheduled jobs
+  types/                   ← shared types (TPrismaClient, OmitDefaultValues, FastifyZodInstance)
 ```
 
 ### Path aliases
@@ -92,589 +126,360 @@ Use aliases for cross-layer imports. Use relative imports only within the same f
 
 ### Value-objects
 
-- Reusable Zod schemas that validate primitives: `UUIDv7`, `CreatedAt`, `Email`, `URL`, `Slug`, `Password`.
-- Example:
-  ```ts
-  export const Email = z.email();
-  export type Email = z.infer<typeof Email>;
-  ```
-- Use the schema to parse values (`Email.parse(rawEmail)`), which validates and returns the typed value.
-- IDs are typed with the `UUIDv7` schema; both primary keys and foreign keys use the same schema.
-
-### Entities
-
-- Every domain entity extends `DefaultEntity<T>`, stores frozen props, and exposes them via `getProps()`.
-- Each entity defines a Zod schema for its full props and a create-input schema.
-- `DefaultEntity` validates props against the schema in the constructor and throws `ValidationEntitiesError` on failure.
-- Entities generate their own `id` (via `UUIDv7.parse(uuidv7())`) and `createdAt` (via `CreatedAt.parse(new Date())`).
-- IDs are typed as `UUIDv7`; foreign keys also use `UUIDv7`; dates are `CreatedAt`.
-- Entities provide:
-  - `create(props)` — omitting generated fields and fields with defaults.
-  - `fromProps(props)` — for mappers to reconstruct persisted data.
-- When the full entity schema uses `.refine()`, the create-input type is a plain TypeScript type derived with `OmitDefaultValues` instead of a derived Zod schema, because refined schemas cannot be omitted:
-  ```ts
-  type ServiceType = z.infer<typeof ServiceSchema>;
-  export type CreateServiceType = OmitDefaultValues<
-    ServiceType,
-    "status" | "consecutivesIncidentDetectionFails" | "enabled"
-  >;
-  ```
-- Entities do **not** contain Prisma conversion methods. Mappers handle that.
-- Prisma models for entity-managed tables do **not** use `@default(uuid())` or `@default(now())` for `id` / `createdAt`.
-
-### Mappers
-
-- Mappers live in `src/infra/mappers/` and convert between Prisma payloads and domain entities.
-- Each mapper provides:
-  - `fromEntityToPrisma(entity)` — maps the entity to the generated Prisma payload type.
-  - `fromPrismaToEntity(prismaEntity)` — maps a Prisma record back to the entity.
-- Mappers may call `Entity.fromProps(props)` to reconstruct persisted data. All other code uses `Entity.create(...)`.
-
-### Repositories
-
-- Every repository has an interface in `domain/repositories/interfaces/`.
-- Production implementations live in `infra/repositories/prisma/`.
-- In-memory fakes live in `domain/repositories/in-memory/`.
-- Repositories accept and return entity instances.
-  - Prisma implementations convert via `EntityMapper.fromEntityToPrisma` / `fromPrismaToEntity`.
-  - In-memory implementations store the entity directly in the UOW db map.
-- Repository methods operate on `TPrismaClient` so they can run inside or outside a transaction.
-
-### Unit of Work
-
-- `UOW` interface: `repositories` map + `transaction<T>(callback)`.
-- `PrismaUOW.transaction` uses `client.$transaction` and passes transaction-scoped repositories to the callback.
-- `IMUOW.transaction` calls the callback with the same in-memory repositories.
-- In-memory db map holds entity instances (`Organization[]`, `User[]`, etc.).
-- The transaction callback can return any value; the return type is preserved via the generic `<T>`.
-
-### Use-cases
-
-- A use-case is a class whose constructor takes a `UOW` and any domain service interfaces it needs (e.g., `HashPasswordInterface`).
-- The public method is usually `execute(...)`.
-- Business rules (e.g. uniqueness checks) query `uow.repositories` directly.
-- Outward-facing concerns (hashing, external APIs, email) are handled by injected domain services, never by importing infra directly.
-- Build the entities first, then persist them inside `uow.transaction`.
-- Use-cases are pure business logic. They report truthful domain outcomes (e.g. `NotFoundError` when an entity isn't found). Security, anti-enumeration, and transport-level concerns belong at the API route boundary, never inside a use-case.
-
-### Domain services
-
-- Domain service interfaces (ports) live in `src/domain/services/`.
-- They declare operations the domain needs but does not implement (e.g., password hashing).
-- Infra provides concrete adapters in `src/infra/services/`.
-- Use-cases depend on the interface; factories inject the production adapter.
-
-### Factories
-
-- Production factories are in `infra/factories/<name>.usecase.ts`.
-- They create a `PrismaUOW` from the singleton `prismaClient`, instantiate the required infra services, inject them into the use-case, and return `{ useCase }`.
-
-### Route handlers
-
-- Route plugins live in `apps/api/routes/<resource>.ts`. Each exports an `async function <name>(app: FastifyZodInstance, _options)` and is registered in `apps/api/routes/_init.ts`.
-- Use `FastifyZodInstance` from `~types/fastify-zod-instance` as the `app` parameter type. It wires the `fastify-type-provider-zod` provider, so Zod schemas declared in `schema` both **validate at runtime** (via `validatorCompiler` / `serializerCompiler` set in `app.ts`) and **narrow at compile time** (`request.params`, `request.body`, `request.query`, and `reply.send(...)`).
-- Declare input/output schemas in the route's `schema: { params, body, querystring, response }`. The Zod schema in `schema` is the single source of truth for both validation and TypeScript narrowing. Never add manual route generics (`app.post<{ Body: ... }>(...)`) or `request.body as ...` casts.
-- For path params with IDs use `z.object({ serviceId: z.string().uuid() })` etc.
-- Domain errors propagate to the global handler in `apps/api/handlers/error.ts`. The handler uses a `code → HTTP status` lookup table for plain domain errors (`EntityAlreadyExists`→409, `NotAllowedError`→403, `NotFoundError`→404, `LimitExceededError`→409, `InvalidCredentialError`→401, `ValidationEntitiesError`→400); unmapped codes default to 400 via a `DefaultUseCasesError` / `DefaultEntitiesError` catch-all. Adding a new plain domain error only requires one line in the map. Specific branches are kept only for errors with extra payload (`EntityAlreadyExists` → includes `context`, `ValidationEntitiesError` → includes `issues`). Vendor errors handled separately: request Zod-schema validation (`hasZodFastifySchemaValidationErrors`) → 400, response serialization (`isResponseSerializationError`) → 500. Route handlers do **not** catch domain errors, with one exception: anti-enumeration at the transport boundary (e.g. `POST /password/forgot` catches `NotFoundError` and returns 200).
-- For `request.user`, use `authHook` from `../plugins/auth` (attach as `{ preHandler: [authHook] }`). The hook populates `request.user: AuthUser | null` via JWT. Access `request.user!.userId` / `.organizationId` in handlers — the `!` is intentional since the hook 401s when unauthenticated.
-
-### Errors
-
-- Domain errors extend `DefaultUseCasesError` and expose `code` + `message`.
-- `EntityAlreadyExists` also carries an optional `context: { entity?, field? }` so callers can identify what conflicted.
-- `ValidationEntitiesError` lives in `domain/entities/errors/` and is thrown by `DefaultEntity` when schema validation fails.
-- `ValidationEntitiesError` exposes `issues: { path: string; message: string }[]` so callers can react per field. The `message` is a human-readable concatenation of all issues.
-
-### Tests
-
-- Unit tests use `IMUOW` — no database needed.
-- Pattern: `new IMUOW()` in `beforeEach`, pass it to the use-case constructor, assert behavior.
-- When a use-case depends on a domain service, instantiate a test double (e.g., `HashPasswordTestService`) and pass it to the constructor.
-- Assert entity values through `.getProps()`, e.g. `result.organization.getProps().name`.
-- See `src/domain/use-cases/create-organization.spec.ts` for the canonical example.
-
-### Value-object tests
-
-- Each value-object schema has a co-located `.spec.ts` file in `src/domain/value-objects/`.
-- Tests exercise `.parse()` for valid inputs and `.safeParse()` for invalid inputs.
-- Cover success boundaries (min/max lengths, valid formats) and failure cases (empty values, wrong types, malformed formats).
-- Example:
-
-  ```ts
-  import { describe, it, expect } from "vitest";
-  import { Email } from "./email";
-
-  describe("Email value object", () => {
-    it("should parse a valid email", () => {
-      expect(Email.parse("admin@acme.com")).toBe("admin@acme.com");
-    });
-
-    it("should reject a string without @", () => {
-      expect(Email.safeParse("not-an-email").success).toBe(false);
-    });
-  });
-  ```
-
-### Entity tests
-
-- Each entity has a co-located `.spec.ts` file in `src/domain/entities/`.
-- Test `Entity.create` validation directly — do not route entity-level assertions through use-case specs.
-- Include boundary tests for every min/max constraint (e.g., exactly `min` accepted, `min - 1` rejected, exactly `max` accepted, `max + 1` rejected).
-- Example:
-
-  ```ts
-  import { describe, it, expect } from "vitest";
-  import { Organization } from "./organization";
-  import { ValidationEntitiesError } from "./errors/ValidationEntitiesError";
-
-  describe("Organization entity", () => {
-    it("should accept a name with exactly 50 characters", () => {
-      expect(() => Organization.create({ name: "a".repeat(50) })).not.toThrow();
-    });
-
-    it("should reject a name longer than 50 characters", () => {
-      expect(() => Organization.create({ name: "a".repeat(51) })).toThrow(
-        ValidationEntitiesError,
-      );
-    });
-  });
-  ```
-
-### Adding a new entity, repository, and use-case
-
-The full workflow for adding a domain feature, with templates. Each step references the conventions described in the sections above.
-
-#### 1. Prisma model
-
-Add the model to `src/infra/db/schema.prisma`:
-- Use `@id` on the primary key, but **do not** use `@default(uuid())`.
-- Use `createdAt DateTime` but **do not** use `@default(now())`.
-- These values are generated and validated by the entity class, not the database.
-- Map fields with `@map("snake_case")` and the table with `@@map("table_name")`.
-
-#### 2. Value-objects
-
-Create new value-object schemas in `src/domain/value-objects/` only if the entity needs new domain primitives that do not exist yet. Reuse `UUIDv7` and `CreatedAt` for ids and timestamps; do not recreate them.
+Reusable Zod schemas validating primitives: `UUIDv7`, `CreatedAt`, `Email`, `URL`, `Slug`, `Password`, `NormalizedString`.
 
 ```ts
 export const Email = z.email();
 export type Email = z.infer<typeof Email>;
 ```
 
-#### 3. Entity
+- Use `Schema.parse(rawValue)` to validate + return typed value.
+- IDs typed with `UUIDv7`; primary keys and foreign keys use the same schema.
 
-Create the entity class in `src/domain/entities/<name>.ts`:
-- Extend `DefaultEntity<T>` from `./_default`.
-- Define a Zod schema for the full entity props (include `id` and `createdAt`).
-- Define a create-input type by omitting generated fields.
-- Provide `create(props)` and `fromProps(props)` static methods.
-- Do **not** add Prisma conversion methods to the entity.
+**Non-obvious transforms (applied at parse time):**
+- `Slug`: trim → strip leading `/` → regex `^[a-z0-9]+(?:-[a-z0-9]+)*$` (lowercase alphanumeric + single hyphens between groups, no uppercase/space).
+- `NormalizedString`: trim → NFKD normalize → strip combining marks → lowercase → collapse whitespace. `User.normalizedName` derived from `name` (raw name stored, normalized computed at entity `create`).
+
+### Entities
+
+- Every entity extends `DefaultEntity<T>`, stores frozen props via `Object.freeze`, exposes `getProps(): Readonly<T>`.
+- `DefaultEntity` validates props against the schema in the constructor and throws `ValidationEntitiesError` on failure.
+- Entities generate their own `id` (`UUIDv7.parse(uuidv7())`) and `createdAt` (`CreatedAt.parse(new Date())`).
+- IDs typed `UUIDv7`; foreign keys also `UUIDv7`; dates `CreatedAt`.
+- Entities provide:
+  - `create(props)` — omits generated fields (`id`, `createdAt`) and fields with defaults.
+  - `fromProps(props)` — for mappers + use-case updates (reconstruct persisted data).
+- Some entities add domain methods returning new instances via `Entity.fromProps({ ...this.getProps(), ...changes })` (e.g. `Service.resolveCurrentIncident()`, `Incident.resolve()`, `Service.enable()`/`disable()`). User/Project have no update methods — use `fromProps` spread in use-cases.
+- When the full schema uses `.refine()`, the create-input type is a plain TypeScript type derived with `OmitDefaultValues` (refined schemas cannot be `.omit()`-ed as Zod schemas):
+  ```ts
+  type ServiceType = z.infer<typeof ServiceSchema>;
+  export type CreateServiceType = OmitDefaultValues<ServiceType, "status" | "consecutivesIncidentDetectionFails" | "enabled">;
+  ```
+- `ProjectSchema` uses `.refine()` (showPublicPage=true requires non-null publicPageSlug) + `.overwrite()` (showPublicPage=false forces publicPageSlug=null). Use-cases trust these schema rules — don't duplicate in use-case logic.
+- Entities do **not** contain Prisma conversion methods. Mappers handle that.
+- Prisma models for entity-managed tables do **not** use `@default(uuid())` or `@default(now())` for `id` / `createdAt`.
+
+### Entity update pattern (frozen entities)
+
+Entities are immutable. To "update", rebuild via `fromProps`:
 
 ```ts
-// backend/src/domain/entities/example.ts
-import { DefaultEntity } from "./_default";
-import z from "zod";
-import { UUIDv7 } from "@domain/value-objects/uuidv7";
-import { CreatedAt } from "@domain/value-objects/created-at";
-import { OmitDefaultValues } from "~types/omit-default-values";
-
-const ExampleSchema = z.object({
-  id: UUIDv7,
-  organizationId: UUIDv7,
-  name: z.string().min(1).max(100),
-  createdAt: CreatedAt,
+const updated = Project.fromProps({
+  ...project.getProps(),
+  name: newName,
+  showPublicPage: newShowPublicPage,
+  publicPageSlug: newSlug !== undefined ? newSlug : props.publicPageSlug,
 });
-
-type ExampleType = z.infer<typeof ExampleSchema>;
-
-export type CreateExampleType = OmitDefaultValues<ExampleType>;
-
-export class Example extends DefaultEntity<ExampleType> {
-  static create(props: CreateExampleType) {
-    return Example.fromProps({
-      ...props,
-      ...DefaultEntity.generateEntityDefaultValues(),
-    });
-  }
-
-  static fromProps(props: ExampleType) {
-    return new Example(props, ExampleSchema);
-  }
-}
 ```
 
-Entity special cases:
-- **Passwords** are typed as `Password` from `@domain/value-objects/password` and hashed outside the entity by a domain service implementing `HashPasswordInterface`; never hash directly with bcrypt in a use-case.
-- **Optional fields** in Prisma become `field: Type | null` in the entity interface; never use `undefined`.
-- **Enums** from Prisma are cast via `z.enum([...])` inside the entity.
-- **Cross-field validation** (e.g. `timeoutSeconds < intervalSeconds`) is done with `.refine()` on the entity schema. When the schema uses `.refine()`, the create-input type is a plain TypeScript type derived with `OmitDefaultValues` instead of a derived Zod schema (refined schemas cannot be omitted).
-- **Soft-delete fields** such as `deletedAt` are carried in the mapper but are not part of the core domain interface unless required by business rules.
+- Use `input.field !== undefined ? input.field : props.field` for nullable fields to distinguish "not provided" from "explicit null" (e.g. clearing a slug).
+- Use `input.field ?? props.field` for non-nullable primitives.
 
-#### 4. Entity spec
+### Mappers
 
-Create the spec in `src/domain/entities/<name>.spec.ts` following the entity test conventions above (boundary tests for every min/max constraint, test `Entity.create` directly).
+- Live in `src/infra/mappers/` and convert between Prisma payloads and domain entities.
+- Each mapper provides `fromEntityToPrisma(entity)` and `fromPrismaToEntity(prismaEntity)`.
+- `fromPrismaToEntity` parses id/createdAt/foreign keys via `UUIDv7.parse` / `CreatedAt.parse` before `Entity.fromProps`.
+- Some entities have separate `User` (no password) vs `UserWithPassword` mappers — pick the one matching the repo method.
+- Mappers may call `Entity.fromProps(props)`. All other code uses `Entity.create(...)`.
 
-#### 5. Mapper
+### Repositories
 
-Create the mapper in `src/infra/mappers/<name>.ts`:
+- Interface in `domain/repositories/interfaces/`, Prisma impl in `infra/repositories/prisma/`, in-memory fake in `domain/repositories/in-memory/`.
+- Repositories accept and return entity instances.
+  - Prisma impls convert via `EntityMapper.fromEntityToPrisma` / `fromPrismaToEntity`.
+  - In-memory impls store the entity directly in the UOW db array.
+- Repository methods operate on `TPrismaClient` so they work inside or outside a transaction.
+- `TPrismaClient = MyPrismaClient | Prisma.TransactionClient` — single type for both contexts.
 
-```ts
-// backend/src/infra/mappers/example.ts
-import { Example } from "@domain/entities/example";
-import { Prisma } from "@infra/db/generated/client";
-import { UUIDv7 } from "@domain/value-objects/uuidv7";
-import { CreatedAt } from "@domain/value-objects/created-at";
+### Unit of Work
 
-export class ExampleMapper {
-  static fromEntityToPrisma(entity: Example): Prisma.ExampleGetPayload<object> {
-    const props = entity.getProps();
-    return {
-      id: props.id,
-      organizationId: props.organizationId,
-      name: props.name,
-      createdAt: props.createdAt,
-    };
-  }
+- `UOW` interface: `repositories` map + `transaction<T>(callback)`.
+- `PrismaUOW.transaction` uses `client.$transaction` and passes transaction-scoped repositories to the callback.
+- `IMUOW.transaction` calls the callback with the same in-memory repositories (no real rollback).
+- In-memory db map holds entity instances: `healthChecks`, `incidents`, `organizations`, `projects`, `services`, `users` (each typed as entity array).
+- **Prisma `$transaction` does NOT support nesting.** A use-case running inside a transaction must not call another use-case's `execute` (which opens its own `$transaction`). Use extracted helper methods (e.g. `DeleteService.cascadeDelete(reps, service)`) that accept caller-provided `reps`.
 
-  static fromPrismaToEntity(
-    prismaEntity: Prisma.ExampleGetPayload<object>,
-  ): Example {
-    return Example.fromProps({
-      id: UUIDv7.parse(prismaEntity.id),
-      organizationId: UUIDv7.parse(prismaEntity.organizationId),
-      name: prismaEntity.name,
-      createdAt: CreatedAt.parse(prismaEntity.createdAt),
-    });
-  }
-}
+### Use-cases
+
+- A use-case is a class whose constructor takes a `UOW` and any domain service interfaces it needs.
+- The public method is `execute(...)`.
+- Business rules query `uow.repositories` directly; throw domain errors from `use-cases/errors/`.
+- Outward-facing concerns (hashing, JWT, external APIs, email) handled by injected domain services — never import infra directly.
+- Build entities outside the transaction, then persist inside `uow.transaction`.
+- Use-cases are pure business logic. They report truthful domain outcomes (`NotFoundError`, `NotAllowedError`, etc.). Security, anti-enumeration, and transport-level concerns belong at the route boundary.
+
+#### Conventions
+
+- **Class naming:** kebab-case file → PascalCase preserving every word boundary: `create-organization` → `CreateOrganization`, `create-user-to-organization` → `CreateUserToOrganization`.
+- **Authorization:** always verify actor exists + has permission before processing. All mutating use-cases and ALL list use-cases require `type === "ADMIN"` else `NotAllowedError`. Resolve org from requester (`requester.getProps().organizationId`), never from route param.
+- **Uniqueness checks:** query before building entities; throw `EntityAlreadyExists({ entity, field })`. Email is globally unique (Prisma `@unique`). Project name is org-scoped (`@@unique([organizationId, name])`). Project `publicPageSlug` is globally unique.
+- **Transactions:** build entities outside, persist inside `uow.transaction`.
+- **Entity validation:** format/range/cross-field rules live in entity Zod schemas + entity specs. Use-case specs cover auth, uniqueness, limits, wiring — not format validation.
+- **Partial input:** use `.partial()` + `.refine` enforcing ≥1 field provided. For nullable fields use `!== undefined` check to allow explicit null.
+- **Output schema:** each use-case exports `<Name>OutputSchema` (Zod object). Route response: `200: z.object({ data: <Name>OutputSchema })`. Don't redefine output shape in route.
+- **Test factories:** prefer `createTestOrganization`, `createTestAdminUser`, `createTestDevUser`, `createTestProject`, `createTestService` over inline entity creation.
+- **Security:** never swallow domain errors or alter a use-case result to hide information. Use-case returns/throws truthful outcome; route handler decides client view (e.g. `POST /password/forgot` catches `NotFoundError` → 200).
+
+#### Last-admin invariant
+
+- Deleting or demoting the last ADMIN of an org → `NotAllowedError`.
+- Uses `users.countByOrganizationIdAndType(orgId, "ADMIN")` repo method.
+- Applies in `DeleteUser` (cannot delete last admin) and `UpdateUser` (cannot demote ADMIN→DEV when only one admin).
+- Self-delete also blocked (`DeleteUser`).
+
+#### Cascade delete pattern
+
+**No `onDelete: Cascade` anywhere in Prisma schema — all relations default RESTRICT.** Manual ordered deletion required, inside one outer `uow.transaction`.
+
+`DeleteService.cascadeDelete(reps, service)` is a public method reused by `DeleteProject`:
+
+```
+per service (inside caller's transaction):
+  1. if service.currentIncidentId set → service.resolveCurrentIncident() → reps.services.update(resolved)
+     (clears Service→Incident FK so incident can be deleted without RESTRICT violation)
+  2. reps.healthChecks.deleteByServiceId(serviceId)
+  3. reps.incidents.deleteByServiceId(serviceId)
+  4. reps.services.delete(serviceId)
+
+DeleteProject: loop cascadeDelete per service (services.getByProjectId), then reps.projects.delete(projectId)
 ```
 
-#### 6. Repository interface
+Reuse mechanism: extract public `cascadeDelete(reps, entity)` on the inner use-case; outer use-case injects the inner via factory and loops it within its own transaction. Avoids nested `$transaction`.
 
-Create the interface in `domain/repositories/interfaces/<plural>.ts`:
-- Import the entity from `@domain/entities/<name>`.
-- Return `Entity | null` for lookups and `Entity` for writes.
+### Domain services
+
+- Interfaces (ports) in `src/domain/services/<name>.interface.ts`.
+- Infra adapters in `src/infra/services/<name>.ts`.
+- Test doubles co-located in `src/domain/services/<name>.ts` (e.g. `HashPasswordTestService`).
+- Use-cases depend on the interface; factories inject the production adapter; specs inject the test double.
+
+### Factories
+
+- Production factories in `infra/factories/<name>.usecase.ts`.
+- Signature: `<name>Factory(dbClient: MyPrismaClient)` — takes `dbClient` parameter (NOT singleton `prismaClient` import). Route passes its `dbClient` through.
+- Body: `new PrismaUOW(dbClient)`, instantiate required infra services, inject into use-case, return `{ useCase }`.
+- Use-cases needing cross-use-case reuse inject sibling use-cases directly (e.g. `new DeleteProject(uow, new DeleteService(uow))`) — share the same UOW instance.
+
+### Route handlers
+
+- Route plugins in `apps/api/routes/<resource>.ts`. Each exports `<name>Routes(dbClient)` returning `async (app, _options)`. Registered in `apps/api/routes/_init.ts`.
+- Use `FastifyZodInstance` from `~types/fastify-zod-instance` as the `app` type. Wires `fastify-type-provider-zod` — Zod schemas in `schema` both **validate at runtime** (via `validatorCompiler` / `serializerCompiler` set in `app.ts`) and **narrow at compile time**.
+- Declare input/output schemas in `schema: { params, body, querystring, response }`. Single source of truth for validation + TS narrowing. Never add manual route generics (`app.post<{ Body: ... }>(...)`) or `request.body as ...` casts.
+- Path params with IDs: `z.object({ serviceId: z.string().uuid() })` etc.
+- Domain errors propagate to global handler in `apps/api/handlers/error.ts`. Status map: `EntityAlreadyExists`→409, `NotAllowedError`→403, `NotFoundError`→404, `LimitExceededError`→409, `InvalidCredentialError`→401, `ValidationEntitiesError`→400. Unmapped codes → 400 via `DefaultUseCasesError`/`DefaultEntitiesError`. Specific branches kept only for errors with extra payload (`EntityAlreadyExists` → `context`, `ValidationEntitiesError` → `issues`). Vendor: request Zod validation → 400, response serialization → 500. Route handlers do **not** catch domain errors, except anti-enumeration at transport boundary (`POST /password/forgot` catches `NotFoundError` → 200).
+
+### Auth (cookie-based)
+
+- `@fastify/cookie` registered in `app.ts` with `secret: envs.AUTH_JWT_SECRET`.
+- CORS: `credentials: true, origin: [envs.UI_URL]` (cross-origin cookies need explicit origin + credentials).
+- `POST /auth/login` → `reply.setCookie(envs.COOKIE_NAME, token, { httpOnly, secure, sameSite, path, domain, maxAge })`, returns `{ data: { user } }` (NO token in body).
+- `POST /auth/logout` → `reply.clearCookie(envs.COOKIE_NAME, { path, domain })`, returns `{ data: { ok: true } }`.
+- `POST /password/forgot` / `POST /password/reset` — reset token delivered via email link as JWT (one-shot flow), not via cookie.
+- `authHook` in `apps/api/plugins/auth.ts` reads `request.cookies[envs.COOKIE_NAME]`, verifies via `JwtService.verifyAuth`, populates `request.user: AuthUser | null`.
+- `AuthUser = { userId: string; organizationId: string; type: "ADMIN" | "DEV" }`.
+- Attach as `{ preHandler: [authHook] }`. Access `request.user!.userId` / `.organizationId` in handlers — `!` intentional since hook 401s when unauthenticated.
+- Env: `COOKIE_NAME` (default `"ih_session"`), `COOKIE_DOMAIN?`, `COOKIE_SECURE` (default false), `COOKIE_SAMESITE` (default `"lax"`), `COOKIE_PATH` (default `"/"`).
+
+### Errors
+
+- Domain errors extend `DefaultUseCasesError` and expose `code` + `message`.
+- `EntityAlreadyExists` carries optional `context: { entity?, field? }` — forwarded to client by handler.
+- `ValidationEntitiesError` lives in `domain/entities/errors/`, thrown by `DefaultEntity` on schema failure. Exposes `issues: { path, message }[]`; `message` is human-readable concatenation.
+
+## Pagination
+
+Base schemas in `src/domain/use-cases/utils/paginations/pagination.ts`:
+
+- `LimitPagination` — int 1..100, default 20.
+- `ListCursor` — `{ id: UUIDv7.nullable() }` (id-only cursor).
+- `ListPagination` — `{ limit, cursor }`.
+- `NextPaginationList` — `{ limit, hasNextPage, nextCursor }`.
+
+Composite cursor example: `ListUserCursor = { normalizedName, id }` in `list-user-by-organization.ts` (two-column tie-breaker). When adding new paginated list, prefer the base `ListCursor` (id-only) unless a secondary sort is required.
+
+**Repo `listByX` contract:** returns `{ entities, pagination: { limit, hasNextPage, nextCursor } }`. Implementation: `take: limit + 1`, slice first `limit`, `hasNextPage = records.length > limit`, `nextCursor.id = lastEntity.id` (or `null` when no next page).
+
+**Direction conventions:**
+- Ascending (older first): `orderBy: { id: "asc" }`, `where: { id: { gt: cursorId } }`, in-memory `a.id.localeCompare(b.id)` + `id > cursorId`. Used by `list-users-by-organization` (composite normalizedName+id).
+- **Descending (newest first, default for time-series):** `orderBy: { id: "desc" }`, `where: { id: { lt: cursorId } }`, in-memory `b.id.localeCompare(a.id)` + `id < cursorId`. Used by `list-health-checks-by-service` and `list-incidents-by-service`. UUIDv7 is time-ordered ascending, so desc by id = newest first.
+
+**Route querystring pattern:**
 
 ```ts
-// backend/src/domain/repositories/interfaces/examples.ts
-import { Example } from "@domain/entities/example";
-
-export interface ExamplesRepInterface {
-  getById: (id: string) => Promise<Example | null>;
-  getByName: (name: string) => Promise<Example | null>;
-  create: (data: Example) => Promise<Example>;
-}
+querystring: z.object({
+  limit: z.preprocess(
+    (value) => (value === undefined ? undefined : Number(value)),
+    LimitPagination,
+  ),
+  id: ListCursor.shape.id.optional().default(null),
+  // or for composite: normalizedName: ListUserCursor.shape.normalizedName.optional().default(null),
+})
 ```
 
-#### 7. Prisma repository implementation
-
-Implement in `infra/repositories/prisma/<plural>.ts`:
-- Import `TPrismaClient` from `@infra/db/prisma-client`.
-- Accept `TPrismaClient` in the constructor so the repo works inside and outside transactions.
-- Convert results with `<Entity>Mapper.fromPrismaToEntity` and writes with `<Entity>Mapper.fromEntityToPrisma`.
+Handler:
 
 ```ts
-// backend/src/infra/repositories/prisma/examples.ts
-import { Example } from "@domain/entities/example";
-import { TPrismaClient } from "@infra/db/prisma-client";
-import { ExamplesRepInterface } from "@domain/repositories/interfaces/examples";
-import { ExampleMapper } from "@infra/mappers/example";
-
-export class PrismaExamplesRep implements ExamplesRepInterface {
-  constructor(private readonly prisma: TPrismaClient) {}
-
-  async getById(id: string) {
-    const record = await this.prisma.example.findUnique({ where: { id } });
-    return record ? ExampleMapper.fromPrismaToEntity(record) : null;
-  }
-
-  async getByName(name: string) {
-    const record = await this.prisma.example.findUnique({ where: { name } });
-    return record ? ExampleMapper.fromPrismaToEntity(record) : null;
-  }
-
-  async create(data: Example) {
-    const record = await this.prisma.example.create({
-      data: ExampleMapper.fromEntityToPrisma(data),
-    });
-    return ExampleMapper.fromPrismaToEntity(record);
-  }
-}
+const data = await useCase.execute(request.user!.userId, serviceId, {
+  limit: request.query.limit,
+  cursor: { id: request.query.id },
+});
 ```
 
-#### 8. In-memory repository implementation
+Response: `200: z.object({ data: ListXOutputSchema })` where `ListXOutputSchema = z.object({ x: z.array(EntitySchema), pagination: NextPaginationList })`.
 
-Implement in `domain/repositories/in-memory/<plural>.ts`:
-- Accept `IMUOWdb` from `./_uow`.
-- Store and query entity instances directly in the corresponding db array.
-- Compare IDs with `entity.getProps().id`.
+## Tests
 
-```ts
-// backend/src/domain/repositories/in-memory/examples.ts
-import { Example } from "@domain/entities/example";
-import { ExamplesRepInterface } from "@domain/repositories/interfaces/examples";
-import { IMUOWdb } from "./_uow";
+### Unit tests (`vitest.config.ts`)
 
-export class IMExamplesRep implements ExamplesRepInterface {
-  constructor(private readonly db: IMUOWdb) {}
+- Exclude `dist/**`, `node_modules/**`, `src/apps/api/e2e/**`.
+- Use `IMUOW` — no database needed.
+- Pattern: `new IMUOW()` in `beforeEach`, pass to use-case constructor, assert behavior.
+- When use-case depends on a domain service, pass a test double (e.g. `new HashPasswordTestService()`).
+- Assert entity values via `.getProps()`.
+- Assert errors by class instance (`rejects.toBeInstanceOf(NotFoundError)`).
+- Canonical example: `src/domain/use-cases/create-organization.spec.ts`.
 
-  async getById(id: string) {
-    const record = this.db.examples.find((e) => e.getProps().id === id);
-    return record ?? null;
-  }
+### E2E tests (`vitest.e2e.config.ts`)
 
-  async getByName(name: string) {
-    const record = this.db.examples.find((e) => e.getProps().name === name);
-    return record ?? null;
-  }
+- Separate config. Run via `npm run tests:e2e`.
+- Include: `src/apps/api/e2e/**/*.e2e.spec.ts`.
+- `fileParallelism: false`, `maxWorkers: 1` — serial execution.
+- `testTimeout` / `hookTimeout`: 120s.
+- **Needs real PostgreSQL** via `DATABASE_URL` from `.env.test`. Each spec mints a unique test schema via `runInitTestConfigs()` → `CreateTestDatabaseHelper` (applies migrations, drops schema on teardown via `runFinalTestConfigs()`).
+- Seed helpers in `apps/api/e2e/helpers/seed.ts`:
+  - `seedOrganizationAndAdmin(app)` → POST `/organizations` + POST `/auth/login`, returns `{ token, userId, organizationId, email, password, organizationName }`. Token extracted from `Set-Cookie` header.
+  - `seedDevUserAndLogin(app, adminToken)` → POST `/users` type DEV + login.
+  - `seedSecondAdmin(app, adminToken)` → POST `/users` type ADMIN (no login).
+  - `seedProject(app, token, overrides?)`, `seedService(app, token, projectId)`.
+  - `authCookies(token)` → `{ cookies: { [envs.COOKIE_NAME]: token } }` (use spread `...authCookies(token)` in inject).
+  - `uniqueEmail()`, `uniqueName(prefix)`.
+- Auth pattern: `app.inject({ method, url, ...authCookies(token), payload })`. No `Authorization` header.
+- Workers/crons create health-checks + incidents (not via HTTP API), so e2e for those endpoints asserts empty-list + auth/cross-org guards + limit param + bad-uuid. Pagination traversal covered by unit tests with direct `Entity.create` + repo.
 
-  async create(data: Example) {
-    this.db.examples.push(data);
-    return data;
-  }
-}
-```
+### Value-object tests
 
-#### 9. UOW registration
+Each value-object schema has co-located `.spec.ts` in `src/domain/value-objects/`. Exercise `.parse()` for valid, `.safeParse()` for invalid. Cover boundaries (exactly min/max accepted, min-1/max+1 rejected).
 
-Register the repository in three places:
+### Entity tests
 
-`domain/repositories/interfaces/_uow.ts`:
+Each entity has co-located `.spec.ts` in `src/domain/entities/`. Test `Entity.create` validation directly (not via use-case). Boundary tests for every min/max constraint.
 
-```ts
-import { ExamplesRepInterface } from "./examples";
+## Adding a new entity, repository, and use-case
 
-export interface UOW {
-  repositories: {
-    examples: ExamplesRepInterface;
-    // ...
-  };
+Workflow with templates. Each step references conventions above.
 
-  transaction<T>(
-    callback: (repositories: UOW["repositories"]) => Promise<T>,
-  ): Promise<T>;
-}
-```
+### 1. Prisma model
 
-`infra/repositories/prisma/_uow.ts`:
+Add to `src/infra/db/schema.prisma`:
+- `@id` on primary key, **no** `@default(uuid())`.
+- `createdAt DateTime`, **no** `@default(now())`.
+- `@map("snake_case")` on fields, `@@map("table_name")` on model.
+- Declare `@unique` / `@@unique` / `@@index` per business rules.
+- **No `onDelete: Cascade`** — default RESTRICT everywhere. Cascade deletes are manual in use-cases.
 
-```ts
-import { PrismaExamplesRep } from "./examples";
+### 2. Value-objects
 
-private createRepositories(client: TPrismaClient) {
-  return {
-    examples: new PrismaExamplesRep(client),
-    // ...
-  };
-}
-```
+Create in `src/domain/value-objects/` only if entity needs new domain primitives. Reuse `UUIDv7`, `CreatedAt`, `Email`, `URL`, `Slug`, `Password`, `NormalizedString`.
 
-`domain/repositories/in-memory/_uow.ts`:
+### 3. Entity
 
-```ts
-import { Example } from "@domain/entities/example";
-import { IMExamplesRep } from "./examples";
+Create `src/domain/entities/<name>.ts`. Extend `DefaultEntity<T>`. Define Zod schema for full props (include `id`, `createdAt`). Define `CreateXType = OmitDefaultValues<...>`. Provide `create` + `fromProps`. No Prisma methods.
 
-export type IMUOWdb = {
-  examples: Example[];
-  // ...
-};
+Add domain methods (e.g. `resolve()`, `enable()`) returning new instances via `fromProps({ ...this.getProps(), ...changes })` when business logic warrants.
 
-private createRepositories() {
-  return {
-    examples: new IMExamplesRep(this.db),
-    // ...
-  };
-}
-```
+### 4. Entity spec
 
-#### 10. Use-case
+`src/domain/entities/<name>.spec.ts` — boundary tests for `Entity.create`.
 
-Create the use-case class in `src/domain/use-cases/<name>.ts`:
-- Import `UOW` from `@domain/repositories/interfaces/_uow`.
-- Import domain service interfaces (ports) from `@domain/services/<name>.interface` when the use-case needs hashing, external APIs, email, etc.
-- Define an input type for the `execute` parameters.
-- Query repositories for business-rule checks (authorization, uniqueness, limits).
-- Throw domain errors from `use-cases/errors/` when rules are violated.
-- Build entities, then persist them inside `this.uow.transaction(...)`.
-- Do **not** validate format/range rules here; those live in the entity Zod schemas.
-- Do **not** import infra directly; depend on domain service interfaces and let factories inject adapters.
+### 5. Mapper
 
-```ts
-// backend/src/domain/use-cases/create-example.ts
-import { Example } from "@domain/entities/example";
-import { UOW } from "@domain/repositories/interfaces/_uow";
-import { HashPasswordInterface } from "@domain/services/hash-password.interface";
-import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
-import { NotAllowedError } from "./errors/NotAllowedError";
+`src/infra/mappers/<name>.ts` — `fromEntityToPrisma` + `fromPrismaToEntity`. Parse id/createdAt/FKs via value-object `.parse()`.
 
-type CreateExampleInput = {
-  name: string;
-  password: string;
-};
+### 6. Repository interface
 
-export class CreateExample {
-  constructor(
-    private readonly uow: UOW,
-    private readonly hashPasswordService: HashPasswordInterface,
-  ) {}
+`domain/repositories/interfaces/<plural>.ts`. Return `Entity | null` for lookups, `Entity` for writes, `void` for deletes.
 
-  async execute(creatorUserId: string, input: CreateExampleInput) {
-    const creator = await this.uow.repositories.users.getById(creatorUserId);
+### 7. Prisma repository
 
-    if (!creator || creator.getProps().type !== "ADMIN") {
-      throw new NotAllowedError();
-    }
+`infra/repositories/prisma/<plural>.ts`. Constructor takes `TPrismaClient`. Convert via mapper.
 
-    const existing = await this.uow.repositories.examples.getByName(input.name);
+### 8. In-memory repository
 
-    if (existing) {
-      throw new EntityAlreadyExists({ entity: "example", field: "name" });
-    }
+`domain/repositories/in-memory/<plural>.ts`. Constructor takes `IMUOWdb`. Store/query entity instances directly in `db.<plural>` array. Compare IDs via `entity.getProps().id`.
 
-    const example = Example.create({
-      organizationId: creator.getProps().organizationId,
-      name: input.name,
-      password: await this.hashPasswordService.hashPassword(input.password),
-    });
+### 9. UOW registration
 
-    return await this.uow.transaction(async (reps) => {
-      await reps.examples.create(example);
-      return { example };
-    });
-  }
-}
-```
+Three places:
+- `domain/repositories/interfaces/_uow.ts` — add to `repositories` map.
+- `infra/repositories/prisma/_uow.ts` — add to `createRepositories`.
+- `domain/repositories/in-memory/_uow.ts` — add to `IMUOWdb` type + `createRepositories`.
 
-#### 11. Factory
+### 10. Use-case
 
-Create the production factory in `infra/factories/<name>.usecase.ts`:
-- Build a `PrismaUOW` from the singleton `prismaClient`.
-- Instantiate the infra service adapters the use-case needs.
-- Inject the adapters into the use-case and return `{ useCase }`.
+`src/domain/use-cases/<name>.ts`. Import `UOW` + domain service interfaces. Define input schema (with `.refine` for partial ≥1 field when editing). Query repos for authz/uniqueness/limits. Throw domain errors. Build entities outside transaction, persist inside. Don't duplicate entity schema rules.
+
+### 11. Factory
+
+`infra/factories/<name>.usecase.ts`. Signature `<name>Factory(dbClient: MyPrismaClient)`. Build `PrismaUOW(dbClient)`, inject infra services + any sibling use-cases, return `{ useCase }`.
 
 ```ts
-// backend/src/infra/factories/create-example.usecase.ts
-import { CreateExample } from "@domain/use-cases/create-example";
-import { prismaClient } from "@infra/db/prisma-client";
+import { UpdateProject } from "@domain/use-cases/update-project";
+import type { MyPrismaClient } from "@infra/db/prisma-client";
 import { PrismaUOW } from "@infra/repositories/prisma/_uow";
-import { HashPasswordService } from "@infra/services/hash-password";
 
-export function createExampleFactory() {
-  const uow = new PrismaUOW(prismaClient);
-  const hashPasswordService = new HashPasswordService();
-  const useCase = new CreateExample(uow, hashPasswordService);
-
+export function updateProjectFactory(dbClient: MyPrismaClient) {
+  const uow = new PrismaUOW(dbClient);
+  const useCase = new UpdateProject(uow);
   return { useCase };
 }
 ```
 
-#### 12. Use-case spec
+### 12. Use-case spec
 
-Create the unit test in `src/domain/use-cases/<name>.spec.ts`:
-- Use `IMUOW` and instantiate the use-case directly.
-- When the use-case depends on a domain service, pass a test double to the constructor.
-- Seed helper data with `createTestOrganization`, `createTestAdminUser`, `createTestDevUser`, and `createTestProject` from `@domain/use-cases/utils/tests/organization`, `@domain/use-cases/utils/tests/user`, and `@domain/use-cases/utils/tests/project`.
-- Assert on `result.entity.getProps().field`.
-- Assert errors by class instance.
-- Keep entity-level validation (format, range, cross-field rules) in the entity spec; use-case specs test auth, uniqueness, limits, and wiring.
+`src/domain/use-cases/<name>.spec.ts`. Use `IMUOW`. Seed via `createTestOrganization` / `createTestAdminUser` / `createTestDevUser` / `createTestProject` / `createTestService`. Assert on `result.entity.getProps().field`. Assert errors by class. Cover: happy path, non-admin, not-found, no-actor, cross-org, uniqueness conflicts, last-admin invariant (when applicable).
 
-```ts
-// backend/src/domain/use-cases/create-example.spec.ts
-import { describe, it, expect, beforeEach } from "vitest";
-import { CreateExample } from "./create-example";
-import { IMUOW } from "@domain/repositories/in-memory/_uow";
-import { HashPasswordTestService } from "@domain/services/hash-password";
-import { createTestOrganization } from "@domain/use-cases/utils/tests/organization";
-import {
-  createTestAdminUser,
-  createTestDevUser,
-} from "@domain/use-cases/utils/tests/user";
-import { EntityAlreadyExists } from "./errors/EntityAlreadyExists";
-import { NotAllowedError } from "./errors/NotAllowedError";
+### 13. Route
 
-let uow: IMUOW;
-let hashPasswordTestService: HashPasswordTestService;
-let sut: CreateExample;
+`apps/api/routes/<resource>.ts`. Add `app.<method>(path, { preHandler: [authHook], schema: { params, body, querystring, response } }, handler)`. Call factory, `useCase.execute(request.user!.userId, ...)`, `reply.status(...).send({ data })`.
 
-describe("Create Example", () => {
-  beforeEach(() => {
-    uow = new IMUOW();
-    hashPasswordTestService = new HashPasswordTestService();
-    sut = new CreateExample(uow, hashPasswordTestService);
-  });
+### 14. E2E spec
 
-  it("should create an example when creator is admin", async () => {
-    const { organization } = await createTestOrganization(uow);
-    const { user: admin } = await createTestAdminUser(uow, organization);
+`apps/api/e2e/<resource>.e2e.spec.ts`. Use `runInitTestConfigs` / `runFinalTestConfigs`. Seed via helpers. Use `...authCookies(token)` for authed requests. Cover: success, 401 no-cookie, 403 non-admin, 404 not-found, 403 cross-org, 400 bad-uuid, 400 invalid body.
 
-    const result = await sut.execute(admin.getProps().id, { name: "Foo", password: "secret" });
-
-    expect(result.example.getProps()).toEqual(
-      expect.objectContaining({
-        name: "Foo",
-        organizationId: organization.getProps().id,
-      }),
-    );
-  });
-
-  it("should throw NotAllowedError when creator is not admin", async () => {
-    const { organization } = await createTestOrganization(uow);
-    const { user: dev } = await createTestDevUser(uow, organization);
-
-    await expect(
-      sut.execute(dev.getProps().id, { name: "Foo", password: "secret" }),
-    ).rejects.toBeInstanceOf(NotAllowedError);
-  });
-});
-```
-
-#### Use-case conventions
-
-- **Class naming:** convert the kebab-case file name to PascalCase, preserving every word boundary, e.g. `create-organization` → `CreateOrganization`, `authenticate-user` → `AuthenticateUser`, `create-user-to-organization` → `CreateUserToOrganization`.
-- **Authorization:** always verify the actor exists and has permission before processing the input.
-- **Uniqueness checks:** query repositories before building entities; throw `EntityAlreadyExists` with `{ entity, field }` context.
-- **Transactions:** build entities outside the transaction, then pass them into `uow.transaction` for persistence.
-- **Entity validation:** keep format/range/cross-field rules in the entity Zod schemas and test them in the entity spec; do not duplicate them in use-case specs.
-- **Domain services:** depend on interfaces from `@domain/services/<name>.interface`; let factories inject infra adapters. Never import infra directly from a use-case.
-- **Passwords:** never store plain text; hash with the injected `HashPasswordInterface` before passing to `User.create`.
-- **Test factories:** prefer `createTestOrganization`, `createTestAdminUser`, `createTestDevUser`, and `createTestProject` over inline entity creation.
-- **Security / transport concerns:** never swallow domain errors or alter a use-case's result to hide information (e.g. anti-enumeration on password-reset). The use-case returns/throws the truthful outcome; the route handler decides what the client sees (e.g. catch `NotFoundError` and return 200).
-
-#### Verification
-
-Run the new spec in isolation first:
+### Verification
 
 ```bash
-npx vitest run src/domain/use-cases/<name>.spec.ts
-```
-
-Then run the full suite and type-check:
-
-```bash
-npx vitest run
-npx tsc --noEmit
+npx vitest run src/domain/use-cases/<name>.spec.ts   # isolated unit spec
+npm run type:check                                    # tsc --noEmit
+npm run tests                                         # full unit suite
+NODE_ENV=test npx vitest run --config ./vitest.e2e.config.ts src/apps/api/e2e/<resource>.e2e.spec.ts  # isolated e2e
+npm run tests:e2e                                     # full e2e suite
 ```
 
 ## Prisma notes
 
 - Schema: `backend/src/infra/db/schema.prisma`.
-- Generator output is `./generated` relative to the schema, so the client lands in `backend/src/infra/db/generated/`.
-- `backend/prisma.config.ts` sets the datasource URL from `DATABASE_URL` via `dotenv` for CLI commands.
-- `backend/prisma.config.ts` is excluded from `tsconfig.json`.
+- Generator output `./generated` relative to schema → client lands in `backend/src/infra/db/generated/` (not in repo, must `prisma generate` after clone).
+- `backend/prisma.config.ts` sets datasource URL from `DATABASE_URL` via `dotenv` for CLI commands.
+- `backend/prisma.config.ts` excluded from `tsconfig.json`.
+- `prisma generate` / `db:generate` use `--sql` flag (always run via npm scripts, not raw `prisma generate`).
 
 ## Environment
 
-- `backend/.env` needs `DATABASE_URL` (PostgreSQL) for runtime and Prisma CLI.
-- `backend/.env` may set `PORT` for the API; defaults to `3000`.
-- `backend/.env` may set `REDIS_URL` for BullMQ; defaults to `redis://localhost:6379`.
-- `backend/src/infra/envs.ts` validates environment variables with Zod at import time.
+- `backend/.env` for runtime + Prisma CLI; `backend/.env.test` for e2e (loaded when `NODE_ENV=test`).
+- Required: `DATABASE_URL` (PostgreSQL), `AUTH_JWT_SECRET` (min 16 chars), `FORGOT_PASSWORD_JWT_SECRET` (min 16), `UI_URL`, `NODE_ENV`, `PORT`, `REDIS_URL`.
+- Cookie env (all have defaults except `COOKIE_DOMAIN`): `COOKIE_NAME`, `COOKIE_DOMAIN?`, `COOKIE_SECURE`, `COOKIE_SAMESITE`, `COOKIE_PATH`.
+- SMTP defaults: `SMTP_URL=smtp://localhost:25`, `SMTP_FROM=noreply@incidenthub.com`.
+- `backend/src/infra/envs.ts` validates via Zod at import time — invalid env throws at boot.
+- **Known bug (unfixed):** `envs.ts` `isProdEnv: data.NODE_ENV === "development"` and `isDevEnv: data.NODE_ENV === "test"` are swapped. `isDevEnv` actually means test env. Don't rely on these flags without checking the source.
 
 ## Current State
 
-- `backend` has a working Vitest setup and passing use-case specs.
-- `apps/api/` routes are being wired to factories; `POST /organizations` is implemented.
-- `apps/workers/` are fully functional BullMQ consumers (healthcheck + notification) with DLQs, Redis locking, and graceful shutdown.
-- `infra/queue/` is functional with BullMQ queues and a healthcheck scheduler.
-- `ui/` is a separate frontend package.
-- No linting, formatting, or CI configured.
+- **Backend:** Vitest unit + e2e suites green. Biome lint/format configured. Cookie-based auth shipped.
+- **API routes implemented:** `POST /organizations`, `POST/GET/PATCH/DELETE /users`, `POST/GET/PATCH/DELETE /projects`, `POST/GET/PUT/PATCH/DELETE /projects/:projectId/services` + `GET /services/:serviceId/health-checks` + `GET /services/:serviceId/incidents`, `POST /auth/login`, `POST /auth/logout`, `POST /password/forgot`, `POST /password/reset`.
+- **Pagination:** `GET /users` (composite normalizedName+id asc), `GET /services/:id/health-checks` (id desc), `GET /services/:id/incidents` (id desc).
+- **Workers:** BullMQ consumers (healthcheck + notification) with DLQs, Redis locking, graceful shutdown.
+- **Crons:** `clear-test-schemas.ts` for test cleanup.
+- **ui/:** Default Vite + React template only — no features implemented (see "UI vs Backend" above).
+- **No CI configured** (Biome + tests run locally).

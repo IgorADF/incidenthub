@@ -17,11 +17,11 @@
 		"rules": {
 			"preset": "recommended",
 			"style": {
-				"useTemplate": "off",
+				"useTemplate": "info",
 				"noNonNullAssertion": "off"
 			},
 			"correctness": {
-				"noUnusedFunctionParameters": "off"
+				"noUnusedFunctionParameters": "info"
 			},
 			"suspicious": {
 				"noExplicitAny": "info"
