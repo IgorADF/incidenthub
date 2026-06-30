@@ -60,7 +60,6 @@ describe("ExecuteHealthCheck", () => {
 
 	it("should resolve open incident and enqueue recovery notification on success", async () => {
 		const { service } = await setupService();
-		const incidentId = DefaultEntity.generateUUIDv7();
 		const openIncident = Incident.create({
 			serviceId: service.getProps().id,
 			startedAt: new Date(Date.now() - 60000),

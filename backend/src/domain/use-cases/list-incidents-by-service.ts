@@ -1,4 +1,4 @@
-import { HealthCheckSchema } from "@domain/entities/health-check";
+import { IncidentSchema } from "@domain/entities/incident";
 import type { UOW } from "@domain/repositories/interfaces/_uow";
 import z from "zod";
 import { NotAllowedError } from "./errors/NotAllowedError";
@@ -8,23 +8,23 @@ import {
 	NextPaginationList,
 } from "./utils/paginations/pagination";
 
-export const ListHealthChecksByServiceOutputSchema = z.object({
-	healthChecks: z.array(HealthCheckSchema),
+export const ListIncidentsByServiceOutputSchema = z.object({
+	incidents: z.array(IncidentSchema),
 	pagination: NextPaginationList,
 });
 
-export type ListHealthChecksByServiceOutput = z.infer<
-	typeof ListHealthChecksByServiceOutputSchema
+export type ListIncidentsByServiceOutput = z.infer<
+	typeof ListIncidentsByServiceOutputSchema
 >;
 
-export class ListHealthChecksByService {
+export class ListIncidentsByService {
 	constructor(private readonly uow: UOW) {}
 
 	async execute(
 		requesterUserId: string,
 		serviceId: string,
 		pagination: ListPaginationType,
-	): Promise<ListHealthChecksByServiceOutput> {
+	): Promise<ListIncidentsByServiceOutput> {
 		const requester =
 			await this.uow.repositories.users.getById(requesterUserId);
 
@@ -49,14 +49,14 @@ export class ListHealthChecksByService {
 			throw new NotAllowedError();
 		}
 
-		const { healthChecks, pagination: nextPagination } =
-			await this.uow.repositories.healthChecks.listByServiceId(
+		const { incidents, pagination: nextPagination } =
+			await this.uow.repositories.incidents.listByServiceId(
 				serviceId,
 				pagination,
 			);
 
-		return ListHealthChecksByServiceOutputSchema.parse({
-			healthChecks: healthChecks.map((hc) => hc.getProps()),
+		return ListIncidentsByServiceOutputSchema.parse({
+			incidents: incidents.map((incident) => incident.getProps()),
 			pagination: nextPagination,
 		});
 	}

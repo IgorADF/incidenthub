@@ -25,7 +25,7 @@ export class ToggleServiceEnabled {
 	): Promise<ToggleServiceEnabledOutput> {
 		const updater = await this.uow.repositories.users.getById(updaterUserId);
 
-		if (!updater || updater.getProps().type !== "ADMIN") {
+		if (updater?.getProps()?.type !== "ADMIN") {
 			throw new NotAllowedError();
 		}
 

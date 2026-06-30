@@ -452,7 +452,7 @@ describe("project routes (e2e)", () => {
 		it("should delete a project and cascade-delete its services", async () => {
 			const localAdmin = await seedOrganizationAndAdmin(app);
 			const { projectId } = await seedProject(app, localAdmin.token);
-			const { serviceId } = await seedService(app, localAdmin.token, projectId);
+			await seedService(app, localAdmin.token, projectId);
 
 			const response = await app.inject({
 				method: "DELETE",

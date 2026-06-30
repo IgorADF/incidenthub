@@ -26,7 +26,7 @@ export class ListUsersByOrganization {
 		const requester =
 			await this.uow.repositories.users.getById(requesterUserId);
 
-		if (!requester || requester.getProps().type !== "ADMIN") {
+		if (requester?.getProps()?.type !== "ADMIN") {
 			throw new NotAllowedError();
 		}
 
