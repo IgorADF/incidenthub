@@ -10,28 +10,47 @@ Independent TypeScript packages, no root `package.json` or monorepo tooling.
   - `apps/api/` — Fastify v5 HTTP API.
   - `apps/workers/` — Background job processors (queue consumers): `healthcheck/`, `notification/`, `shared/`.
   - `apps/crons/` — Cron-scheduled jobs (e.g. `clear-test-schemas.ts`).
-- `ui/` — React/Vite frontend (separate package, scaffold only — see "UI vs Backend" below).
+- `ui/` — React 19 + Vite 8 SPA with TanStack Router (file-based) + shadcn/ui + Tailwind v4 (separate package — see "UI vs Backend" below).
 - `ProjectIdea.txt` — business notes (Portuguese, sparse).
 
 API, workers, and crons are separate processes. They share `domain/` and `infra/` but never import each other.
 
 ## UI vs Backend
 
-**All implemented features live in `backend/`.** The `ui/` package is the default Vite + React template (counter demo, no auth/API integration, no routing, no state management). Do not assume any frontend feature exists because its backend route does.
+**All implemented features live in `backend/`.** The `ui/` package is the TanStack Router scaffold (`tanstackcli-router-test`) — routing + styling wired, but no app features yet (no auth/API integration, no state management, single placeholder home route). Do not assume any frontend feature exists because its backend route does.
 
 | Aspect | `backend/` | `ui/` |
 |---|---|---|
-| Stack | Fastify v5, Prisma 7, BullMQ, Zod 4, TS 6 | Vite + React 19, TS 6 |
-| Entry | `apps/api/server.ts` (API), `apps/workers/*/main.ts` (workers), `apps/crons/*.ts` | `src/main.tsx` (Vite dev) |
+| Stack | Fastify v5, Prisma 7, BullMQ, Zod 4, TS 6 | Vite 8 + React 19 + TanStack Router (file-based), TS 6 |
+| Entry | `apps/api/server.ts` (API), `apps/workers/*/main.ts` (workers), `apps/crons/*.ts` | `src/main.tsx` → `RouterProvider` |
 | Build | `npm run build` → `dist/` | `npm run build` → `dist/` |
-| Test | Vitest unit (`vitest.config.ts`) + e2e (`vitest.e2e.config.ts`, real PostgreSQL) | None configured |
-| Lint | Biome (`lint`, `format`, `organize:all`) | ESLint flat config (`eslint.config.js`) |
-| Implemented | Domain layer, all use-cases, full REST API, cookie auth, workers, crons | Default template only (`App.tsx` is the Vite counter) |
+| Test | Vitest unit (`vitest.config.ts`) + e2e (`vitest.e2e.config.ts`, real PostgreSQL) | Vitest configured (`vitest run`) with jsdom + Testing Library, but **no specs written** |
+| Lint | Biome (`lint`, `format`, `organize:all`) | Biome (`biome.json`: tab indent, double quotes, ignores `routeTree.gen.ts` + `styles.css`) — NOT ESLint |
+| Routing | n/a | TanStack Router file-based. Routes in `src/routes/`. Route tree auto-generated to `src/routeTree.gen.ts` (committed; do not hand-edit). Vite plugin `tanstackRouter({ target: 'react', autoCodeSplitting: true })` regenerates on dev/build. `npm run generate-routes` → `tsr generate` for manual regen. Root layout at `src/routes/__root.tsx`. README mentions "TanStack Start" / server functions / API routes — **that is stale template prose; no `@tanstack/react-start` dep, this is a pure SPA.** Ignore those sections. |
+| Styling | n/a | Tailwind v4 via `@tailwindcss/vite` + shadcn/ui (style `radix-nova`, baseColor `neutral`, cssVariables). `src/styles.css` imports `tailwindcss` + `tw-animate-css` + `shadcn/tailwind.css` + Inter Variable font; `@custom-variant dark` and `@theme inline` tokens already set. Add components via the shadcn MCP / `npx shadcn@latest add`. |
+| Path aliases | `@domain/*`, `@infra/*`, `@apps/*`, `~types/*` | Both `#/*` and `@/*` → `./src/*` (tsconfig). `#/*` is the package.json `imports` map; `@/*` is the shadcn convention — prefer `#/*` for app code, `@/*` for shadcn-generated components (matches `components.json` aliases). |
+| TS quirks | `moduleResolution: "bundler"`, `verbatimModuleSyntax` off | `moduleResolution: "bundler"`, `verbatimModuleSyntax: **on**` (use `import type` for types), `noUnusedLocals`/`noUnusedParameters`/`noUncheckedSideEffectImports` on, `allowImportingTsExtensions` on |
+| Implemented | Domain layer, all use-cases, full REST API, cookie auth, workers, crons | Router shell + shadcn/Tailwind wiring only — placeholder home route, no auth form, no API client, no `AuthUser` type |
 | API client | n/a | None — no fetch/axios wrapper, no auth cookie helper, no endpoint module |
-| Auth | Cookie-based (`@fastify/cookie`, `authHook`) | No login form, no cookie handling, no `AuthUser` type |
-| Routes | `POST /organizations`, `POST/GET/PATCH/DELETE /users`, `POST/GET/PATCH/DELETE /projects`, `POST/GET/PUT/PATCH/DELETE /projects/:projectId/services`, `GET /services/:id/health-checks`, `GET /services/:id/incidents`, `POST /auth/login`, `POST /auth/logout`, `POST /password/forgot`, `POST /password/reset` | None — no router installed |
+| Auth | Cookie-based (`@fastify/cookie`, `authHook`) | No login form, no cookie handling — to be built. Backend sets `ih_session` cookie; UI will need `credentials: "include"` on fetch, same-origin or CORS to `UI_URL`. |
+| Routes | `POST /organizations`, `POST/GET/PATCH/DELETE /users`, `POST/GET/PATCH/DELETE /projects`, `POST/GET/PUT/PATCH/DELETE /projects/:projectId/services`, `GET /services/:id/health-checks`, `GET /services/:id/incidents`, `POST /auth/login`, `POST /auth/logout`, `POST /password/forgot`, `POST /password/reset` | File-based: `__root.tsx` (layout + devtools) + `index.tsx` (placeholder home). Add new routes as files in `src/routes/`; route tree regenerates automatically. |
 
-**When working on `ui/`:** treat it as a greenfield frontend that will consume the backend HTTP API over cookies (`credentials: "include"` on fetch, same-origin or CORS to `UI_URL`). No existing patterns to mirror — establish them. The backend API contract is the source of truth (see "API routes implemented" in Current State).
+**`ui/` commands (run inside `ui/`):**
+
+```bash
+npm run dev              # vite dev, port 3000
+npm run generate-routes  # tsr generate (manual route-tree regen; dev/build do it automatically)
+npm run build            # vite build → dist/
+npm run test             # vitest run (no specs yet)
+npm run lint             # biome lint
+npm run format           # biome format
+npm run check            # biome check (lint + format + organize imports)
+npx shadcn@latest add <component>   # add shadcn component → src/components/ui/
+```
+
+No `type:check` script — `tsc --noEmit` is implied by Vite during `build`. For standalone typecheck run `npx tsc --noEmit` (note `verbatimModuleSyntax` is stricter than backend).
+
+**When working on `ui/`:** greenfield frontend consuming backend HTTP API over cookies. Routing + shadcn/Tailwind base is established — extend it, don't rewire. The backend API contract is the source of truth (see "API routes implemented" in Current State). Establish fetch/auth patterns as you build features (no existing wrapper to copy).
 
 **When working on `backend/`:** ignore `ui/`. Backend has no dependency on frontend. API responses are JSON (`{ data: ... }`), error shapes are `{ code, message, context? }` / `{ code, issues }` — frontend-friendly but backend does not tailor responses for any specific UI.
 
@@ -481,5 +500,5 @@ npm run tests:e2e                                     # full e2e suite
 - **Pagination:** `GET /users` (composite normalizedName+id asc), `GET /services/:id/health-checks` (id desc), `GET /services/:id/incidents` (id desc).
 - **Workers:** BullMQ consumers (healthcheck + notification) with DLQs, Redis locking, graceful shutdown.
 - **Crons:** `clear-test-schemas.ts` for test cleanup.
-- **ui/:** Default Vite + React template only — no features implemented (see "UI vs Backend" above).
+- **ui/:** TanStack Router scaffold + shadcn/Tailwind wiring only — no app features implemented (see "UI vs Backend" above).
 - **No CI configured** (Biome + tests run locally).
