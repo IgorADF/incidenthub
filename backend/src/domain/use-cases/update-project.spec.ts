@@ -44,7 +44,7 @@ describe("UpdateProject", () => {
 
 	it("should throw EntityAlreadyExists when the name already belongs to another project in the same org", async () => {
 		const { organization, admin } = await setup();
-		const { project: projectA } = await createTestProject(uow, organization, {
+		await createTestProject(uow, organization, {
 			name: "Project A",
 			publicPageSlug: "slug-a",
 		});
@@ -90,7 +90,7 @@ describe("UpdateProject", () => {
 
 	it("should throw EntityAlreadyExists when the slug belongs to another project", async () => {
 		const { organization, admin } = await setup();
-		const { project: projectA } = await createTestProject(uow, organization, {
+		await createTestProject(uow, organization, {
 			name: "Project A",
 			publicPageSlug: "taken-slug",
 		});
@@ -111,7 +111,7 @@ describe("UpdateProject", () => {
 		const { organization: orgB } = await createTestOrganization(uow, {
 			name: "Other Corp",
 		});
-		const { project: projectB } = await createTestProject(uow, orgB, {
+		await createTestProject(uow, orgB, {
 			name: "Cross Org Project",
 			publicPageSlug: "cross-org-slug",
 		});
@@ -325,7 +325,7 @@ describe("UpdateProject", () => {
 		const { organization: orgB } = await createTestOrganization(uow, {
 			name: "Other Corp",
 		});
-		const { user: adminB } = await createTestAdminUser(uow, orgB);
+		await createTestAdminUser(uow, orgB);
 		const { project: projectB } = await createTestProject(uow, orgB);
 
 		await expect(

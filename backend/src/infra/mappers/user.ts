@@ -1,9 +1,4 @@
-import {
-	User,
-	type UserType,
-	UserWithPassword,
-	UserWithPasswordType,
-} from "@domain/entities/user";
+import { User, type UserType, UserWithPassword } from "@domain/entities/user";
 import { CreatedAt } from "@domain/value-objects/created-at";
 import { UUIDv7 } from "@domain/value-objects/uuidv7";
 import type { Prisma } from "@infra/db/generated/client";

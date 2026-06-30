@@ -189,7 +189,7 @@ describe("DeleteProject", () => {
 		const { organization: orgB } = await createTestOrganization(uow, {
 			name: "Other Corp",
 		});
-		const { user: adminB } = await createTestAdminUser(uow, orgB);
+		await createTestAdminUser(uow, orgB);
 		const { project: projectB } = await createTestProject(uow, orgB, {
 			name: "Cross Org Project",
 			publicPageSlug: "cross-org-project-slug",
