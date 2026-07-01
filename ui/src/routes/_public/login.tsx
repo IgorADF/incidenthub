@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
@@ -26,14 +26,10 @@ function LoginComponent() {
 	const [showPassword, setShowPassword] = useState(false);
 	const [serverError, setServerError] = useState<string | null>(null);
 
-	const loginSchema = useMemo(
-		() =>
-			z.object({
-				email: z.email(t("login.errors.emailInvalid")),
-				password: z.string().min(1, t("login.errors.passwordRequired")),
-			}),
-		[t],
-	);
+	const loginSchema = z.object({
+		email: z.email(t("login.errors.emailInvalid")),
+		password: z.string().min(1, t("login.errors.passwordRequired")),
+	});
 
 	type LoginValues = z.infer<typeof loginSchema>;
 

@@ -1,11 +1,5 @@
 import type { ReactNode } from "react";
-import {
-	createContext,
-	useCallback,
-	useContext,
-	useMemo,
-	useState,
-} from "react";
+import { createContext, useContext, useState } from "react";
 import {
 	type AuthContextValue,
 	clearStoredUser,
@@ -21,25 +15,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		readInitialUser(),
 	);
 
-	const setUser = useCallback((next: AuthUser) => {
+	const setUser = (next: AuthUser) => {
 		persistUser(next);
 		setUserState(next);
-	}, []);
+	};
 
-	const clearUser = useCallback(() => {
+	const clearUser = () => {
 		clearStoredUser();
 		setUserState(null);
-	}, []);
+	};
 
-	const value = useMemo<AuthContextValue>(
-		() => ({
-			user,
-			setUser,
-			clearUser,
-			isAuthenticated: user !== null,
-		}),
-		[user, setUser, clearUser],
-	);
+	const value = {
+		user,
+		setUser,
+		clearUser,
+		isAuthenticated: user !== null,
+	};
 
 	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
