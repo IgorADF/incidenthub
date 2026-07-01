@@ -1,0 +1,70 @@
+{
+	"common": {
+		"showPassword": "Mostrar senha",
+		"hidePassword": "Ocultar senha",
+		"backToLogin": "Voltar ao login",
+		"tagline": "O sistema que cuida do seu sistema"
+	},
+	"login": {
+		"title": "Entrar",
+		"email": {
+			"label": "E-mail",
+			"placeholder": "voce@empresa.com"
+		},
+		"password": {
+			"label": "Senha"
+		},
+		"submit": "Entrar",
+		"submitLoading": "Entrando…",
+		"forgotPassword": "Esqueceu a senha?",
+		"errors": {
+			"emailInvalid": "Digite um e-mail válido",
+			"passwordRequired": "A senha é obrigatória",
+			"network": "Não foi possível contatar o servidor. Tente novamente.",
+			"invalidCredentials": "E-mail ou senha inválidos.",
+			"validation": "Verifique os campos e tente novamente.",
+			"generic": "Algo deu errado. Tente novamente."
+		}
+	},
+	"forgotPassword": {
+		"title": "Redefinir sua senha",
+		"email": {
+			"label": "E-mail",
+			"placeholder": "voce@empresa.com"
+		},
+		"submit": "Enviar link de redefinição",
+		"submitLoading": "Enviando…",
+		"successTitle": "Verifique seu e-mail",
+		"successDescription": "Se existir uma conta para esse e-mail, enviamos um link para redefinir sua senha.",
+		"errors": {
+			"emailInvalid": "Digite um e-mail válido",
+			"network": "Não foi possível contatar o servidor. Tente novamente.",
+			"generic": "Algo deu errado. Tente novamente."
+		}
+	},
+	"resetPassword": {
+		"title": "Definir uma nova senha",
+		"password": { "label": "Nova senha" },
+		"confirmPassword": { "label": "Confirmar senha" },
+		"submit": "Redefinir senha",
+		"submitLoading": "Redefinindo…",
+		"successTitle": "Senha redefinida",
+		"successDescription": "Sua senha foi alterada. Você já pode entrar.",
+		"missingToken_1": "Este link de redefinição é inválido",
+		"missingToken_2": "Solicite um novo",
+		"errors": {
+			"passwordRequired": "A senha é obrigatória",
+			"passwordMismatch": "As senhas não coincidem",
+			"network": "Não foi possível contatar o servidor. Tente novamente.",
+			"invalidToken": "Este link de redefinição é inválido ou expirou.",
+			"validation": "Verifique os campos e tente novamente.",
+			"generic": "Algo deu errado. Tente novamente."
+		}
+	},
+	"theme": {
+		"toggle": "Alternar tema",
+		"light": "Claro",
+		"dark": "Escuro",
+		"system": "Sistema"
+	}
+}

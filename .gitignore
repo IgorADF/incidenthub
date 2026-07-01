@@ -23,7 +23,7 @@ lerna-debug.log*
 .env.production.local
 
 # IDE
-.vscode/
+# .vscode/
 .idea/
 *.swp
 *.swo
@@ -40,7 +40,7 @@ coverage/
 *.temp
 
 # Editor directories and files
-.vscode/*
+# .vscode/*
 !.vscode/extensions.json
 .idea
 .DS_Store
