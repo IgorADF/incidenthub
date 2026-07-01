@@ -1,0 +1,34 @@
+{
+	"login": {
+		"title": "Sign in",
+		"email": {
+			"label": "Email",
+			"placeholder": "you@company.com"
+		},
+		"password": {
+			"label": "Password"
+		},
+		"submit": "Sign in",
+		"submitLoading": "Signing in…",
+		"showPassword": "Show password",
+		"hidePassword": "Hide password",
+		"forgotPassword": "Forgot password?",
+		"errors": {
+			"emailInvalid": "Enter a valid email",
+			"passwordRequired": "Password is required",
+			"network": "Unable to reach the server. Please try again.",
+			"invalidCredentials": "Invalid email or password.",
+			"validation": "Please check the fields and try again.",
+			"generic": "Something went wrong. Please try again."
+		}
+	},
+	"forgotPassword": {
+		"title": "Reset your password"
+	},
+	"theme": {
+		"toggle": "Toggle theme",
+		"light": "Light",
+		"dark": "Dark",
+		"system": "System"
+	}
+}

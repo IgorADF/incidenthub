@@ -1,0 +1,34 @@
+{
+	"login": {
+		"title": "Entrar",
+		"email": {
+			"label": "E-mail",
+			"placeholder": "voce@empresa.com"
+		},
+		"password": {
+			"label": "Senha"
+		},
+		"submit": "Entrar",
+		"submitLoading": "Entrando…",
+		"showPassword": "Mostrar senha",
+		"hidePassword": "Ocultar senha",
+		"forgotPassword": "Esqueceu a senha?",
+		"errors": {
+			"emailInvalid": "Digite um e-mail válido",
+			"passwordRequired": "A senha é obrigatória",
+			"network": "Não foi possível contatar o servidor. Tente novamente.",
+			"invalidCredentials": "E-mail ou senha inválidos.",
+			"validation": "Verifique os campos e tente novamente.",
+			"generic": "Algo deu errado. Tente novamente."
+		}
+	},
+	"forgotPassword": {
+		"title": "Redefinir sua senha"
+	},
+	"theme": {
+		"toggle": "Alternar tema",
+		"light": "Claro",
+		"dark": "Escuro",
+		"system": "Sistema"
+	}
+}

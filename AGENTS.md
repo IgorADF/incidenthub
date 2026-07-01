@@ -30,15 +30,15 @@ API, workers, and crons are separate processes. They share `domain/` and `infra/
 | Styling | n/a | Tailwind v4 via `@tailwindcss/vite` + shadcn/ui (style `radix-nova`, baseColor `neutral`, cssVariables). `src/styles.css` imports `tailwindcss` + `tw-animate-css` + `shadcn/tailwind.css` + Inter Variable font; `@custom-variant dark` and `@theme inline` tokens already set. Add components via the shadcn MCP / `npx shadcn@latest add`. |
 | Path aliases | `@domain/*`, `@infra/*`, `@apps/*`, `~types/*` | Both `#/*` and `@/*` → `./src/*` (tsconfig). `#/*` is the package.json `imports` map; `@/*` is the shadcn convention — prefer `#/*` for app code, `@/*` for shadcn-generated components (matches `components.json` aliases). |
 | TS quirks | `moduleResolution: "bundler"`, `verbatimModuleSyntax` off | `moduleResolution: "bundler"`, `verbatimModuleSyntax: **on**` (use `import type` for types), `noUnusedLocals`/`noUnusedParameters`/`noUncheckedSideEffectImports` on, `allowImportingTsExtensions` on |
-| Implemented | Domain layer, all use-cases, full REST API, cookie auth, workers, crons | Router shell + shadcn/Tailwind wiring only — placeholder home route, no auth form, no API client, no `AuthUser` type |
-| API client | n/a | None — no fetch/axios wrapper, no auth cookie helper, no endpoint module |
-| Auth | Cookie-based (`@fastify/cookie`, `authHook`) | No login form, no cookie handling — to be built. Backend sets `ih_session` cookie; UI will need `credentials: "include"` on fetch, same-origin or CORS to `UI_URL`. |
-| Routes | `POST /organizations`, `POST/GET/PATCH/DELETE /users`, `POST/GET/PATCH/DELETE /projects`, `POST/GET/PUT/PATCH/DELETE /projects/:projectId/services`, `GET /services/:id/health-checks`, `GET /services/:id/incidents`, `POST /auth/login`, `POST /auth/logout`, `POST /password/forgot`, `POST /password/reset` | File-based: `__root.tsx` (layout + devtools) + `index.tsx` (placeholder home). Add new routes as files in `src/routes/`; route tree regenerates automatically. |
+| Implemented | Domain layer, all use-cases, full REST API, cookie auth, workers, crons | Router shell + shadcn/Tailwind + login screen (TanStack Query, AuthProvider, `apiFetch`, RHF+Zod). No protected routes/guards yet. |
+| API client | n/a | `apiFetch<T>()` wrapper (`src/lib/api/client.ts`) with `credentials: "include"` always + `ApiError` normalization. Per-resource modules in `src/lib/api/<resource>.ts` (mirror backend routes). |
+| Auth | Cookie-based (`@fastify/cookie`, `authHook`) | Login form + `AuthProvider` + localStorage (`ih_user`) + `apiFetch` wrapper with `credentials: "include"`. No `GET /auth/me` on backend yet; refresh rehydrates from localStorage (cookie validity assumed). |
+| Routes | `POST /organizations`, `POST/GET/PATCH/DELETE /users`, `POST/GET/PATCH/DELETE /projects`, `POST/GET/PUT/PATCH/DELETE /projects/:projectId/services`, `GET /services/:id/health-checks`, `GET /services/:id/incidents`, `POST /auth/login`, `POST /auth/logout`, `POST /password/forgot`, `POST /password/reset` | File-based: `__root.tsx` (layout + devtools) + `_public.tsx` (pathless public layout w/ header + LanguageSwitcher) + `_public/login.tsx`. Add new routes as files in `src/routes/`; route tree regenerates automatically. |
 
 **`ui/` commands (run inside `ui/`):**
 
 ```bash
-npm run dev              # vite dev, port 3000
+npm run dev              # vite dev, port 5173 (Vite default; matches backend UI_URL)
 npm run generate-routes  # tsr generate (manual route-tree regen; dev/build do it automatically)
 npm run build            # vite build → dist/
 npm run test             # vitest run (no specs yet)
@@ -50,7 +50,7 @@ npx shadcn@latest add <component>   # add shadcn component → src/components/ui
 
 No `type:check` script — `tsc --noEmit` is implied by Vite during `build`. For standalone typecheck run `npx tsc --noEmit` (note `verbatimModuleSyntax` is stricter than backend).
 
-**When working on `ui/`:** greenfield frontend consuming backend HTTP API over cookies. Routing + shadcn/Tailwind base is established — extend it, don't rewire. The backend API contract is the source of truth (see "API routes implemented" in Current State). Establish fetch/auth patterns as you build features (no existing wrapper to copy).
+**When working on `ui/`:** greenfield frontend consuming backend HTTP API over cookies. Routing + shadcn/Tailwind + auth/data layer established (see "UI — building a screen") — extend patterns, don't rewire. The backend API contract is the source of truth (see "API routes implemented" in Current State). Mirror `src/routes/login.tsx` and `src/lib/api/auth.ts` for new screens/endpoints.
 
 **When working on `backend/`:** ignore `ui/`. Backend has no dependency on frontend. API responses are JSON (`{ data: ... }`), error shapes are `{ code, message, context? }` / `{ code, issues }` — frontend-friendly but backend does not tailor responses for any specific UI.
 
@@ -493,12 +493,189 @@ npm run tests:e2e                                     # full e2e suite
 - `backend/src/infra/envs.ts` validates via Zod at import time — invalid env throws at boot.
 - **Known bug (unfixed):** `envs.ts` `isProdEnv: data.NODE_ENV === "development"` and `isDevEnv: data.NODE_ENV === "test"` are swapped. `isDevEnv` actually means test env. Don't rely on these flags without checking the source.
 
-## Current State
+## UI — building a screen
+
+Hard-earned conventions established by the `/login` screen. Mirror these for every new screen.
+
+### Provider stack (mounted in `ui/src/main.tsx`, outer→inner)
+
+`QueryClientProvider` → `ThemeProvider` (`defaultTheme="dark"`, `storageKey="vite-ui-theme"`) → `AuthProvider` → `RouterProvider` (via `RouterWithAuth`).
+
+```
+ui/src/
+  components/
+    ui/                ← shadcn components ONLY (added via `npx shadcn@latest add`; aliases @/*)
+    language-switcher.tsx ← reusable `<LanguageSwitcher />` dropdown
+    mode-toggle.tsx    ← reusable `<ModeToggle />` dark/light/system dropdown
+    <custom>/          ← non-shadcn components live here or in own subfolder, NOT in ui/
+  context/
+    auth/
+      auth-context.tsx ← AuthProvider + useAuth() (React context)
+      auth-storage.ts  ← localStorage read/write helpers (key "ih_user")
+    theme/
+      theme-provider.tsx ← ThemeProvider + useTheme() (React context; defaultTheme="dark", storageKey="vite-ui-theme")
+  lib/
+    api/
+      client.ts        ← apiFetch<T>() wrapper + ApiError (credentials: "include" always)
+      <resource>.ts    ← per-resource endpoint modules (mirror backend apps/api/routes/<resource>.ts)
+    envs.ts            ← Zod-validated envs object (parses import.meta.env; throws if missing)
+    query-client.ts    ← single QueryClient instance (retry:false, no refetchOnWindowFocus)
+    utils.ts           ← cn() (tailwind-merge + clsx) — shadcn-owned, do NOT edit manually
+  types/
+    user.ts            ← AuthUser type (UI-side; subset of backend UserSchema output, no normalizedName)
+  i18n/
+    config.ts          ← i18next init (side-effect import) + `resources`/`supportedLngs`/`defaultLng`/`defaultNS` exports
+    locales/
+      en/translation.json   ← English strings (only `login.*` keys now)
+      pt-BR/translation.json ← Brazilian Portuguese strings
+  routes/
+    __root.tsx         ← root layout + devtools
+    _public.tsx        ← pathless public layout (header + LanguageSwitcher + Outlet)
+    _public/login.tsx  ← public login screen (child of _public layout; no inline header/switcher)
+    _authenticated.tsx ← (future) pathless protected layout w/ beforeLoad guard
+    <path>.tsx         ← one file per route; `export const Route = createFileRoute("/path")({ component })`
+  routeTree.gen.ts     ← AUTO-GENERATED, never hand-edit; regen via `npm run generate-routes`
+  styles.css           ← Tailwind v4 + shadcn tokens + @custom-variant dark (auto dark mode)
+```
+
+**Folder rules:**
+- `components/ui/` — shadcn-generated ONLY. Custom components → `src/components/` root or own subfolder.
+- `lib/utils.ts` — shadcn-owned `cn()`. Never edit manually.
+- `routeTree.gen.ts` — auto-generated. Never hand-edit; regen via `npm run generate-routes` after route changes.
+- `lib/api/` — HTTP transport layer (fetch wrapper + per-resource endpoint fns). No cache/state here.
+- `lib/query-client.ts` — `QueryClient` instance + config (cache/state). Separate from `api/` (transport vs cache).
+
+### Data layer
+
+- **TanStack Query only** — no axios, no raw fetch in components. `useMutation` for writes, `useQuery` for reads.
+- `apiFetch<T>(path, init?)` in `src/lib/api/client.ts` is the only fetch surface. It:
+  - always sets `credentials: "include"` (cookie auth, UI is cross-origin 5173→3000),
+  - prefixes `envs.VITE_API_URL` from `src/lib/envs.ts`,
+  - normalizes backend errors into `ApiError { code, message, status, details?, issues? }`,
+  - throws `ApiError` with `status: 0` + `code: "NETWORK_ERROR"` on fetch failure (CORS misconfig, server down).
+- **Backend API contract is source of truth**: response is `{ data: ... }`; error shapes are `{ code, message, context? }` (domain), `{ code, message, details }` (request validation), `{ code, message, issues }` (entity validation). Status map: 401 `INVALID_CREDENTIAL`, 403 `NotAllowedError`, 404 `NotFoundError`, 409 `EntityAlreadyExists`/`LimitExceededError`, 400 `ValidationEntitiesError`/request Zod, 500 `INTERNAL_ERROR`.
+- Per-resource modules in `src/lib/api/<resource>.ts` export typed `input → Promise<T>` functions. Example: `auth.ts` exports `login(input: LoginInput): Promise<LoginResponse>` where `LoginResponse = { data: { user: AuthUser } }`. One module per backend route resource.
+
+### Auth
+
+- `AuthProvider` (`src/context/auth/auth-context.tsx`) holds `{ user, setUser, clearUser, isAuthenticated }`. `useAuth()` throws if used outside provider.
+- User from login response stored in context + `localStorage` key `ih_user` (helpers in `src/context/auth/auth-storage.ts`). On mount, provider hydrates state from `readInitialUser()`.
+- **No `GET /auth/me` on backend yet** — refresh assumes cookie validity; protected calls return 401 and that's the re-validation path. Add `GET /auth/me` to backend later for true rehydration.
+- `AuthUser` type (`src/types/user.ts`) is the UI-side shape — subset of backend `UserSchema` output (drops `normalizedName` the UI doesn't need). Don't import backend types (separate package, no shared types).
+- **Router context:** `main.tsx` creates the router once with `context: { auth: undefined }` placeholder, then `RouterWithAuth` calls `router.update({ context: { auth } })` in an effect when `useAuth()` changes. Route `beforeLoad` guards (future protected routes) read `context.auth.isAuthenticated` — this effect is what keeps guards seeing fresh auth after login/logout.
+
+### Internationalization (i18next + react-i18next)
+
+- **`i18next` + `react-i18next`** — deps in `package.json`. No `i18next-browser-languagedetector` / `i18next-http-backend` — resources are bundled statically (single SPA chunk), no async loading, no localStorage caching of language yet. Add later if needed.
+- Config in `src/i18n/config.ts` — initializes i18next with `initReactI18next` at module load (guarded by `if (!i18n.isInitialized)` so HMR + tests don't double-init). Re-exports: `default i18n`, `resources`, `supportedLngs`, `defaultLng`, `defaultNS`.
+- Resources cast `as unknown as Resource` because JSON imports don't satisfy i18next's `ResourceLanguage` index signature type (concrete shapes miss the `[key: string]` index) — TS workaround, not a runtime concern. Cast stays even with non-empty JSONs.
+- **Wire:** `import "#/i18n/config";` once at top of `src/main.tsx` (before `ReactDOM.createRoot`). Side-effect import initializes i18n synchronously before first render. **No `I18nextProvider`** — react-i18next hooks (`useTranslation`) read the global init'd instance; provider wrapper skipped for SPA simplicity (fine since resources are static, not async-loaded).
+- **Languages:** `en` (default, English-first) + `pt-BR` (Brazilian Portuguese — backend business notes are Brazilian RH context). Locale codes use BCP-47 region subtag (`pt-BR`, not `pt`). Add new language → new folder `src/i18n/locales/<code>/translation.json` + register in `resources` + `supportedLngs` in `config.ts`.
+- **Translation files:** `src/i18n/locales/<lang>/translation.json` — one namespace (`translation`) per language. Structured by screen: `login.*` (login route labels), `theme.*` (mode-toggle labels: toggle/light/dark/system). Built form-validation messages live under `login.errors.*` (`emailInvalid`, `passwordRequired`, `network`, `invalidCredentials`, `validation`, `generic`). Reference keys from components via `useTranslation()` (`t("login.title")`). Keep Zod messages translatable by building the schema inside the component via `useMemo([t])` so messages re-translate on language change.
+- **Schema re-build on i18n change:** for forms whose Zod messages need translation, define the schema inside the component body with `useMemo(() => z.object({ email: z.email(t("login.errors.emailInvalid")), ... }), [t])` and pass it to `useForm({ resolver: zodResolver(schema), ... })`. Schema re-renders when language changes (via `useTranslation()`'s `t` identity). Module-level schemas can't read `t()` (no hook context).
+- **Usage in components:** `import { useTranslation } from "react-i18next"; const { t } = useTranslation(); ... <h1>{t("login.title")}</h1>`. Keys are dot-notation paths into the JSON tree. Backend error messages are NOT translated — they come as English strings from the API; only UI chrome strings go through i18n.
+- Changing language at runtime: `i18n.changeLanguage("pt-BR")` (import `i18n` from `#/i18n/config`) or via `<LanguageSwitcher />` (see below). Persisted to `localStorage` key `ih_lang` (read on boot in `config.ts` as initial `lng`, written on every switch). No `i18next-browser-languagedetector` dep — manual localStorage is simpler + explicit.
+
+### Language switcher (`<LanguageSwitcher />`)
+
+- `src/components/language-switcher.tsx` — reusable dropdown for the header. shadcn `DropdownMenu` + `Button` (`variant="ghost" size="sm"`) + `lucide-react` `Languages`/`Check`. Trigger shows active language label; menu lists all `supportedLngs` with a checkmark on the active one. Click → `i18nInstance.changeLanguage(code)` + persist to `localStorage["ih_lang"]`. Uses `useTranslation()`'s `i18n` ref (re-renders on change) — no local React state; i18n instance is source of truth. `try/catch` on localStorage (private mode).
+- Lives in `src/components/` (NOT `components/ui/` — that's shadcn-only). Custom components go here or in own subfolder.
+- Language labels map (locale → human label) is co-located in the component: `en: "English"`, `pt-BR: "Português (Brasil)"`. Add new languages here too + in `config.ts` `resources`/`supportedLngs` + new `locales/<code>/translation.json`. No flag icons (flags ≠ languages).
+- **Reusable on public + protected screens.** Public screens share the `_public.tsx` pathless layout (header bar with `<LanguageSwitcher />` + `<ModeToggle />` grouped right, centered `<Outlet />` for child content) — screens don't mount their own switcher/toggle or header. Protected screens (future, `_authenticated.tsx` layout) will do the same. NOT mounted in `__root.tsx` (a global header would force layout on every route including bare full-screen ones).
+- No `<AppHeader />` wrapper yet — `_public.tsx` layout has a minimal header (right-aligned switcher + mode toggle). Build a shared header component when the first protected screen lands and you know what else goes in the header (logo/nav/user menu/auth state). The atoms are ready now.
+- TS: `verbatimModuleSyntax` on → `import type { Resource }` for the i18next type. JSON imports resolve via Vite's `resolveJsonModule` (implied by `moduleResolution: "bundler"`) — no extra tsconfig flag needed.
+
+### Theme (dark mode)
+
+- `ThemeProvider` + `useTheme()` in `src/context/theme/theme-provider.tsx` — standard shadcn context provider. State: `"dark" | "light" | "system"`. Applies via `classList.add/remove` on `document.documentElement`. Persists to `localStorage` key `ih_theme` (default) — but `main.tsx` mounts with `defaultTheme="dark" storageKey="vite-ui-theme"` (override defaults). The `storageKey` prop controls the persisted key name.
+- Wired in `src/main.tsx` provider stack (outer→inner): `QueryClientProvider` → `ThemeProvider` → `AuthProvider` → `RouterProvider`. Theme is outermost (no deps on query/auth) — theme persists across all screens + survives auth state changes.
+- `<ModeToggle />` in `src/components/mode-toggle.tsx` — shadcn `DropdownMenu` + `Button` (`variant="outline" size="icon"`) + `lucide-react` `Sun`/`Moon` (animated swap via `dark:` variants). Menu: Light / Dark / System. Labels i18n'd via `t("theme.toggle")` / `t("theme.light")` / `t("theme.dark")` / `t("theme.system")`.
+- Lives in `src/components/` (custom, not shadcn-only — mirrors `language-switcher.tsx`). Reads theme via `useTheme()` from `#/context/theme/theme-provider` (NOT `@/components/theme-provider` — moved).
+- Grouped with `<LanguageSwitcher />` in the `_public.tsx` public layout header (gap-2, flex row). Same pattern will apply to future `_authenticated.tsx` protected layout.
+- **Dark mode automatic** at CSS level — `@custom-variant dark` already in `styles.css`; components use shadcn tokens (`bg-background`, `text-foreground`). Never write raw `dark:` hardcoded variants in custom components — use tokens.
+
+### Routing & routes
+
+- File-based via TanStack Router. New route = new file `src/routes/<path>.tsx` using `createFileRoute("/path")({ component })`. Route tree regenerates automatically on dev/build (`@tanstack/router-plugin` in `vite.config.ts` with `autoCodeSplitting: true` — `/login` ships as its own chunk).
+- After adding a route, `routeTree.gen.ts` updates on next dev/build. For manual regen: `npm run generate-routes` (`tsr generate`). **Never hand-edit `routeTree.gen.ts`** (biome.json ignores it).
+- Public routes (login) live under `_public.tsx` pathless layout (header + `<LanguageSwitcher />` + `<Outlet />`). New public route = new file `src/routes/_public/<path>.tsx` using `createFileRoute("/_public/<path>")`. Public routes set no `beforeLoad`. Protected routes (future, sibling `_authenticated.tsx` layout) use `beforeLoad: ({ context }) => { if (!context.auth.isAuthenticated) throw redirect({ to: "/login" }) }`.
+- Post-login navigation: `const navigate = useNavigate(); ... navigate({ to: "/" })`. No manual `window.location` — breaks SPA.
+
+### Forms (react-hook-form + Zod)
+
+- `react-hook-form` + `@hookform/resolvers/zod` + UI-side Zod schema. **shadcn `form` component is not in the radix-nova registry** — wire RHF directly with `useForm()` + shadcn `Input`/`Label`/`Button` (matches `ui/src/routes/login.tsx`).
+- **UI Zod validation stays coarse** (presence + format). Backend Zod owns the authoritative rules (e.g. `Password` VO min/complexity). Don't duplicate backend rules in UI schemas — they drift. Show backend 400/401 `message` verbatim on server error.
+- Server errors → local `useState<string | null>("serverError")` (not RHF `setError("root.serverError")` since shadcn form abstraction isn't installed) → render in a shadcn `Alert variant="destructive"` above the submit button. Reset to `null` on `onSuccess`.
+- Branch on `ApiError`: `isNetworkError` → "Unable to reach the server"; `status === 401` → backend message (credentials); `status === 400` → backend message (validation); else fallback message.
+- Submit button: `disabled={mutation.isPending}`, show `<Loader2 className="size-4 animate-spin" />` + label while pending.
+- Password fields: prepend `type="password"` Input + toggle button with `lucide-react` `Eye`/`EyeOff` (absolute-positioned, `tabIndex={-1}` to skip keyboard nav) — mobile usability. Install lucide-react if missing (it's a default shadcn iconLibrary dep, already present).
+
+### Styling & responsiveness (desktop-first, full mobile)
+
+- Desktop-first Tailwind classes; mobile works at all widths ≥320px. **Use `min-h-svh` not `min-h-screen`** — `svh` (small viewport height) avoids mobile URL-bar resize jump. Common auth/form wrapper:
+  ```tsx
+  <div className="bg-background flex min-h-svh items-center justify-center p-4 md:p-8">
+    <Card className="w-full max-w-sm md:max-w-md"> ... </Card>
+  </div>
+  ```
+- `Card` sets max-width (`max-w-sm md:max-w-md`); inside, inputs/buttons are `w-full`. **No fixed widths on inputs** — card constrains. Prevents horizontal scroll on mobile.
+- Type scale: title `text-2xl md:text-3xl`, subtitle `text-sm md:text-base`. Touch targets ≥40px (shadcn defaults satisfy this).
+- **Use shadcn tokens** (`bg-background`, `text-foreground`, `text-muted-foreground`, `border`, `text-destructive`, `focus-visible:ring-ring`). **Dark mode automatic** — `@custom-variant dark` already in `styles.css`; never write raw hex/arbitrary colors or `dark:` hardcoded variants.
+- Field error text: `<p className="text-destructive text-xs">...</p>` + `aria-invalid` on the input.
+- No custom CSS, no `styles.css` edits for components.
+
+### Adding shadcn components
+
+```bash
+cd ui
+npx shadcn@latest add <component>     # or use the shadcn MCP
+```
+- Lands in `src/components/ui/`. `$schema`-checked against `components.json` (style `radix-nova`, baseColor `neutral`, cssVariables, iconLibrary `lucide`).
+- **shadcn files ship single-quote + 2-space + no-semicolons** (template defaults) — they violate Biome (tab indent, double quotes, semicolons). After `add`, run `npx biome check --write` to normalize. shadcn `form` is not in the radix-nova registry — wire RHF manually (see login.tsx).
+- Aliases: **`@/*` for shadcn-generated** (matches `components.json` `aliases`); **`#/*` for app code** (package.json `imports` map). Both resolve to `./src/*` per `tsconfig.json`'.
+- `src/lib/utils.ts` `cn()` already present from template.
+
+### Env & dev server
+
+- `ui/.env` (gitignored) holds `VITE_API_URL=http://localhost:3000` (backend API). Copy `ui/.env.example`. Only `VITE_`-prefixed vars exposed to client; `src/lib/envs.ts` validates via Zod at import time (throws at boot if missing) — mirrors backend `infra/envs.ts`. Import `envs` and read `envs.VITE_API_URL`.
+- **UI dev port must match backend `UI_URL`**. Currently UI runs on 5173 (Vite default, `vite dev` no port flag) and backend `.env` sets `UI_URL=http://localhost:5173` for CORS allowlist — cookies work with zero backend config. If you change the UI port, update backend `.env` `UI_URL` to match or cookies break.
+- Backend API on port 3000 (`PORT=3000`, `npm run dev:api` from `backend/`).
+
+### TypeScript quirks (stricter than backend)
+
+- `verbatimModuleSyntax: true` → **`import type` for all type-only imports** (`import type { AuthUser }`, `import type { ReactNode } from "react"`). Biome `useImportType` rule auto-fixes; run `npx biome check --write` after pulling in raw libs.
+- `noUnusedLocals` + `noUnusedParameters` + `noUncheckedSideEffectImports` on. Remove dead imports (e.g. deleted `src/router.tsx` template file).
+- `allowImportingTsExtensions: true` (allowed, not required — relative imports use no extension, e.g. `./routeTree.gen`).
+- `moduleResolution: "bundler"` — no `.js` extensions in relative imports.
+
+### Verification order after UI work (run inside `ui/`)
+
+```bash
+npm run generate-routes   # regen routeTree.gen.ts after adding/changing routes
+npx tsc --noEmit          # typecheck (verbatimModuleSyntax strict — catches import type misses)
+npm run lint             # biome lint
+npm run check            # biome check (lint + format + organize imports)
+npx biome check --write  # auto-fix shadcn file formatting/import-order after `shadcn add`
+npm run build            # vite build → dist/ (route tree regenerates, type errors surface here too)
+npm run dev              # manual smoke, port 5173
+```
+No `type:check` script — `tsc --noEmit` is implied by `build`; run it explicitly for faster iteration.
+
+**Manual auth smoke (both processes running):**
+- `backend/`: `npm run dev:api` (port 3000)
+- `ui/`: `npm run dev` (port 5173)
+- Login at `/login` with a seeded backend user → verify `ih_session` cookie in browser devtools (Application → Cookies, httpOnly), `localStorage` key `ih_user`, redirect to `/`.
+
+### Tests (Vitest + Testing Library, configured but no specs yet)
+
+- `vitest run` + jsdom + `@testing-library/react` configured in `ui/package.json` (`"test": "vitest run"`). `vitest.config.ts` is Vite's default — no separate config.
+- Pattern for component specs: **mock `#/lib/api`** (`vi.mock("#/lib/api/auth", ...)`) — never hit the network. Assert: form validation errors on empty submit, mutation called with right args, `onSuccess` → `setUser` + `navigate` invoked, 401 → destructive `Alert` shown.
+- Mock TanStack Router hooks (`useNavigate`) via `vi.mock("@tanstack/react-router", ...)` or render inside a `createMemoryRouter` test harness.
 
 - **Backend:** Vitest unit + e2e suites green. Biome lint/format configured. Cookie-based auth shipped.
 - **API routes implemented:** `POST /organizations`, `POST/GET/PATCH/DELETE /users`, `POST/GET/PATCH/DELETE /projects`, `POST/GET/PUT/PATCH/DELETE /projects/:projectId/services` + `GET /services/:serviceId/health-checks` + `GET /services/:serviceId/incidents`, `POST /auth/login`, `POST /auth/logout`, `POST /password/forgot`, `POST /password/reset`.
 - **Pagination:** `GET /users` (composite normalizedName+id asc), `GET /services/:id/health-checks` (id desc), `GET /services/:id/incidents` (id desc).
 - **Workers:** BullMQ consumers (healthcheck + notification) with DLQs, Redis locking, graceful shutdown.
 - **Crons:** `clear-test-schemas.ts` for test cleanup.
-- **ui/:** TanStack Router scaffold + shadcn/Tailwind wiring only — no app features implemented (see "UI vs Backend" above).
+- **ui/:** TanStack Router scaffold + shadcn/Tailwind wiring. Login screen implemented (see "UI — building a screen"): TanStack Query data layer, `AuthProvider` + localStorage persistence, `apiFetch` wrapper with `credentials: "include"`, `/login` route with RHF + Zod. Dev port now 5173 (Vite default). No protected routes / guards yet.
 - **No CI configured** (Biome + tests run locally).
