@@ -629,6 +629,8 @@ ui/src/
 - Type scale: title `text-2xl md:text-3xl`, subtitle `text-sm md:text-base`. Touch targets ≥40px (shadcn defaults satisfy this).
 - **Use shadcn tokens** (`bg-background`, `text-foreground`, `text-muted-foreground`, `border`, `text-destructive`, `focus-visible:ring-ring`). **Dark mode automatic** — `@custom-variant dark` already in `styles.css`; never write raw hex/arbitrary colors or `dark:` hardcoded variants.
 - Field error text: `<p className="text-destructive text-xs">...</p>` + `aria-invalid` on the input.
+- **No `<br />` for line breaks between text strings.** Each distinct text string lives in its own element (`<p>`, `<span>`, `<div>`) — the layout/spacing is owned by the parent flex/grid + `space-y-*`/`gap-*`, not by inline break tags.
+- **Do not reuse existing element class names as styling hooks for adjacent/child content.** Each element owns its own className; never piggyback on a sibling's container class to position another element (e.g. nesting buttons inside a `text-center` div to "inherit" the alignment). Keep interactive elements in their own well-named containers.
 - No custom CSS, no `styles.css` edits for components.
 
 ### Adding shadcn components

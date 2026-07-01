@@ -1,4 +1,10 @@
 {
+	"common": {
+		"showPassword": "Show password",
+		"hidePassword": "Hide password",
+		"backToLogin": "Back to login",
+		"tagline": "The system that takes care of your system"
+	},
 	"login": {
 		"title": "Sign in",
 		"email": {
@@ -10,8 +16,6 @@
 		},
 		"submit": "Sign in",
 		"submitLoading": "Signing in…",
-		"showPassword": "Show password",
-		"hidePassword": "Hide password",
 		"forgotPassword": "Forgot password?",
 		"errors": {
 			"emailInvalid": "Enter a valid email",
@@ -23,7 +27,39 @@
 		}
 	},
 	"forgotPassword": {
-		"title": "Reset your password"
+		"title": "Reset your password",
+		"email": {
+			"label": "Email",
+			"placeholder": "you@company.com"
+		},
+		"submit": "Send reset link",
+		"submitLoading": "Sending…",
+		"successTitle": "Check your email",
+		"successDescription": "If an account exists for that email, we've sent a link to reset your password.",
+		"errors": {
+			"emailInvalid": "Enter a valid email",
+			"network": "Unable to reach the server. Please try again.",
+			"generic": "Something went wrong. Please try again."
+		}
+	},
+	"resetPassword": {
+		"title": "Set a new password",
+		"password": { "label": "New password" },
+		"confirmPassword": { "label": "Confirm password" },
+		"submit": "Reset password",
+		"submitLoading": "Resetting…",
+		"successTitle": "Password reset",
+		"successDescription": "Your password has been changed. You can sign in now.",
+		"missingToken_1": "This reset link is invalid",
+		"missingToken_2": "Request a new one",
+		"errors": {
+			"passwordRequired": "Password is required",
+			"passwordMismatch": "Passwords don't match",
+			"network": "Unable to reach the server. Please try again.",
+			"invalidToken": "This reset link is invalid or has expired.",
+			"validation": "Please check the fields and try again.",
+			"generic": "Something went wrong. Please try again."
+		}
 	},
 	"theme": {
 		"toggle": "Toggle theme",
