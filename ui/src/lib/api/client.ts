@@ -1,10 +1,16 @@
 import { envs } from "#/lib/envs";
 
+export type DuplicateContext = {
+	entity?: string;
+	field?: string;
+};
+
 export type ApiErrorBody = {
 	code?: string;
 	message?: string;
 	details?: unknown;
 	issues?: unknown;
+	context?: DuplicateContext;
 };
 
 export class ApiError extends Error {
@@ -12,6 +18,7 @@ export class ApiError extends Error {
 	readonly status: number;
 	readonly details?: unknown;
 	readonly issues?: unknown;
+	readonly context?: DuplicateContext;
 
 	constructor(
 		code: string,
@@ -25,6 +32,7 @@ export class ApiError extends Error {
 		this.status = status;
 		this.details = body?.details;
 		this.issues = body?.issues;
+		this.context = body?.context;
 	}
 
 	get isNetworkError(): boolean {

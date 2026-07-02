@@ -17,11 +17,40 @@
 		"submit": "Sign in",
 		"submitLoading": "Signing in…",
 		"forgotPassword": "Forgot password?",
+		"createAccount": "Create account",
+		"registeredHint": "Your account is ready. Sign in.",
 		"errors": {
 			"emailInvalid": "Enter a valid email",
 			"passwordRequired": "Password is required",
 			"network": "Unable to reach the server. Please try again.",
 			"invalidCredentials": "Invalid email or password.",
+			"validation": "Please check the fields and try again.",
+			"generic": "Something went wrong. Please try again."
+		}
+	},
+	"register": {
+		"title": "Create your organization",
+		"organization": { "name": { "label": "Organization name" } },
+		"user": {
+			"name": { "label": "Your name" },
+			"email": {
+				"label": "Email",
+				"placeholder": "you@company.com"
+			},
+			"password": { "label": "Password" }
+		},
+		"submit": "Create organization",
+		"submitLoading": "Creating…",
+		"errors": {
+			"orgNameRequired": "Organization name is required",
+			"userNameRequired": "Your name is required",
+			"userNameShort": "Name must be at least 3 characters",
+			"emailInvalid": "Enter a valid email",
+			"emailTaken": "An account with this email already exists",
+			"orgNameTaken": "An organization with this name already exists",
+			"userNameTaken": "A user with this name already exists",
+			"passwordShort": "Password must be at least 8 characters",
+			"network": "Unable to reach the server. Please try again.",
 			"validation": "Please check the fields and try again.",
 			"generic": "Something went wrong. Please try again."
 		}

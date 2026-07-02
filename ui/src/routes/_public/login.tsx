@@ -16,6 +16,7 @@ import { login } from "#/lib/api/auth";
 import { ApiError } from "#/lib/api/client";
 
 export const Route = createFileRoute("/_public/login")({
+	validateSearch: z.object({ registered: z.boolean().optional() }),
 	component: LoginComponent,
 });
 
@@ -23,6 +24,7 @@ function LoginComponent() {
 	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const { setUser } = useAuth();
+	const { registered } = Route.useSearch();
 	const [serverError, setServerError] = useState<string | null>(null);
 
 	const loginSchema = z.object({
@@ -73,7 +75,13 @@ function LoginComponent() {
 				{t("login.title")}
 			</div>
 
-			<form className="space-y-4" onSubmit={onSubmit} noValidate>
+			{registered && (
+				<Alert variant="default" className="border-primary/30">
+					<AlertDescription>{t("login.registeredHint")}</AlertDescription>
+				</Alert>
+			)}
+
+			<form className="mt-4 space-y-4" onSubmit={onSubmit} noValidate>
 				{serverError && (
 					<Alert variant="destructive">
 						<AlertDescription>{serverError}</AlertDescription>
@@ -131,6 +139,15 @@ function LoginComponent() {
 						t("login.submit")
 					)}
 				</Button>
+
+				<div className="text-center">
+					<Link
+						to="/register"
+						className="text-muted-foreground hover:text-foreground text-xs underline-offset-4 hover:underline"
+					>
+						{t("login.createAccount")}
+					</Link>
+				</div>
 			</form>
 
 			<div className="text-muted-foreground w-full text-center text-sm mt-16 animate-caret-blink text-red-400 dark:text-red-300">

@@ -3,7 +3,16 @@
   "autoupdate": true,
 
   "agent": {
-    "caveman*": {
+    "caveman-investigator": {
+      "mode": "primary",
+      "model": "zai/glm-5.2",
+      "tools": {
+        "write": false,
+        "edit": false,
+        "bash": true,
+      },
+    },
+    "caveman-reviewer": {
       "mode": "primary",
       "model": "zai/glm-5.2",
       "tools": {

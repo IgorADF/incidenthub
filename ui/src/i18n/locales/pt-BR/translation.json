@@ -17,11 +17,40 @@
 		"submit": "Entrar",
 		"submitLoading": "Entrando…",
 		"forgotPassword": "Esqueceu a senha?",
+		"createAccount": "Criar conta",
+		"registeredHint": "Sua conta está pronta. Entre.",
 		"errors": {
 			"emailInvalid": "Digite um e-mail válido",
 			"passwordRequired": "A senha é obrigatória",
 			"network": "Não foi possível contatar o servidor. Tente novamente.",
 			"invalidCredentials": "E-mail ou senha inválidos.",
+			"validation": "Verifique os campos e tente novamente.",
+			"generic": "Algo deu errado. Tente novamente."
+		}
+	},
+	"register": {
+		"title": "Criar sua organização",
+		"organization": { "name": { "label": "Nome da organização" } },
+		"user": {
+			"name": { "label": "Seu nome" },
+			"email": {
+				"label": "E-mail",
+				"placeholder": "voce@empresa.com"
+			},
+			"password": { "label": "Senha" }
+		},
+		"submit": "Criar organização",
+		"submitLoading": "Criando…",
+		"errors": {
+			"orgNameRequired": "O nome da organização é obrigatório",
+			"userNameRequired": "Seu nome é obrigatório",
+			"userNameShort": "O nome deve ter ao menos 3 caracteres",
+			"emailInvalid": "Digite um e-mail válido",
+			"emailTaken": "Já existe uma conta com este e-mail",
+			"orgNameTaken": "Já existe uma organização com este nome",
+			"userNameTaken": "Já existe um usuário com este nome",
+			"passwordShort": "A senha deve ter ao menos 8 caracteres",
+			"network": "Não foi possível contatar o servidor. Tente novamente.",
 			"validation": "Verifique os campos e tente novamente.",
 			"generic": "Algo deu errado. Tente novamente."
 		}
